@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>アイコンボタン — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       アイコンボタン — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- 基本ボタンスタイル --- */
+    .btn-icon {
+      /* display: inline-flex → アイコンとテキストを横並びにする柔軟な箱 */
+      display: inline-flex;
+      /* align-items: center → 子要素を縦方向の中央に揃える */
+      align-items: center;
+      /* justify-content: center → 子要素を横方向の中央に揃える */
+      justify-content: center;
+      /* gap: 8px → アイコンとテキストの間隔を確保する。marginではなくgapを使うことで、アイコンの有無に関わらず正しい間隔になる */
+      gap: var(--space-2);
+      /* padding: 10px 20px → 上下10px、左右20pxの内側余白 */
+      padding: 10px 20px;
+      /* font-size: 14px相当 → 読みやすいサイズ */
+      font-size: var(--text-sm);
+      /* font-weight: 600 → やや太字でボタンらしさを出す */
+      font-weight: var(--font-semibold);
+      /* line-height: 1 → ボタンテキストは1行なので行間を詰める */
+      line-height: 1;
+      /* color → テキスト色をブランドカラーに */
+      color: var(--color-brand-600);
+      /* background-color: transparent → 背景を透明にしてアウトラインスタイルに */
+      background-color: transparent;
+      /* border → 1pxの枠線でボタンの境界を示す */
+      border: 1px solid var(--color-brand-300);
+      /* border-radius: 8px → 角を丸くして親しみやすい見た目に */
+      border-radius: var(--radius-md);
+      /* cursor: pointer → 「押せる」ことをカーソルで伝える */
+      cursor: pointer;
+      /* transition → 状態変化をなめらかにアニメーション */
+      transition: background-color var(--duration-fast),
+                  box-shadow var(--duration-fast),
+                  transform var(--duration-fast);
+      /* user-select: none → ボタンテキストの誤選択を防ぐ */
+      user-select: none;
+      /* white-space: nowrap → テキストの折り返しを防ぐ */
+      white-space: nowrap;
+    }
+
+    .btn-icon:hover {
+      /* background-color → 薄いブランドカラーでホバーを示す */
+      background-color: var(--color-brand-50, hsla(222, 80%, 50%, 0.06));
+      /* box-shadow → 軽い影で浮き上がり感を演出 */
+      box-shadow: 0 2px 8px hsla(222, 80%, 50%, 0.15);
+    }
+
+    .btn-icon:active {
+      /* transform: scale(0.97) → 押し込み感を微かな縮小で再現 */
+      transform: scale(0.97);
+      box-shadow: none;
+    }
+
+    .btn-icon:focus-visible {
+      /* outline → キーボード操作時のフォーカスリング */
+      outline: 2px solid var(--color-brand-500);
+      /* outline-offset: 2px → ボタンから少し離して見やすくする */
+      outline-offset: 2px;
+    }
+
+    /* --- アイコン専用ボタン（テキストなし） --- */
+    .btn-icon--square {
+      /* padding: 0 → 余白をなくし、width/heightで正方形を制御 */
+      padding: 0;
+      /* width: 44px → タッチターゲットの最小推奨サイズ（WCAG基準44×44px） */
+      width: 44px;
+      /* aspect-ratio: 1 → 幅と高さを同じにする。width指定だけで正方形になる便利なプロパティ */
+      aspect-ratio: 1;
+      /* border-radius: 50% → 完全な円にする。正方形+50%で円になる */
+      border-radius: 50%;
+    }
+
+    /* ===================================================================
+       CSS-only アイコン定義
+       ::before / ::after 擬似要素で画像を使わずにアイコンを描く
+       =================================================================== */
+
+    /* --- 閉じるアイコン（×マーク） --- */
+    .icon-close {
+      /* position: relative → 子の擬似要素をabsoluteで配置する基準点 */
+      position: relative;
+    }
+
+    .icon-close::before,
+    .icon-close::after {
+      /* content: "" → 擬似要素を表示するために必須。空文字でも必ず書く */
+      content: "";
+      /* position: absolute → 親(.icon-close)を基準に自由に配置 */
+      position: absolute;
+      /* width: 18px → ×マークの線の長さ */
+      width: 18px;
+      /* height: 2px → ×マークの線の太さ */
+      height: 2px;
+      /* background-color: currentColor → 親のcolor値を継承。色を一箇所で管理できる */
+      background-color: currentColor;
+      /* top/left + transform → 中央に配置してから回転 */
+      top: 50%;
+      left: 50%;
+    }
+
+    .icon-close::before {
+      /* transform: translate(-50%, -50%) rotate(45deg) → 中央配置 + 45度回転で×の一方の線 */
+      transform: translate(-50%, -50%) rotate(45deg);
+    }
+
+    .icon-close::after {
+      /* transform: translate(-50%, -50%) rotate(-45deg) → 反対方向に45度回転で×のもう一方の線 */
+      transform: translate(-50%, -50%) rotate(-45deg);
+    }
+
+    /* --- 右矢印アイコン（→ ボーダートリック） --- */
+    .icon-arrow-right {
+      /* position: relative → 擬似要素の配置基準 */
+      position: relative;
+    }
+
+    .icon-arrow-right::after {
+      /* content: "" → 擬似要素を生成 */
+      content: "";
+      /* display: inline-block → サイズ指定を可能にする */
+      display: inline-block;
+      /* width/height: 8px → 矢印の腕の長さを決める正方形 */
+      width: 8px;
+      height: 8px;
+      /* border-right/border-bottom → 正方形の右辺と下辺だけに線を引く */
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      /* transform: rotate(-45deg) → 右下の角を右向きに回転させて「>」の形にする */
+      transform: rotate(-45deg);
+      /* flex-shrink: 0 → テキストが長くてもアイコンが縮まないようにする */
+      flex-shrink: 0;
+    }
+
+    /* --- 下矢印アイコン（↓ ボーダートリック） --- */
+    .icon-arrow-down {
+      position: relative;
+    }
+
+    .icon-arrow-down::after {
+      content: "";
+      display: inline-block;
+      /* width/height: 8px → 矢印のサイズ */
+      width: 8px;
+      height: 8px;
+      /* border-right/border-bottom → 2辺だけ線を引く */
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      /* transform: rotate(45deg) → 右下の角を下向きに回転させて「v」の形にする */
+      transform: rotate(45deg);
+      /* 位置微調整 → 視覚的に中央に見えるよう少し上にずらす */
+      margin-top: -2px;
+      flex-shrink: 0;
+    }
+
+    /* --- プレビュー内の配置補助 --- */
+    .preview-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .preview-row + .preview-row {
+      margin-top: 16px;
+    }
+
+    .preview-label {
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary, #6b7280);
+      min-width: 160px;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">ボタン</span>
+      <h1 class="component-title">アイコンボタン</h1>
+      <p class="component-description">
+        アイコンだけ、またはアイコン＋テキストで操作を示すボタン。画像を使わず、CSSの<code>::before</code>/<code>::after</code>擬似要素とボーダートリックだけでアイコンを描く方法を学びます。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col">
+
+        <div class="preview-row">
+          <span class="preview-label">アイコンのみ（閉じる）</span>
+          <!-- aria-label → テキストがないボタンに「何をするか」をスクリーンリーダーへ伝える -->
+          <button type="button" class="btn-icon btn-icon--square icon-close" aria-label="閉じる"></button>
+        </div>
+
+        <div class="preview-row">
+          <span class="preview-label">アイコン＋テキスト</span>
+          <button type="button" class="btn-icon icon-arrow-right">次へ</button>
+        </div>
+
+        <div class="preview-row">
+          <span class="preview-label">テキスト＋末尾アイコン</span>
+          <button type="button" class="btn-icon icon-arrow-down">ダウンロード</button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>アイコンのみボタンが許される場面</strong><br>
+        ×（閉じる）、☰（メニュー）、⟨ ⟩（戻る・進む）など、世界中のユーザーが意味を理解できるアイコンに限ります。独自のアイコンをテキストなしで使うと、ユーザーは意味を推測しなければならず、操作を躊躇してしまいます。</p>
+
+        <p><strong>アイコン＋テキストのほうが安全な理由</strong><br>
+        アイコンだけでは意味が曖昧な場合、テキストを添えることで確実に伝わります。たとえば下矢印だけでは「展開」なのか「ダウンロード」なのか分かりませんが、テキストがあれば迷いません。迷ったらテキストを付けましょう。</p>
+
+        <p><strong>タッチターゲットの最小サイズ：44×44px</strong><br>
+        WCAG（Webアクセシビリティガイドライン）では、タッチ操作の最小サイズとして44×44pxを推奨しています。アイコンが小さく見えても、ボタン自体のクリック領域は44px以上を確保します。これにより、指が太い人や運動機能に制限がある人でも確実に押せます。</p>
+
+        <p><strong>CSSだけでアイコンを描くメリット</strong><br>
+        画像ファイルやアイコンフォントを読み込む必要がなく、ページの読み込みが速くなります。また、<code>currentColor</code>を使えばテキスト色と連動するため、ダークモード対応も簡単です。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- アイコンのみボタン -->
+<!-- aria-label="閉じる" → 目に見えるテキストがないボタンには必ず付ける。
+     スクリーンリーダーが「閉じるボタン」と読み上げてくれる -->
+<button type="button"
+        class="btn-icon btn-icon--square icon-close"
+        aria-label="閉じる">
+</button>
+
+<!-- アイコン＋テキスト（先頭アイコンは::afterで右に出るため、
+     CSSのflexで order や配置を制御） -->
+<button type="button" class="btn-icon icon-arrow-right">
+  次へ
+</button>
+
+<!-- テキスト＋末尾アイコン -->
+<button type="button" class="btn-icon icon-arrow-down">
+  ダウンロード
+</button></code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* === 基本スタイル === */
+.btn-icon {
+  /* display: inline-flex → アイコンとテキストを横に並べる */
+  display: inline-flex;
+
+  /* align-items: center → 縦方向の中央揃え。アイコンとテキストの高さが違っても中央に揃う */
+  align-items: center;
+
+  /* justify-content: center → 横方向の中央揃え。アイコンのみボタンで中央配置 */
+  justify-content: center;
+
+  /* gap: 8px → アイコンとテキストの間隔。marginで個別に指定するより
+     gapで一括管理するほうが、要素の追加・削除に強い */
+  gap: var(--space-2);
+
+  padding: 10px 20px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  line-height: 1;
+  color: var(--color-brand-600);
+  background-color: transparent;
+  border: 1px solid var(--color-brand-300);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+/* === アイコン専用ボタン（正方形・円形） === */
+.btn-icon--square {
+  /* padding: 0 → 内側余白をなくし、サイズをwidth/heightだけで制御 */
+  padding: 0;
+
+  /* width: 44px → タッチターゲットの最小推奨サイズ（WCAG 2.5.5準拠） */
+  width: 44px;
+
+  /* aspect-ratio: 1 → 幅と高さを1:1にする。widthだけ指定すれば
+     heightが自動で同じ値になる。レスポンシブ対応が楽 */
+  aspect-ratio: 1;
+
+  /* border-radius: 50% → 正方形を完全な円にする。
+     50%はすべての角を最大限に丸くする特別な値 */
+  border-radius: 50%;
+}
+
+/* === ×マーク（閉じるアイコン） === */
+/* ::before と ::after で2本の線を描き、回転させて×を作る */
+.icon-close {
+  /* position: relative → 擬似要素をabsoluteで配置するための基準点 */
+  position: relative;
+}
+
+.icon-close::before,
+.icon-close::after {
+  /* content: "" → 擬似要素の表示に必須。これがないと何も表示されない */
+  content: "";
+
+  /* position: absolute → 親の.icon-closeを基準に自由配置 */
+  position: absolute;
+
+  /* width: 18px, height: 2px → 細長い長方形で「線」を作る */
+  width: 18px;
+  height: 2px;
+
+  /* background-color: currentColor → 親要素のcolorを自動的に継承。
+     ホバー時の色変更やダークモードに自動対応する */
+  background-color: currentColor;
+
+  /* top: 50%, left: 50% → 一旦左上角を中央に置く（後でtranslateで補正） */
+  top: 50%;
+  left: 50%;
+}
+
+.icon-close::before {
+  /* translate(-50%, -50%) → 自分自身の幅・高さの半分だけ戻して真の中央に
+     rotate(45deg) → 45度回転で×の左上→右下の線 */
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.icon-close::after {
+  /* rotate(-45deg) → 反対方向に回転で×の右上→左下の線 */
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+/* === 右矢印アイコン（ボーダートリック） === */
+.icon-arrow-right::after {
+  /* content: "" → 擬似要素を生成 */
+  content: "";
+
+  /* display: inline-block → 幅・高さを指定可能にする */
+  display: inline-block;
+
+  /* width/height: 8px → 小さな正方形を作る */
+  width: 8px;
+  height: 8px;
+
+  /* border-right + border-bottom → 正方形の右辺と下辺だけに線を引く。
+     これで「┘」の形ができる */
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+
+  /* rotate(-45deg) → 「┘」を-45度回転させると「>」（右矢印）になる。
+     回転角度を変えるだけで上下左右どの矢印にもなる */
+  transform: rotate(-45deg);
+
+  /* flex-shrink: 0 → テキストが長くてもアイコンが潰れないようにする */
+  flex-shrink: 0;
+}
+
+/* === 下矢印アイコン === */
+.icon-arrow-down::after {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+
+  /* rotate(45deg) → 「┘」を45度回転させると「v」（下矢印）になる */
+  transform: rotate(45deg);
+
+  /* margin-top: -2px → 視覚的に中央に見えるよう微調整。
+     回転した分だけ重心がずれるため補正する */
+  margin-top: -2px;
+  flex-shrink: 0;
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">非常に小さい画面（320px幅）</div>
+          <div style="max-width: 320px; border: 1px dashed var(--color-brand-200, #c7d2fe); padding: 12px; border-radius: 8px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <button type="button" class="btn-icon btn-icon--square icon-close" aria-label="閉じる"></button>
+              <button type="button" class="btn-icon icon-arrow-right">次へ</button>
+              <button type="button" class="btn-icon icon-arrow-down">ダウンロード</button>
+            </div>
+            <p style="font-size: 12px; color: var(--color-text-secondary, #6b7280); margin-top: 8px;">
+              小さい画面ではアイコンのみボタンでスペースを節約できる。ただし<code>aria-label</code>を忘れずに。
+            </p>
+          </div>
+        </div>
+
+        <div class="edge-case-item">
+          <div class="edge-case-label">RTL（右から左）への配慮</div>
+          <div style="direction: rtl; border: 1px dashed var(--color-brand-200, #c7d2fe); padding: 12px; border-radius: 8px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <button type="button" class="btn-icon icon-arrow-right" style="direction: rtl;">التالي</button>
+              <button type="button" class="btn-icon icon-arrow-down" style="direction: rtl;">تحميل</button>
+            </div>
+            <p style="font-size: 12px; color: var(--color-text-secondary, #6b7280); margin-top: 8px; direction: ltr;">
+              RTL言語では矢印の向きを反転させる必要がある。<code>transform: scaleX(-1)</code>や<code>[dir="rtl"]</code>セレクタを使って対応する。
+            </p>
+          </div>
+        </div>
+
+        <div class="edge-case-item">
+          <div class="edge-case-label">長いテキスト＋アイコン</div>
+          <div style="max-width: 300px;">
+            <button type="button" class="btn-icon icon-arrow-right" style="white-space: normal; text-align: left;">
+              利用規約に同意して次のステップに進む
+            </button>
+          </div>
+          <p style="font-size: 12px; color: var(--color-text-secondary, #6b7280); margin-top: 8px;">
+            テキストが長い場合は折り返しを許可するが、アイコンは<code>flex-shrink: 0</code>で潰れないようにする。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

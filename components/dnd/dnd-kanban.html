@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>カンバンボード — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       カンバンボード — コンポーネントスタイル
+       =================================================================== */
+
+    /* カンバン全体のコンテナ */
+    .kanban-board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-4);
+      width: 100%;
+    }
+
+    @media (max-width: 768px) {
+      .kanban-board {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 各カラム */
+    .kanban-column {
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      min-height: 300px;
+      transition: background-color var(--duration-fast),
+                  box-shadow var(--duration-fast);
+    }
+
+    /* カラムヘッダー */
+    .kanban-column-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-3);
+      padding-bottom: var(--space-3);
+      border-bottom: 2px solid var(--color-border-secondary);
+    }
+
+    .kanban-column-title {
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    /* ステータスドット */
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .status-dot--todo { background-color: #94a3b8; }
+    .status-dot--progress { background-color: #3b82f6; }
+    .status-dot--done { background-color: #22c55e; }
+
+    /* カード数バッジ */
+    .kanban-count {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      background: var(--color-bg-primary);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+    }
+
+    /* カードリスト */
+    .kanban-cards {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      min-height: 100px;
+    }
+
+    /* カンバンカード */
+    .kanban-card {
+      background: var(--color-bg-primary);
+      border: 1px solid var(--color-border-secondary);
+      border-radius: var(--radius-md);
+      padding: var(--space-3);
+      cursor: grab;
+      transition: box-shadow var(--duration-fast),
+                  transform var(--duration-fast),
+                  opacity var(--duration-fast);
+      user-select: none;
+    }
+
+    .kanban-card:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .kanban-card:active {
+      cursor: grabbing;
+    }
+
+    /* ドラッグ中のカード */
+    .kanban-card.dragging {
+      opacity: 0.4;
+      transform: scale(0.95);
+    }
+
+    /* カードのタイトル */
+    .kanban-card-title {
+      font-size: var(--text-sm);
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-2);
+      font-weight: var(--font-medium);
+    }
+
+    /* カードのメタ情報 */
+    .kanban-card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+    }
+
+    /* 優先度ラベル */
+    .kanban-priority {
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      font-weight: var(--font-semibold);
+      text-transform: uppercase;
+    }
+
+    .kanban-priority--high {
+      background-color: #fef2f2;
+      color: #dc2626;
+    }
+
+    .kanban-priority--medium {
+      background-color: #fffbeb;
+      color: #d97706;
+    }
+
+    .kanban-priority--low {
+      background-color: #f0fdf4;
+      color: #16a34a;
+    }
+
+    /* ドラッグオーバー時のカラムハイライト */
+    .kanban-column.drag-over {
+      background-color: var(--color-brand-50);
+      box-shadow: inset 0 0 0 2px var(--color-brand-300);
+    }
+
+    /* カラムの空状態 */
+    .kanban-empty {
+      text-align: center;
+      padding: var(--space-6);
+      color: var(--color-text-tertiary);
+      font-size: var(--text-xs);
+      border: 2px dashed var(--color-border-secondary);
+      border-radius: var(--radius-md);
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">ドラッグ&ドロップ</span>
+      <h1 class="component-title">カンバンボード</h1>
+      <p class="component-description">
+        タスクをカード形式で管理し、ドラッグ操作でカラム間を移動できるカンバンボード。3つのステータス列（未着手・進行中・完了）を持ち、直感的なタスク管理を実現します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col">
+        <div class="kanban-board" id="kanbanBoard">
+          <!-- 未着手カラム -->
+          <div class="kanban-column" data-status="todo">
+            <div class="kanban-column-header">
+              <div class="kanban-column-title">
+                <span class="status-dot status-dot--todo"></span>
+                未着手
+              </div>
+              <span class="kanban-count">3</span>
+            </div>
+            <div class="kanban-cards">
+              <div class="kanban-card" draggable="true" data-id="1">
+                <div class="kanban-card-title">ユーザーストーリーの作成</div>
+                <div class="kanban-card-meta">
+                  <span class="kanban-priority kanban-priority--high">高</span>
+                  <span>3月25日</span>
+                </div>
+              </div>
+              <div class="kanban-card" draggable="true" data-id="2">
+                <div class="kanban-card-title">データベース設計</div>
+                <div class="kanban-card-meta">
+                  <span class="kanban-priority kanban-priority--medium">中</span>
+                  <span>3月28日</span>
+                </div>
+              </div>
+              <div class="kanban-card" draggable="true" data-id="3">
+                <div class="kanban-card-title">環境構築手順書の作成</div>
+                <div class="kanban-card-meta">
+                  <span class="kanban-priority kanban-priority--low">低</span>
+                  <span>4月1日</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 進行中カラム -->
+          <div class="kanban-column" data-status="progress">
+            <div class="kanban-column-header">
+              <div class="kanban-column-title">
+                <span class="status-dot status-dot--progress"></span>
+                進行中
+              </div>
+              <span class="kanban-count">2</span>
+            </div>
+            <div class="kanban-cards">
+              <div class="kanban-card" draggable="true" data-id="4">
+                <div class="kanban-card-title">API エンドポイントの実装</div>
+                <div class="kanban-card-meta">
+                  <span class="kanban-priority kanban-priority--high">高</span>
+                  <span>3月22日</span>
+                </div>
+              </div>
+              <div class="kanban-card" draggable="true" data-id="5">
+                <div class="kanban-card-title">ログイン画面のUI実装</div>
+                <div class="kanban-card-meta">
+                  <span class="kanban-priority kanban-priority--medium">中</span>
+                  <span>3月24日</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 完了カラム -->
+          <div class="kanban-column" data-status="done">
+            <div class="kanban-column-header">
+              <div class="kanban-column-title">
+                <span class="status-dot status-dot--done"></span>
+                完了
+              </div>
+              <span class="kanban-count">1</span>
+            </div>
+            <div class="kanban-cards">
+              <div class="kanban-card" draggable="true" data-id="6">
+                <div class="kanban-card-title">プロジェクト初期設定</div>
+                <div class="kanban-card-meta">
+                  <span class="kanban-priority kanban-priority--low">低</span>
+                  <span>3月20日</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>複数のドロップゾーンを持つ設計</strong><br>
+        各カラムが独立したドロップゾーンとして機能します。dragoverイベントでカラム全体をハイライトすることで、「ここにドロップできる」ことを明確に示します。</p>
+        <p><strong>dataTransferによるカード情報の受け渡し</strong><br>
+        dragstart時にdataTransfer.setData()でカードのIDを保存し、drop時にgetData()で取得します。これにより、どのカードがどこに移動したかを追跡できます。</p>
+        <p><strong>ステータスごとの色分け</strong><br>
+        未着手はグレー、進行中は青、完了は緑のドットで視覚的にステータスを区別します。色だけでなくテキストも併用してアクセシビリティに配慮します。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- カンバンボード → 3列のグリッドレイアウト --&gt;
+&lt;div class="kanban-board" id="kanbanBoard"&gt;
+
+  &lt;!-- 各カラム → data-statusでステータスを識別 --&gt;
+  &lt;div class="kanban-column" data-status="todo"&gt;
+    &lt;div class="kanban-column-header"&gt;
+      &lt;div class="kanban-column-title"&gt;
+        &lt;span class="status-dot status-dot--todo"&gt;&lt;/span&gt;
+        未着手
+      &lt;/div&gt;
+      &lt;span class="kanban-count"&gt;3&lt;/span&gt;
+    &lt;/div&gt;
+
+    &lt;!-- カードリスト → ドロップゾーンとなる領域 --&gt;
+    &lt;div class="kanban-cards"&gt;
+      &lt;!-- draggable="true" → ドラッグ可能に設定 --&gt;
+      &lt;div class="kanban-card" draggable="true" data-id="1"&gt;
+        &lt;div class="kanban-card-title"&gt;タスク名&lt;/div&gt;
+        &lt;div class="kanban-card-meta"&gt;
+          &lt;span class="kanban-priority kanban-priority--high"&gt;高&lt;/span&gt;
+          &lt;span&gt;期限日&lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class="kanban-column" data-status="progress"&gt;...&lt;/div&gt;
+  &lt;div class="kanban-column" data-status="done"&gt;...&lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* カンバンボード → CSS Gridで3列均等配置 */
+.kanban-board {
+  display: grid;
+  /* repeat(3, 1fr) → 3列を均等幅で配置 */
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+/* カラム → 背景色で領域を区別 */
+.kanban-column {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  min-height: 300px;
+  /* transition → ドラッグオーバー時のハイライトを滑らかに */
+  transition: background-color 150ms, box-shadow 150ms;
+}
+
+/* カード → 白背景で浮き上がらせる */
+.kanban-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  cursor: grab;
+  transition: box-shadow 150ms, transform 150ms, opacity 150ms;
+}
+
+/* ドラッグ中のカード → 半透明で移動中を表現 */
+.kanban-card.dragging {
+  opacity: 0.4;
+  transform: scale(0.95);
+}
+
+/* ドラッグオーバー時のカラムハイライト
+   → inset box-shadowで内側に枠線を表示 */
+.kanban-column.drag-over {
+  background-color: var(--color-brand-50);
+  box-shadow: inset 0 0 0 2px var(--color-brand-300);
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">const board = document.getElementById('kanbanBoard');
+let draggedCard = null;
+
+// dragstart → カードのドラッグ開始
+board.addEventListener('dragstart', (e) =&gt; {
+  draggedCard = e.target.closest('.kanban-card');
+  if (!draggedCard) return;
+
+  // dataTransfer.setData() → ドラッグ中にデータを保持する仕組み
+  // カードのdata-id属性値を文字列として保存
+  e.dataTransfer.setData('text/plain', draggedCard.dataset.id);
+  e.dataTransfer.effectAllowed = 'move';
+
+  // requestAnimationFrame → 次のフレームで実行
+  // ドラッグ画像が生成された後にクラスを追加するため
+  requestAnimationFrame(() =&gt; {
+    draggedCard.classList.add('dragging');
+  });
+});
+
+// dragover → カラム上をドラッグ中に連続発火
+board.addEventListener('dragover', (e) =&gt; {
+  e.preventDefault(); // dropイベントを発火させるために必須
+  const column = e.target.closest('.kanban-column');
+  if (!column) return;
+
+  // 他のカラムのハイライトを消してから、現在のカラムをハイライト
+  clearColumnHighlights();
+  column.classList.add('drag-over');
+});
+
+// dragleave → ドラッグ要素がカラムから出た時
+board.addEventListener('dragleave', (e) =&gt; {
+  const column = e.target.closest('.kanban-column');
+  if (column) column.classList.remove('drag-over');
+});
+
+// drop → カラムにカードがドロップされた時
+board.addEventListener('drop', (e) =&gt; {
+  e.preventDefault();
+  const column = e.target.closest('.kanban-column');
+  if (!column || !draggedCard) return;
+
+  // カードリスト要素を取得してカードを追加
+  const cardList = column.querySelector('.kanban-cards');
+  cardList.appendChild(draggedCard);
+
+  clearColumnHighlights();
+  updateCounts(); // 各カラムのカード数を更新
+});
+
+// dragend → ドラッグ終了時のクリーンアップ
+board.addEventListener('dragend', () =&gt; {
+  if (draggedCard) draggedCard.classList.remove('dragging');
+  clearColumnHighlights();
+  draggedCard = null;
+});
+
+// ヘルパー: カラムのハイライトをすべて消去
+function clearColumnHighlights() {
+  board.querySelectorAll('.kanban-column').forEach(col =&gt; {
+    col.classList.remove('drag-over');
+  });
+}
+
+// ヘルパー: 各カラムのカード数バッジを更新
+function updateCounts() {
+  board.querySelectorAll('.kanban-column').forEach(col =&gt; {
+    const count = col.querySelectorAll('.kanban-card').length;
+    col.querySelector('.kanban-count').textContent = count;
+  });
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">空のカラム（全カードを移動した場合）</div>
+          <div style="max-width: 240px;">
+            <div class="kanban-column">
+              <div class="kanban-column-header">
+                <div class="kanban-column-title"><span class="status-dot status-dot--todo"></span> 未着手</div>
+                <span class="kanban-count">0</span>
+              </div>
+              <div class="kanban-cards">
+                <div class="kanban-empty">タスクをここにドラッグ</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">長いタスク名</div>
+          <div style="max-width: 240px;">
+            <div class="kanban-card">
+              <div class="kanban-card-title">このタスクは非常に長い名前を持っており、カード内でテキストが折り返されることを確認するためのテストです</div>
+              <div class="kanban-card-meta">
+                <span class="kanban-priority kanban-priority--high">高</span>
+                <span>3月25日</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    /* ===================================================================
+       カンバンボード — ドラッグ&ドロップ制御
+       =================================================================== */
+
+    const board = document.getElementById('kanbanBoard');
+    let draggedCard = null;
+
+    /* dragstart → カードのドラッグ開始時にIDを保存 */
+    board.addEventListener('dragstart', (e) => {
+      draggedCard = e.target.closest('.kanban-card');
+      if (!draggedCard) return;
+      e.dataTransfer.setData('text/plain', draggedCard.dataset.id);
+      e.dataTransfer.effectAllowed = 'move';
+      requestAnimationFrame(() => {
+        draggedCard.classList.add('dragging');
+      });
+    });
+
+    /* dragover → カラム上通過時にハイライト表示 */
+    board.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const column = e.target.closest('.kanban-column');
+      if (!column) return;
+      clearColumnHighlights();
+      column.classList.add('drag-over');
+    });
+
+    /* dragleave → カラムから離れたらハイライト解除 */
+    board.addEventListener('dragleave', (e) => {
+      const column = e.target.closest('.kanban-column');
+      if (column) column.classList.remove('drag-over');
+    });
+
+    /* drop → カードをドロップ先カラムに移動 */
+    board.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const column = e.target.closest('.kanban-column');
+      if (!column || !draggedCard) return;
+
+      const cardList = column.querySelector('.kanban-cards');
+      /* 空状態メッセージがあれば削除 */
+      const empty = cardList.querySelector('.kanban-empty');
+      if (empty) empty.remove();
+
+      cardList.appendChild(draggedCard);
+      clearColumnHighlights();
+      updateCounts();
+    });
+
+    /* dragend → ドラッグ終了時のクリーンアップ */
+    board.addEventListener('dragend', () => {
+      if (draggedCard) draggedCard.classList.remove('dragging');
+      clearColumnHighlights();
+      draggedCard = null;
+    });
+
+    function clearColumnHighlights() {
+      board.querySelectorAll('.kanban-column').forEach(col => {
+        col.classList.remove('drag-over');
+      });
+    }
+
+    function updateCounts() {
+      board.querySelectorAll('.kanban-column').forEach(col => {
+        const count = col.querySelectorAll('.kanban-card').length;
+        col.querySelector('.kanban-count').textContent = count;
+      });
+    }
+  </script>
+</body>
+</html>

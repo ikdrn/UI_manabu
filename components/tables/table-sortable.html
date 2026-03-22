@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ソート可能テーブル — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       ソート可能テーブル — コンポーネントスタイル
+       =================================================================== */
+
+    .sortable-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+      background: var(--color-surface-raised);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--color-neutral-200);
+    }
+
+    /* --- ヘッダー --- */
+    .sortable-table thead {
+      background: var(--color-neutral-50);
+      border-bottom: 2px solid var(--color-neutral-200);
+    }
+
+    .sortable-table th {
+      padding: var(--space-3) var(--space-4);
+      text-align: left;
+      font-weight: var(--font-semibold);
+      color: var(--color-neutral-700);
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    /* ソート可能ヘッダー */
+    .sortable-table th[aria-sort] {
+      cursor: pointer;
+      position: relative;
+      padding-right: var(--space-8);
+      transition: background var(--duration-fast);
+    }
+
+    .sortable-table th[aria-sort]:hover {
+      background: var(--color-neutral-100);
+    }
+
+    /* ソート矢印インジケーター */
+    .sortable-table th[aria-sort]::after {
+      content: '⇅';
+      position: absolute;
+      right: var(--space-3);
+      color: var(--color-neutral-300);
+      font-size: var(--text-xs);
+    }
+
+    .sortable-table th[aria-sort="ascending"]::after {
+      content: '↑';
+      color: var(--color-brand-600);
+    }
+
+    .sortable-table th[aria-sort="descending"]::after {
+      content: '↓';
+      color: var(--color-brand-600);
+    }
+
+    /* --- セル --- */
+    .sortable-table td {
+      padding: var(--space-3) var(--space-4);
+      color: var(--color-neutral-700);
+      border-bottom: 1px solid var(--color-neutral-100);
+    }
+
+    .sortable-table tbody tr:hover {
+      background: var(--color-brand-50);
+    }
+
+    .sortable-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* 数値は右揃え */
+    .sortable-table .text-right {
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">テーブル</span>
+      <h1 class="component-title">ソート可能テーブル</h1>
+      <p class="component-description">
+        ヘッダーをクリックして列の昇順・降順を切り替えられるテーブル。aria-sort属性で現在のソート状態をスクリーンリーダーに伝えます。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col" style="overflow-x:auto;">
+        <p style="font-size:var(--text-xs); color:var(--color-neutral-400); margin-bottom:var(--space-2); text-align:center;">ヘッダーをクリックしてソートを試してください</p>
+        <table class="sortable-table" id="demo-table">
+          <thead>
+            <tr>
+              <th aria-sort="none" data-type="string">名前</th>
+              <th aria-sort="none" data-type="string">部署</th>
+              <th aria-sort="none" data-type="number" class="text-right">売上（万円）</th>
+              <th aria-sort="none" data-type="date">入社日</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>田中太郎</td><td>営業部</td><td class="text-right">1,250</td><td>2020-04-01</td></tr>
+            <tr><td>鈴木花子</td><td>開発部</td><td class="text-right">890</td><td>2019-10-15</td></tr>
+            <tr><td>佐藤一郎</td><td>営業部</td><td class="text-right">2,100</td><td>2018-01-10</td></tr>
+            <tr><td>山田美咲</td><td>マーケ部</td><td class="text-right">1,560</td><td>2021-07-01</td></tr>
+            <tr><td>高橋健</td><td>開発部</td><td class="text-right">720</td><td>2022-04-01</td></tr>
+            <tr><td>伊藤由美</td><td>マーケ部</td><td class="text-right">1,890</td><td>2017-04-01</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>aria-sort でソート状態を伝える</strong><br>
+        aria-sort 属性は "none"（未ソート）、"ascending"（昇順）、"descending"（降順）の3状態を持ちます。視覚的な矢印アイコンと一緒に使うことで、目が見えるユーザーとスクリーンリーダーユーザーの双方に現在の状態を伝えます。</p>
+        <p><strong>Array.sort() によるクライアントサイドソート</strong><br>
+        少量のデータであればJavaScriptでDOMを直接操作してソートできます。大量のデータ（数百行以上）ではサーバーサイドソートやvirtual scrollの検討が必要です。</p>
+        <p><strong>数値列は右揃え</strong><br>
+        数値は桁を揃えて比較しやすくするため、右揃え（text-align: right）にするのが慣例です。テキスト列は左揃えのままにします。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;table class="sortable-table"&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;!-- aria-sort="none" → まだソートされていない列 --&gt;
+      &lt;!-- data-type → ソート時の比較方法を指定 --&gt;
+      &lt;th aria-sort="none" data-type="string"&gt;名前&lt;/th&gt;
+      &lt;th aria-sort="none" data-type="number"&gt;売上&lt;/th&gt;
+      &lt;th aria-sort="none" data-type="date"&gt;入社日&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;田中太郎&lt;/td&gt;
+      &lt;td class="text-right"&gt;1,250&lt;/td&gt;
+      &lt;td&gt;2020-04-01&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;!-- ... --&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* ソート可能ヘッダーのカーソルとパディング */
+.sortable-table th[aria-sort] {
+  cursor: pointer;
+  padding-right: 32px; /* 矢印分の余白 */
+}
+
+/* --- ソートインジケーター（::afterで矢印を表示） --- */
+/* 未ソート：上下矢印を薄く表示 */
+.sortable-table th[aria-sort]::after {
+  content: '⇅';
+  position: absolute;
+  right: 12px;
+  color: var(--color-neutral-300);
+}
+
+/* 昇順：上矢印をブランドカラーで強調 */
+.sortable-table th[aria-sort="ascending"]::after {
+  content: '↑';
+  color: var(--color-brand-600);
+}
+
+/* 降順：下矢印をブランドカラーで強調 */
+.sortable-table th[aria-sort="descending"]::after {
+  content: '↓';
+  color: var(--color-brand-600);
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">function initSortableTable(table) {
+  const headers = table.querySelectorAll('th[aria-sort]');
+  const tbody = table.querySelector('tbody');
+
+  headers.forEach((header, colIndex) => {
+    header.addEventListener('click', () => {
+      // 現在のソート方向を取得し、次の方向を決定
+      const currentSort = header.getAttribute('aria-sort');
+      const nextSort = currentSort === 'ascending'
+        ? 'descending' : 'ascending';
+
+      // 全ヘッダーのaria-sortをリセット
+      headers.forEach(h => h.setAttribute('aria-sort', 'none'));
+      header.setAttribute('aria-sort', nextSort);
+
+      // tbody内の行を配列に変換してソート
+      const rows = [...tbody.querySelectorAll('tr')];
+      const type = header.dataset.type; // string / number / date
+
+      rows.sort((a, b) => {
+        let aVal = a.cells[colIndex].textContent.trim();
+        let bVal = b.cells[colIndex].textContent.trim();
+
+        // データ型に応じた比較
+        if (type === 'number') {
+          // カンマを除去して数値化
+          aVal = parseFloat(aVal.replace(/,/g, ''));
+          bVal = parseFloat(bVal.replace(/,/g, ''));
+        } else if (type === 'date') {
+          aVal = new Date(aVal);
+          bVal = new Date(bVal);
+        }
+
+        // 昇順/降順の切り替え
+        const direction = nextSort === 'ascending' ? 1 : -1;
+
+        if (type === 'string') {
+          return direction * aVal.localeCompare(bVal, 'ja');
+        }
+        return direction * (aVal - bVal);
+      });
+
+      // ソート結果をDOMに反映
+      rows.forEach(row => tbody.appendChild(row));
+    });
+  });
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">空のセルを含むデータ</div>
+          <table class="sortable-table" id="edge-table-empty">
+            <thead>
+              <tr>
+                <th aria-sort="none" data-type="string">名前</th>
+                <th aria-sort="none" data-type="string">メモ</th>
+                <th aria-sort="none" data-type="number" class="text-right">スコア</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>田中</td><td>優秀</td><td class="text-right">95</td></tr>
+              <tr><td>鈴木</td><td></td><td class="text-right">80</td></tr>
+              <tr><td>佐藤</td><td>要確認</td><td class="text-right"></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">同じ値が複数ある場合</div>
+          <p style="font-size:var(--text-xs); color:var(--color-neutral-500);">同じ値の行の順序は安定ソートにより元の順序が維持されます。</p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script>
+    function initSortableTable(table) {
+      const headers = table.querySelectorAll('th[aria-sort]');
+      const tbody = table.querySelector('tbody');
+
+      headers.forEach((header, colIndex) => {
+        header.addEventListener('click', () => {
+          const currentSort = header.getAttribute('aria-sort');
+          const nextSort = currentSort === 'ascending' ? 'descending' : 'ascending';
+
+          headers.forEach(h => h.setAttribute('aria-sort', 'none'));
+          header.setAttribute('aria-sort', nextSort);
+
+          const rows = [...tbody.querySelectorAll('tr')];
+          const type = header.dataset.type;
+
+          rows.sort((a, b) => {
+            let aVal = a.cells[colIndex].textContent.trim();
+            let bVal = b.cells[colIndex].textContent.trim();
+
+            if (!aVal) return 1;
+            if (!bVal) return -1;
+
+            if (type === 'number') {
+              aVal = parseFloat(aVal.replace(/,/g, '')) || 0;
+              bVal = parseFloat(bVal.replace(/,/g, '')) || 0;
+            } else if (type === 'date') {
+              aVal = new Date(aVal);
+              bVal = new Date(bVal);
+            }
+
+            const direction = nextSort === 'ascending' ? 1 : -1;
+            if (type === 'string') {
+              return direction * aVal.localeCompare(bVal, 'ja');
+            }
+            return direction * (aVal - bVal);
+          });
+
+          rows.forEach(row => tbody.appendChild(row));
+        });
+      });
+    }
+
+    document.querySelectorAll('.sortable-table').forEach(initSortableTable);
+  </script>
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

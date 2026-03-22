@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iOSスタイルトグル — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       iOSスタイルトグルスイッチ — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- トグルのラッパー（label要素） ---
+       label要素で全体を囲むことで、テキスト部分をクリックしても
+       トグルが切り替わるようになる。タッチ領域の拡大に役立つ */
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-3);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* --- チェックボックスを非表示にする ---
+       appearance: none → ブラウザ標準のチェックボックスの見た目を完全に消す。
+       これにより、自分で好きなデザインを一から作れるようになる。
+       position: relative → ::before疑似要素の位置基準にする */
+    .toggle__input {
+      appearance: none;
+      -webkit-appearance: none;
+      position: relative;
+      width: 51px;
+      height: 31px;
+      border-radius: 15.5px;
+      background-color: #e9e9eb;
+      transition: background-color 0.3s ease;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin: 0;
+
+      /* box-shadow: inset → 内側に影を落として、トラック（溝）に
+         奥行き感を出す。物理スイッチの溝を再現する表現 */
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+
+      /* 最小タッチターゲット44px以上を確保。
+         Appleのヒューマンインターフェースガイドラインで推奨される
+         最小タップ領域サイズ。指で正確にタップできるようにする */
+      min-height: 31px;
+    }
+
+    /* --- 丸いノブ（つまみ）を疑似要素で作る ---
+       ::before → HTML要素を追加せずに装飾用の要素を生成できる。
+       ここでは白い丸（ノブ）を作ってスイッチの動く部分にする */
+    .toggle__input::before {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 27px;
+      height: 27px;
+      border-radius: 50%;
+      background-color: white;
+
+      /* box-shadow → ノブに影を付けて「浮いている」立体感を出す。
+         複数の影を重ねることで、よりリアルな陰影を表現する */
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15),
+                  0 0 1px rgba(0, 0, 0, 0.06);
+
+      /* transition → ノブの移動をなめらかにアニメーションさせる。
+         0.3sは自然で心地よいスライド速度 */
+      transition: transform 0.3s ease;
+    }
+
+    /* --- チェック時（ONの状態） ---
+       :checked → チェックボックスがONの時に適用される擬似クラス。
+       背景色をiOS標準の緑色（#34C759）に変更する */
+    .toggle__input:checked {
+      /* #34C759 → AppleのiOSで使われる標準的な「オン」の緑色。
+         ユーザーが「有効」「オン」と直感的に理解できる色 */
+      background-color: #34C759;
+    }
+
+    /* --- チェック時のノブ移動 ---
+       transform: translateX(20px) → ノブを右に20px移動させる。
+       translateXは水平方向の移動で、leftプロパティを変えるより
+       GPUアクセラレーションが効くため、なめらかに動く */
+    .toggle__input:checked::before {
+      transform: translateX(20px);
+    }
+
+    /* --- フォーカス表示（キーボード操作時） ---
+       :focus-visible → Tabキーなどキーボードでフォーカスした時だけ
+       表示される。マウスクリック時には表示されない */
+    .toggle__input:focus-visible {
+      outline: 2px solid var(--color-brand-500);
+      outline-offset: 2px;
+    }
+
+    /* --- 無効状態 ---
+       :disabled → トグルが操作不可の時。透明度を下げて
+       「触れない」ことを視覚的に伝える */
+    .toggle__input:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* 無効状態のラベルにも禁止カーソルを適用する */
+    .toggle:has(.toggle__input:disabled) {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    /* --- ラベルテキスト --- */
+    .toggle__label {
+      font-size: var(--text-sm);
+      color: var(--color-text-primary);
+      line-height: 1.4;
+    }
+
+    /* --- ON/OFFテキストラベル付きトグル ---
+       トグルの横にON/OFFのテキストを表示して、
+       色だけでなくテキストでも状態を伝える（アクセシビリティ向上） */
+    .toggle__status {
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-secondary);
+      min-width: 28px;
+    }
+
+    .toggle__input:checked ~ .toggle__status {
+      color: #34C759;
+    }
+
+    /* ===================================================================
+       サイズバリエーション
+       =================================================================== */
+
+    /* --- 小サイズ ---
+       設定画面など、限られたスペースでトグルを並べる場合に使う */
+    .toggle__input--sm {
+      width: 40px;
+      height: 24px;
+      border-radius: 12px;
+    }
+
+    .toggle__input--sm::before {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* 小サイズのノブ移動距離 → トラック幅 - ノブ幅 - 左右余白
+       40 - 20 - 4 = 16px */
+    .toggle__input--sm:checked::before {
+      transform: translateX(16px);
+    }
+
+    /* ===================================================================
+       設定リスト風レイアウト
+       =================================================================== */
+
+    .settings-list {
+      border: 1px solid var(--color-border-primary);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      max-width: 400px;
+    }
+
+    .settings-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--color-border-primary);
+    }
+
+    .settings-item:last-child {
+      border-bottom: none;
+    }
+
+    .settings-item__text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .settings-item__title {
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      color: var(--color-text-primary);
+    }
+
+    .settings-item__desc {
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">トグルスイッチ</span>
+      <h1 class="component-title">iOSスタイルトグル</h1>
+      <p class="component-description">
+        iOSの設定画面でおなじみの、丸いノブがスライドするトグルスイッチ。WiFiやBluetoothのON/OFFなど、「即座に効果が反映される」切り替えに使います。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col" style="gap: 24px;">
+
+        <!-- デフォルト OFF -->
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <span class="edge-case-label" style="min-width: 120px;">デフォルト OFF</span>
+          <label class="toggle">
+            <input type="checkbox" class="toggle__input">
+          </label>
+        </div>
+
+        <!-- デフォルト ON -->
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <span class="edge-case-label" style="min-width: 120px;">デフォルト ON</span>
+          <label class="toggle">
+            <input type="checkbox" class="toggle__input" checked>
+          </label>
+        </div>
+
+        <!-- ラベル付き（ON/OFFテキスト） -->
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <span class="edge-case-label" style="min-width: 120px;">ラベル付き</span>
+          <label class="toggle">
+            <span class="toggle__label">通知を受け取る</span>
+            <input type="checkbox" class="toggle__input" id="toggle-labeled">
+            <span class="toggle__status" id="toggle-labeled-status">OFF</span>
+          </label>
+        </div>
+
+        <!-- 無効状態 -->
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <span class="edge-case-label" style="min-width: 120px;">無効（OFF）</span>
+          <label class="toggle">
+            <input type="checkbox" class="toggle__input" disabled>
+          </label>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <span class="edge-case-label" style="min-width: 120px;">無効（ON）</span>
+          <label class="toggle">
+            <input type="checkbox" class="toggle__input" checked disabled>
+          </label>
+        </div>
+
+        <!-- サイズ比較 -->
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <span class="edge-case-label" style="min-width: 120px;">小サイズ</span>
+          <label class="toggle">
+            <input type="checkbox" class="toggle__input toggle__input--sm">
+          </label>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <span class="edge-case-label" style="min-width: 120px;">標準サイズ</span>
+          <label class="toggle">
+            <input type="checkbox" class="toggle__input">
+          </label>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>トグルスイッチ vs チェックボックス：いつ使い分ける？</strong><br>
+        トグルスイッチは「即座に効果が反映される」操作に使います。例：WiFiのON/OFF、ダークモードの切り替え。一方、チェックボックスは「保存ボタンを押すまで反映されない」設定に使います。例：利用規約への同意、メール受信設定。この違いをユーザーは無意識に期待しているため、正しく使い分けることが重要です。</p>
+
+        <p><strong>最小タッチターゲット44px</strong><br>
+        Appleのヒューマンインターフェースガイドラインでは、タップ可能な領域の最小サイズとして44×44ptを推奨しています。トグルの高さは31pxですが、label要素で囲むことでクリック可能な領域をテキスト部分まで広げ、操作しやすくしています。</p>
+
+        <p><strong>色だけに頼らない状態表現</strong><br>
+        色覚特性を持つユーザーにも状態が伝わるよう、ノブの「位置」でもON/OFFを表現しています。左＝OFF、右＝ONという位置の違いがあるため、緑とグレーの色の違いが見えなくても状態を判別できます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- label要素で囲む → テキスト部分をクリックしてもトグルが動く。
+     タッチ領域を広げてスマホでも押しやすくする -->
+&lt;label class="toggle"&gt;
+  &lt;span class="toggle__label"&gt;Wi-Fi&lt;/span&gt;
+
+  <!-- input type="checkbox" → トグルの実体はチェックボックス。
+       appearance: none でデフォルトの見た目を消して、
+       CSSで完全にカスタムデザインする -->
+  &lt;input type="checkbox" class="toggle__input"&gt;
+&lt;/label&gt;
+
+<!-- checked属性 → 初期状態をONにする -->
+&lt;label class="toggle"&gt;
+  &lt;span class="toggle__label"&gt;Bluetooth&lt;/span&gt;
+  &lt;input type="checkbox" class="toggle__input" checked&gt;
+&lt;/label&gt;
+
+<!-- disabled属性 → トグルを無効化。操作できなくなる -->
+&lt;label class="toggle"&gt;
+  &lt;span class="toggle__label"&gt;機内モード&lt;/span&gt;
+  &lt;input type="checkbox" class="toggle__input" disabled&gt;
+&lt;/label&gt;
+
+<!-- 小サイズ → toggle__input--sm クラスを追加 -->
+&lt;label class="toggle"&gt;
+  &lt;span class="toggle__label"&gt;省電力モード&lt;/span&gt;
+  &lt;input type="checkbox" class="toggle__input toggle__input--sm"&gt;
+&lt;/label&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- label要素でトグル全体を囲む ---
+   label内のinputは、labelをクリックするだけで
+   チェック状態が切り替わる。これによりタッチ領域を
+   テキスト部分まで広げられる */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* --- チェックボックスの見た目を消してトラック（溝）を作る ---
+   appearance: none → ブラウザ標準のチェックボックスの
+   見た目（□ マーク）を完全に消す。
+   これで自由にデザインを作れるようになる */
+.toggle__input {
+  appearance: none;
+  -webkit-appearance: none; /* Safari対応 */
+  position: relative;       /* ::beforeの位置基準 */
+  width: 51px;              /* iOSトグルの標準幅 */
+  height: 31px;             /* iOSトグルの標準高さ */
+
+  /* border-radius → 高さの半分を指定すると完全な丸（ピル型）になる。
+     これがiOSトグル特有の形状を作る */
+  border-radius: 15.5px;
+
+  background-color: #e9e9eb; /* OFF時のグレー */
+
+  /* transition → 背景色の変化を0.3秒かけてなめらかにする。
+     パチッと切り替わるのではなく、じわっと色が変わる */
+  transition: background-color 0.3s ease;
+
+  /* box-shadow: inset → 内側に影を落とす。
+     通常のbox-shadowは外側に影が出るが、insetをつけると
+     内側に影が入り、トラックに凹み感が出る */
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+
+  cursor: pointer;
+  flex-shrink: 0; /* flexコンテナ内で縮まないようにする */
+  margin: 0;
+}
+
+/* --- 丸いノブ（つまみ）を::before疑似要素で作る ---
+   ::before → HTMLを追加せずにCSS だけで要素を生成する。
+   contentプロパティ（空でもOK）が必須 */
+.toggle__input::before {
+  content: "";            /* 空でも必ず指定する（これがないと表示されない） */
+  position: absolute;     /* 親要素（input）内で自由に配置 */
+  top: 2px;               /* トラック内側に2pxの余白 */
+  left: 2px;
+  width: 27px;            /* ノブの直径 */
+  height: 27px;
+  border-radius: 50%;     /* 50%で完全な円にする */
+  background-color: white;
+
+  /* box-shadow → 複数の影を重ねてリアルな立体感を出す。
+     1つ目：ぼんやりした大きめの影で浮遊感
+     2つ目：くっきりした小さい影でエッジ感 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15),
+              0 0 1px rgba(0, 0, 0, 0.06);
+
+  /* transition → ノブの移動アニメーション。
+     transform プロパティの変化を0.3秒かけて行う。
+     ease（徐々に減速）で自然な動きになる */
+  transition: transform 0.3s ease;
+}
+
+/* --- :checked → ONの状態 ---
+   チェックボックスがチェックされた時に適用される。
+   背景色をiOS標準のグリーン（#34C759）に変更 */
+.toggle__input:checked {
+  background-color: #34C759;
+}
+
+/* --- :checked時のノブ移動 ---
+   transform: translateX(20px) → ノブを右に20px動かす。
+   leftプロパティではなくtransformを使う理由：
+   transformはGPUで処理されるため、60fpsのなめらかな
+   アニメーションが実現できる（leftはCPU処理で重い） */
+.toggle__input:checked::before {
+  transform: translateX(20px);
+  /* 移動距離の計算：
+     トラック幅(51) - ノブ幅(27) - 左余白(2) - 右余白(2) = 20px */
+}
+
+/* --- :focus-visible → キーボード操作でフォーカスした時 ---
+   Tabキーで移動した時にだけ表示される輪郭線。
+   マウスクリック時には表示されない */
+.toggle__input:focus-visible {
+  outline: 2px solid #007AFF;
+  outline-offset: 2px;
+}
+
+/* --- :disabled → 無効状態 ---
+   opacity: 0.4 → 透明度を下げてグレーアウトした見た目にする。
+   色を変えるより透明度を使うほうが、ON/OFFどちらの状態でも
+   「無効」を表現できる（色に依存しない） */
+.toggle__input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+
+        <!-- 無効状態 -->
+        <div class="edge-case-item">
+          <div class="edge-case-label">無効状態（管理者権限が必要な設定）</div>
+          <label class="toggle">
+            <span class="toggle__label">管理者設定（変更不可）</span>
+            <input type="checkbox" class="toggle__input" checked disabled>
+          </label>
+        </div>
+
+        <!-- 設定リスト内での使用 -->
+        <div class="edge-case-item">
+          <div class="edge-case-label">設定リスト内での使用</div>
+          <div class="settings-list">
+            <label class="settings-item">
+              <div class="settings-item__text">
+                <span class="settings-item__title">Wi-Fi</span>
+                <span class="settings-item__desc">接続済み: Home-Network</span>
+              </div>
+              <input type="checkbox" class="toggle__input" checked>
+            </label>
+            <label class="settings-item">
+              <div class="settings-item__text">
+                <span class="settings-item__title">Bluetooth</span>
+                <span class="settings-item__desc">オフ</span>
+              </div>
+              <input type="checkbox" class="toggle__input">
+            </label>
+            <label class="settings-item">
+              <div class="settings-item__text">
+                <span class="settings-item__title">機内モード</span>
+              </div>
+              <input type="checkbox" class="toggle__input">
+            </label>
+            <label class="settings-item">
+              <div class="settings-item__text">
+                <span class="settings-item__title">省データモード</span>
+                <span class="settings-item__desc">管理者により制限中</span>
+              </div>
+              <input type="checkbox" class="toggle__input" disabled>
+            </label>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script>
+    /* --- ON/OFFラベルの状態切り替え ---
+       トグルの状態に合わせてテキストを更新する。
+       色だけでなくテキストでも状態を伝えるアクセシビリティ対策 */
+    const labeledToggle = document.getElementById('toggle-labeled');
+    const labeledStatus = document.getElementById('toggle-labeled-status');
+
+    if (labeledToggle && labeledStatus) {
+      labeledToggle.addEventListener('change', function() {
+        labeledStatus.textContent = this.checked ? 'ON' : 'OFF';
+      });
+    }
+  </script>
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

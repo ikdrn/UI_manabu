@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>統計カード — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       統計カード（ダッシュボード用メトリクスカード） — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- ダッシュボード用グリッドレイアウト ---
+       display: grid で子要素をタイル状に並べる。
+       repeat(auto-fit, minmax(220px, 1fr)) は「最小220px、余りは均等配分」の意味。
+       画面幅に応じて自動的にカラム数が変わるレスポンシブグリッド */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: var(--space-4);
+    }
+
+    /* --- 統計カード本体 ---
+       カードの基本スタイル。背景・角丸・影でカードらしい外観を作る */
+    .stat-card {
+      background-color: var(--color-bg-primary);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+
+      /* display: flex + flex-direction: column で縦に積む。
+         ラベル → 数値 → トレンドの順序を維持する */
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+
+      /* transition → ホバー時のアニメーションを滑らかにする */
+      transition: box-shadow var(--duration-fast),
+                  transform var(--duration-fast);
+    }
+
+    /* カードにホバーした時、わずかに浮き上がる演出。
+       ダッシュボードではカードをクリックして詳細に遷移するパターンが多いため、
+       インタラクティブであることを示す */
+    .stat-card:hover {
+      box-shadow: 0 4px 12px hsla(0, 0%, 0%, 0.08);
+      transform: translateY(-2px);
+    }
+
+    /* --- カードラベル（指標名） ---
+       font-size を小さくし、色を薄くして視覚的な階層を作る。
+       ラベルは「何の数値か」を説明する脇役なので控えめにする */
+    .stat-label {
+      font-size: var(--text-xs);
+      font-weight: var(--font-medium);
+      color: var(--color-text-secondary);
+      letter-spacing: 0.025em;
+    }
+
+    /* --- 数値（メインの値） ---
+       カードの主役。最も大きく太い文字で視線を集める。
+       font-variant-numeric: tabular-nums は数字を等幅にする指定。
+       これにより「12,847」と「3,284,000」が桁ごとに縦に揃い、
+       複数カードを並べた時に比較しやすくなる */
+    .stat-value {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      color: var(--color-text-primary);
+      line-height: 1.2;
+
+      /* tabular-nums → 全ての数字が同じ幅を持つ。
+         プロポーショナル数字（デフォルト）だと「1」が狭く「0」が広いため、
+         数値が変動するダッシュボードではレイアウトがガタつく。
+         tabular-nums でそれを防ぐ */
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* --- トレンド表示（前期比など） ---
+       数値の変化方向と量を示す。矢印 + パーセンテージのセット。
+       数値だけでは「良いのか悪いのか」判断できないため、
+       トレンドで文脈を与える */
+    .stat-trend {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-size: var(--text-xs);
+      font-weight: var(--font-medium);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* --- トレンドの色分け ---
+       上昇（ポジティブ）は緑、下降（ネガティブ）は赤、横ばいはグレー。
+       色だけに頼ると色覚多様性のユーザーに伝わらないため、
+       矢印（↑↓→）を併用して方向を示す */
+
+    /* 上昇トレンド: 緑色で「良い方向」を表す */
+    .stat-trend--up {
+      color: var(--color-success, #16a34a);
+    }
+
+    /* 下降トレンド: 赤色で「注意が必要」を表す */
+    .stat-trend--down {
+      color: var(--color-error, #dc2626);
+    }
+
+    /* 横ばい: グレーで「変化なし」を表す */
+    .stat-trend--neutral {
+      color: var(--color-text-tertiary, #6b7280);
+    }
+
+    /* --- トレンド矢印 ---
+       Unicode矢印の代わりにCSSのborderトリックで三角形を作る方法。
+       borderの各辺を透明にし、一辺だけ色を付けると三角形になる原理を利用。
+       これにより、フォントに依存せず一貫した見た目の矢印を表示できる */
+    .stat-trend__arrow {
+      display: inline-block;
+      width: 0;
+      height: 0;
+
+      /* 全辺を透明に初期化 */
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+    }
+
+    /* 上向き矢印 → border-bottom だけ色を付ける。
+       下辺だけ実線にすると、上に向かう三角形ができる */
+    .stat-trend--up .stat-trend__arrow {
+      border-bottom: 5px solid currentColor;
+    }
+
+    /* 下向き矢印 → border-top だけ色を付ける。
+       上辺だけ実線にすると、下に向かう三角形ができる */
+    .stat-trend--down .stat-trend__arrow {
+      border-top: 5px solid currentColor;
+    }
+
+    /* 横ばい矢印 → borderトリックでは横矢印が作りにくいため、
+       疑似要素で横棒を描画する */
+    .stat-trend--neutral .stat-trend__arrow {
+      width: 8px;
+      height: 2px;
+      background-color: currentColor;
+      border: none;
+      border-radius: 1px;
+    }
+
+    /* --- ローディング（スケルトン）状態 ---
+       データ取得中に表示するプレースホルダー。
+       実際の要素と同じサイズのグレーの矩形を表示し、
+       コンテンツが読み込まれた時にレイアウトシフトが起きないようにする */
+    .stat-card--loading .stat-label,
+    .stat-card--loading .stat-value,
+    .stat-card--loading .stat-trend {
+      /* テキストを透明にして見えなくする */
+      color: transparent;
+      /* ユーザーが選択できないようにする */
+      user-select: none;
+      /* 角丸の矩形にする */
+      border-radius: var(--radius-sm);
+      /* 背景をグレーに */
+      background-color: var(--color-border-default, #e5e7eb);
+      /* スケルトンアニメーション */
+      animation: skeleton-pulse 1.5s ease-in-out infinite;
+    }
+
+    /* ラベル部分のスケルトン幅 → 短めにして「ラベルっぽさ」を出す */
+    .stat-card--loading .stat-label {
+      width: 60%;
+      height: 1em;
+    }
+
+    /* 数値部分のスケルトン幅 → 広めにして「数値っぽさ」を出す */
+    .stat-card--loading .stat-value {
+      width: 80%;
+      height: 1.5em;
+    }
+
+    /* トレンド部分のスケルトン幅 */
+    .stat-card--loading .stat-trend {
+      width: 40%;
+      height: 1em;
+    }
+
+    /* @keyframes → アニメーションの定義。
+       明るさを周期的に変えて「読み込み中」を視覚的に伝える。
+       skeleton-pulse という名前で、他のCSSから参照できる */
+    @keyframes skeleton-pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.4;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">カード</span>
+      <h1 class="component-title">統計カード</h1>
+      <p class="component-description">
+        ダッシュボードでKPI（重要指標）を一覧表示するためのカード。数値を主役にし、トレンド（増減）で文脈を与えることで、一目でビジネスの状況を把握できます。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col">
+        <div class="stats-grid">
+
+          <!-- カード1: 総ユーザー数（上昇トレンド） -->
+          <div class="stat-card">
+            <span class="stat-label">総ユーザー数</span>
+            <span class="stat-value">12,847</span>
+            <span class="stat-trend stat-trend--up">
+              <span class="stat-trend__arrow"></span>
+              12.5%
+            </span>
+          </div>
+
+          <!-- カード2: 月間売上（上昇トレンド） -->
+          <div class="stat-card">
+            <span class="stat-label">月間売上</span>
+            <span class="stat-value">&yen;3,284,000</span>
+            <span class="stat-trend stat-trend--up">
+              <span class="stat-trend__arrow"></span>
+              8.2%
+            </span>
+          </div>
+
+          <!-- カード3: コンバージョン率（下降トレンド） -->
+          <div class="stat-card">
+            <span class="stat-label">コンバージョン率</span>
+            <span class="stat-value">3.24%</span>
+            <span class="stat-trend stat-trend--down">
+              <span class="stat-trend__arrow"></span>
+              2.1%
+            </span>
+          </div>
+
+          <!-- カード4: 直帰率（横ばい） -->
+          <div class="stat-card">
+            <span class="stat-label">直帰率</span>
+            <span class="stat-value">42.8%</span>
+            <span class="stat-trend stat-trend--neutral">
+              <span class="stat-trend__arrow"></span>
+              0.0%
+            </span>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>数値を主役にする（フォントサイズの階層）</strong><br>
+        ラベル（小さい）→ 数値（大きい・太い）→ トレンド（小さい）の3層構造。数値を最も目立たせることで、ダッシュボードを開いた瞬間にKPIが目に入る設計です。</p>
+        <p><strong>トレンドで文脈を与える</strong><br>
+        「3,284,000円」という数値だけでは良いのか悪いのか判断できません。「↑ 8.2%」というトレンドがあることで、前期比で成長しているという文脈が加わり、数値の意味が明確になります。</p>
+        <p><strong>色 + 形でアクセシビリティを確保</strong><br>
+        上昇＝緑、下降＝赤だけでは色覚多様性のユーザーに伝わりません。矢印の方向（↑↓→）を併用することで、色に頼らずトレンドの方向を伝えています。</p>
+        <p><strong>カードの均一サイズで視覚的リズムを作る</strong><br>
+        全てのカードが同じ高さ・幅になることで、ダッシュボード全体にリズム感が生まれ、素早くスキャンしやすくなります。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- 統計カードのグリッドコンテナ -->
+<!-- stats-grid → CSSグリッドで子カードを自動配置する -->
+&lt;div class="stats-grid"&gt;
+
+  <!-- 個別の統計カード -->
+  &lt;div class="stat-card"&gt;
+    <!-- ラベル: 指標名。span要素で意味的に軽いテキストを表す -->
+    &lt;span class="stat-label"&gt;総ユーザー数&lt;/span&gt;
+
+    <!-- 数値: カードの主役。最も大きく表示される -->
+    &lt;span class="stat-value"&gt;12,847&lt;/span&gt;
+
+    <!-- トレンド: 増減の方向と量を表す -->
+    <!-- stat-trend--up / --down / --neutral で色と矢印が変わる -->
+    &lt;span class="stat-trend stat-trend--up"&gt;
+      &lt;span class="stat-trend__arrow"&gt;&lt;/span&gt;
+      12.5%
+    &lt;/span&gt;
+  &lt;/div&gt;
+
+  <!-- 下降トレンドの例 -->
+  &lt;div class="stat-card"&gt;
+    &lt;span class="stat-label"&gt;コンバージョン率&lt;/span&gt;
+    &lt;span class="stat-value"&gt;3.24%&lt;/span&gt;
+    &lt;span class="stat-trend stat-trend--down"&gt;
+      &lt;span class="stat-trend__arrow"&gt;&lt;/span&gt;
+      2.1%
+    &lt;/span&gt;
+  &lt;/div&gt;
+
+  <!-- ローディング状態: stat-card--loading クラスを追加 -->
+  &lt;div class="stat-card stat-card--loading"&gt;
+    &lt;span class="stat-label"&gt;&amp;nbsp;&lt;/span&gt;
+    &lt;span class="stat-value"&gt;&amp;nbsp;&lt;/span&gt;
+    &lt;span class="stat-trend"&gt;&amp;nbsp;&lt;/span&gt;
+  &lt;/div&gt;
+
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- ダッシュボード用グリッドレイアウト ---
+   display: grid で子要素をタイル状に並べる。
+   repeat(auto-fit, minmax(220px, 1fr)) は
+   「最小220px、余りは均等配分」の意味。
+   画面幅に応じて自動的にカラム数が変わるレスポンシブグリッド */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+/* --- 統計カード本体 --- */
+.stat-card {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.25rem;
+
+  /* flex-direction: column → ラベル・数値・トレンドを縦に積む */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* --- カードラベル（指標名） ---
+   小さく控えめに。数値の脇役 */
+.stat-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+/* --- 数値（メインの値） ---
+   カードの主役。最も大きく太い */
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+
+  /* font-variant-numeric: tabular-nums →
+     全ての数字を同じ幅にする。
+     「1」と「0」の幅が揃い、
+     数値が変動してもレイアウトがガタつかない。
+     ダッシュボードの数値表示には必須の指定 */
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- トレンドの色分け --- */
+/* 上昇 → 緑: ポジティブな変化 */
+.stat-trend--up { color: #16a34a; }
+
+/* 下降 → 赤: ネガティブな変化 */
+.stat-trend--down { color: #dc2626; }
+
+/* 横ばい → グレー: 変化なし */
+.stat-trend--neutral { color: #6b7280; }
+
+/* --- CSS三角形（borderトリック） ---
+   width/heightを0にして、borderだけで三角形を描く。
+   上向き矢印: border-bottomだけ色を付ける
+   下向き矢印: border-topだけ色を付ける */
+.stat-trend__arrow {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+
+.stat-trend--up .stat-trend__arrow {
+  border-bottom: 5px solid currentColor;
+}
+
+.stat-trend--down .stat-trend__arrow {
+  border-top: 5px solid currentColor;
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+
+        <!-- エッジケース1: ゼロ値 -->
+        <div class="edge-case-item">
+          <div class="edge-case-label">ゼロ値</div>
+          <div class="stats-grid" style="max-width: 260px;">
+            <div class="stat-card">
+              <span class="stat-label">新規登録数</span>
+              <span class="stat-value">0</span>
+              <span class="stat-trend stat-trend--neutral">
+                <span class="stat-trend__arrow"></span>
+                0.0%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- エッジケース2: 非常に大きい数値 -->
+        <div class="edge-case-item">
+          <div class="edge-case-label">非常に大きい数値</div>
+          <div class="stats-grid" style="max-width: 260px;">
+            <div class="stat-card">
+              <span class="stat-label">年間売上</span>
+              <span class="stat-value">&yen;999,999,999</span>
+              <span class="stat-trend stat-trend--up">
+                <span class="stat-trend__arrow"></span>
+                142.7%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- エッジケース3: マイナス値 -->
+        <div class="edge-case-item">
+          <div class="edge-case-label">マイナス値（赤字など）</div>
+          <div class="stats-grid" style="max-width: 260px;">
+            <div class="stat-card">
+              <span class="stat-label">営業利益</span>
+              <span class="stat-value">&minus;&yen;2,340,000</span>
+              <span class="stat-trend stat-trend--down">
+                <span class="stat-trend__arrow"></span>
+                35.8%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- エッジケース4: ローディング状態（スケルトン） -->
+        <div class="edge-case-item">
+          <div class="edge-case-label">ローディング状態（スケルトン）</div>
+          <div class="stats-grid" style="max-width: 260px;">
+            <div class="stat-card stat-card--loading">
+              <span class="stat-label">&nbsp;</span>
+              <span class="stat-value">&nbsp;</span>
+              <span class="stat-trend">&nbsp;</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

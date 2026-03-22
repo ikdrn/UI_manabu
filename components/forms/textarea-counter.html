@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>テキストエリア（文字数カウンター付き） — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       テキストエリア（文字数カウンター＋自動リサイズ） — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- フォームグループ：ラベル・入力・ヘルパーをまとめる容器 --- */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+      width: 100%;
+      max-width: 480px;
+    }
+
+    /* --- ラベル --- */
+    .form-label {
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+    }
+
+    /* --- 必須マーク --- */
+    .form-label__required {
+      color: var(--color-danger-500, #ef4444);
+      margin-left: var(--space-1);
+      font-size: var(--text-xs);
+    }
+
+    /* --- テキストエリア本体 --- */
+    .textarea {
+      /* resize: none → 自動リサイズをJSで行うため、
+         ユーザーによる手動リサイズを無効化する。
+         resize: vertical にすると手動リサイズも許可できるが、
+         自動リサイズと競合するので none にする */
+      resize: none;
+
+      /* min-height → テキストエリアの最小高さ。
+         空の状態でも十分な入力スペースがあることを示す */
+      min-height: 120px;
+
+      /* max-height → 自動リサイズの上限。
+         際限なく伸びるとページレイアウトが崩れるため制約する。
+         上限を超えるとスクロールバーが出る */
+      max-height: 300px;
+
+      /* overflow-y: auto → 内容がmax-heightを超えたら
+         スクロールバーを表示する。hidden にすると内容が見えなくなる */
+      overflow-y: auto;
+
+      width: 100%;
+      padding: 12px;
+      font-size: var(--text-sm);
+      font-family: inherit;
+      line-height: 1.6;
+      color: var(--color-text-primary);
+      background-color: var(--color-bg-primary, #fff);
+      border: 1px solid var(--color-border, #d1d5db);
+      border-radius: var(--radius-md);
+
+      /* transition → ボーダー色の変化をなめらかにする */
+      transition: border-color var(--duration-fast),
+                  box-shadow var(--duration-fast);
+    }
+
+    /* フォーカス時 → 青いボーダーとリングでフォーカスを明示 */
+    .textarea:focus {
+      outline: none;
+      border-color: var(--color-brand-500);
+      box-shadow: 0 0 0 3px hsla(222, 80%, 50%, 0.15);
+    }
+
+    /* プレースホルダーの色 → 薄いグレーで「入力例」を控えめに表示 */
+    .textarea::placeholder {
+      color: var(--color-text-tertiary, #9ca3af);
+    }
+
+    /* --- カウンターとヘルパーを並べるラッパー --- */
+    .textarea-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space-2);
+    }
+
+    /* --- ヘルパーテキスト --- */
+    .form-helper {
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary, #6b7280);
+      line-height: 1.5;
+    }
+
+    /* --- 文字数カウンター --- */
+    .char-counter {
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary, #6b7280);
+
+      /* white-space: nowrap → 「120 / 200」のような表示が
+         折り返されて2行になるのを防ぐ */
+      white-space: nowrap;
+
+      /* flex-shrink: 0 → ヘルパーテキストが長くても
+         カウンターが押し潰されないようにする */
+      flex-shrink: 0;
+
+      /* transition → 色変化をなめらかにする */
+      transition: color var(--duration-fast);
+    }
+
+    /* --- カウンター：警告状態（残り20%以下） --- */
+    .char-counter--warning {
+      color: var(--color-warning-500, #f59e0b);
+      font-weight: var(--font-semibold);
+    }
+
+    /* --- カウンター：超過状態（上限を超えた） --- */
+    .char-counter--over {
+      color: var(--color-danger-500, #ef4444);
+      font-weight: var(--font-semibold);
+    }
+
+    /* --- テキストエリア：超過時のボーダー ---
+       :invalid疑似クラスは、maxlength属性を使う場合はブラウザが
+       入力を制限するため発火しない。
+       そのためJS側でクラスを付与して制御する */
+    .textarea--over {
+      border-color: var(--color-danger-500, #ef4444);
+    }
+
+    .textarea--over:focus {
+      border-color: var(--color-danger-500, #ef4444);
+      box-shadow: 0 0 0 3px hsla(0, 80%, 50%, 0.15);
+    }
+
+    /* --- エラーメッセージ --- */
+    .form-error {
+      font-size: var(--text-xs);
+      color: var(--color-danger-500, #ef4444);
+      display: none;
+    }
+
+    .form-error--visible {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">フォーム入力</span>
+      <h1 class="component-title">テキストエリア（文字数カウンター付き）</h1>
+      <p class="component-description">
+        複数行テキスト入力に文字数カウンターと自動リサイズ機能を組み合わせたコンポーネント。入力量の目安をリアルタイムで伝え、ユーザーが安心して書ける環境を作ります。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col">
+
+        <!-- 基本形：文字数カウンター付きテキストエリア -->
+        <div class="form-group">
+          <!-- label要素のfor属性とtextareaのidを一致させることで、
+               ラベルクリックでテキストエリアにフォーカスが移る -->
+          <label class="form-label" for="comment">
+            コメント
+            <span class="form-label__required" aria-label="必須">*</span>
+          </label>
+
+          <textarea
+            id="comment"
+            class="textarea"
+            placeholder="ご意見・ご感想をお聞かせください"
+            aria-describedby="comment-helper comment-counter comment-error"
+          ></textarea>
+
+          <!-- テキストエリア下部：ヘルパーテキストとカウンター -->
+          <div class="textarea-footer">
+            <span id="comment-helper" class="form-helper">
+              マークダウン記法は使用できません
+            </span>
+
+            <!-- aria-live="polite" → 内容が変わるとスクリーンリーダーが
+                 次の読み上げの切れ目で通知する。
+                 "assertive" だと即座に割り込むが、毎キーストロークで
+                 割り込むのはうるさいので "polite" が適切 -->
+            <span
+              id="comment-counter"
+              class="char-counter"
+              aria-live="polite"
+              aria-atomic="true"
+            >0 / 200</span>
+          </div>
+
+          <!-- エラーメッセージ：超過時に表示 -->
+          <span id="comment-error" class="form-error" role="alert">
+            文字数の上限を超えています。200文字以内にしてください。
+          </span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>文字数制限はUXガイダンスである</strong><br>
+        カウンターは「あとどれくらい書けるか」を可視化し、ユーザーの期待値を設定します。制限がないと「どこまで書いていいのか」不安になり、逆に長大なテキストが送られるリスクも増えます。</p>
+
+        <p><strong>自動リサイズ vs 固定高さ</strong><br>
+        固定高さのテキストエリアでは、長い文章がスクロール内に隠れてしまい全体を見渡せません。自動リサイズは「書いた分だけ広がる」ため、より自然な筆記体験を提供します。ただし max-height で上限を設け、ページレイアウトが崩壊しないようにします。</p>
+
+        <p><strong>カウンター配置は右下が慣習</strong><br>
+        テキストの読み書きは左上から始まり、右下へ進みます。カウンターを右下に置くことで、入力完了時に自然と視界に入ります。左下にはヘルパーテキストを配置して役割を分けます。</p>
+
+        <p><strong>maxlength属性 vs JavaScriptによる制限</strong><br>
+        <code>maxlength</code>属性はブラウザがネイティブに入力を制限します。200文字を超える入力が物理的にできなくなるため安全ですが、「なぜ入力できないのか」ユーザーに伝わりにくい欠点があります。JS制限なら超過を許可しつつ警告を出せるので、よりフレンドリーです。このデモではJS制限を採用しています。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- form-group → ラベル・入力・ヘルパーをまとめる容器 --&gt;
+&lt;div class="form-group"&gt;
+
+  &lt;!-- label要素 → for属性でtextareaと紐付ける。
+       クリックするとテキストエリアにフォーカスが移る --&gt;
+  &lt;label class="form-label" for="comment"&gt;
+    コメント
+    &lt;span class="form-label__required" aria-label="必須"&gt;*&lt;/span&gt;
+  &lt;/label&gt;
+
+  &lt;!-- textarea要素 → 複数行のテキスト入力欄。
+       input要素と違い、改行を含む長文を入力できる。
+
+       【maxlength属性を使わない理由】
+       maxlength="200" を付けると、ブラウザが200文字で入力を
+       強制的にカットする。しかし、ユーザーは「なぜ途中で止まるのか」
+       分からず困惑する。代わりにJSで超過を検知し、
+       警告メッセージを表示する方がフレンドリー。
+
+       aria-describedby → スクリーンリーダーに補足情報を伝える。
+       複数IDをスペース区切りで指定でき、ヘルパーテキスト・
+       カウンター・エラーメッセージの3つを関連付ける --&gt;
+  &lt;textarea
+    id="comment"
+    class="textarea"
+    placeholder="ご意見・ご感想をお聞かせください"
+    aria-describedby="comment-helper comment-counter comment-error"
+  &gt;&lt;/textarea&gt;
+
+  &lt;div class="textarea-footer"&gt;
+    &lt;span id="comment-helper" class="form-helper"&gt;
+      マークダウン記法は使用できません
+    &lt;/span&gt;
+
+    &lt;!-- aria-live="polite" → 内容が更新されたとき、
+         スクリーンリーダーが「次の切れ目」で読み上げる。
+         "assertive" は即座に割り込むため、
+         毎キーストロークでは煩わしくなる。
+         aria-atomic="true" → 一部だけでなく要素全体を
+         読み上げ直す（「120 / 200」全体を伝える） --&gt;
+    &lt;span
+      id="comment-counter"
+      class="char-counter"
+      aria-live="polite"
+      aria-atomic="true"
+    &gt;0 / 200&lt;/span&gt;
+  &lt;/div&gt;
+
+  &lt;!-- role="alert" → エラー表示時にスクリーンリーダーが
+       即座に読み上げる（aria-live="assertive"相当） --&gt;
+  &lt;span id="comment-error" class="form-error" role="alert"&gt;
+    文字数の上限を超えています。200文字以内にしてください。
+  &lt;/span&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">.textarea {
+  /* resize: none → ユーザーによる手動リサイズを無効化する。
+     自動リサイズをJSで制御するため、手動リサイズと競合しないようにする。
+     【代替案】resize: vertical にすれば縦方向のみ手動リサイズ可能。
+     自動リサイズを使わない場合は vertical が親切 */
+  resize: none;
+
+  /* min-height → テキストエリアの最小高さ。
+     空の状態でも「ここに複数行書ける」と伝わるサイズにする。
+     1行だけの入力欄と視覚的に区別するために重要 */
+  min-height: 120px;
+
+  /* max-height → 自動リサイズの上限値。
+     これがないとテキストエリアが際限なく伸び続け、
+     ページの他のコンテンツが押し下げられてしまう。
+     上限を超えた分はスクロールで閲覧する */
+  max-height: 300px;
+
+  /* overflow-y: auto → 内容がmax-heightを超えたときだけ
+     スクロールバーを表示する。
+     "scroll" だと常にスクロールバーが見えてしまう */
+  overflow-y: auto;
+
+  width: 100%;
+  padding: 12px;
+  font-size: 0.875rem;
+  font-family: inherit; /* ← ブラウザデフォルトのmonospace を上書き */
+  line-height: 1.6;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+
+/* フォーカス時 → 入力中であることを視覚的に示す */
+.textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  /* box-shadow でフォーカスリングを表現する。
+     outline より角丸に沿った見た目になる */
+  box-shadow: 0 0 0 3px hsla(222, 80%, 50%, 0.15);
+}
+
+/* --- カウンターの状態変化 --- */
+.char-counter {
+  font-size: 0.75rem;
+  color: #6b7280;
+  white-space: nowrap;
+  transition: color 150ms;
+}
+
+/* 警告状態 → 残り文字数が少なくなったら黄色系に */
+.char-counter--warning {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+/* 超過状態 → 上限を超えたら赤に */
+.char-counter--over {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+/* テキストエリアも赤ボーダーにして危険を伝える */
+.textarea--over {
+  border-color: #ef4444;
+}
+
+.textarea--over:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px hsla(0, 80%, 50%, 0.15);
+}</code></pre>
+        </div>
+
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// ===================================================================
+// テキストエリア — 自動リサイズ＋文字数カウンター
+// ===================================================================
+
+const textarea = document.getElementById('comment');
+const counter = document.getElementById('comment-counter');
+const errorMsg = document.getElementById('comment-error');
+const MAX_LENGTH = 200;
+
+// --- 警告しきい値：残り20%（160文字）を超えたら警告色にする ---
+const WARNING_THRESHOLD = Math.floor(MAX_LENGTH * 0.8);
+
+// === 自動リサイズ関数 ===
+// textareaのscrollHeight（内容の実際の高さ）に合わせて
+// 要素の高さを動的に変更する
+function autoResize() {
+  // 1. まずheightを'auto'にリセットする。
+  //    これをしないと、前回設定したheightが残り、
+  //    scrollHeightが正しく計算されない（小さくなれない）
+  textarea.style.height = 'auto';
+
+  // 2. scrollHeight → 内容全体の高さ（スクロールしないと
+  //    見えない部分も含む）をpxで取得できる
+  //    これをheightに設定することで、内容に合わせて伸縮する
+  textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+// === 文字数カウンター更新関数 ===
+function updateCounter() {
+  // --- 文字数の取得 ---
+  // 【注意】絵文字のカウント問題：
+  // string.length は UTF-16 コード単位で数える。
+  // 例："😀".length === 2（サロゲートペア）
+  // 例："👨‍👩‍👧‍👦".length === 11（ZWJシーケンス）
+  //
+  // より正確に数えるには [...str].length（スプレッド構文）を使う。
+  // これはUnicodeコードポイント単位で数えるため、
+  // "😀" → 1 になる。
+  // ただしZWJシーケンス（家族絵文字等）は複数カウントされる。
+  //
+  // 完全な「見た目の文字数」を得るには
+  // Intl.Segmenter を使う（モダンブラウザ対応）
+  const charCount = [...textarea.value].length;
+
+  // --- カウンター表示を更新 ---
+  counter.textContent = charCount + ' / ' + MAX_LENGTH;
+
+  // --- 状態に応じてクラスを切り替え ---
+  // まず全状態クラスをリセット
+  counter.classList.remove('char-counter--warning', 'char-counter--over');
+  textarea.classList.remove('textarea--over');
+  errorMsg.classList.remove('form-error--visible');
+
+  if (charCount > MAX_LENGTH) {
+    // 超過状態：赤いカウンター＋赤いボーダー＋エラーメッセージ
+    counter.classList.add('char-counter--over');
+    textarea.classList.add('textarea--over');
+    errorMsg.classList.add('form-error--visible');
+  } else if (charCount > WARNING_THRESHOLD) {
+    // 警告状態：黄色いカウンター
+    counter.classList.add('char-counter--warning');
+  }
+}
+
+// === イベントリスナーの登録 ===
+
+// 【inputイベント vs changeイベント】
+// - input → キーストロークごとに発火する。
+//   文字を1つ打つたびにカウンターが更新される。
+//   ペースト、ドラッグ＆ドロップ、音声入力でも発火する。
+// - change → フォーカスが外れたとき（blur）に発火する。
+//   リアルタイム更新には向かない。
+//
+// 文字数カウンターはリアルタイム性が重要なので input を使う。
+textarea.addEventListener('input', function () {
+  updateCounter();
+  autoResize();
+});
+
+// --- 初期化 ---
+// ページ読み込み時に一度実行し、
+// ブラウザの自動入力などで初期値がある場合に備える
+updateCounter();
+autoResize();</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">長文ペースト</div>
+          <p class="form-helper" style="margin-bottom: 8px;">
+            テキストエリアに200文字を超える文章をペーストしてみてください。maxlength属性を使わないため入力は許可されますが、カウンターが赤くなりエラーメッセージが表示されます。送信ボタン側でバリデーションを行い、超過時は送信を無効化します。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">絵文字の文字数カウント</div>
+          <p class="form-helper" style="margin-bottom: 8px;">
+            このデモでは <code>[...str].length</code>（スプレッド構文）を使い、Unicodeコードポイント単位でカウントしています。基本的な絵文字（😀）は1文字、家族絵文字（👨‍👩‍👧‍👦）はZWJで結合された複数コードポイントのため複数文字としてカウントされます。厳密な「見た目の文字数」が必要なら <code>Intl.Segmenter</code> の使用を検討してください。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">高速タイピング</div>
+          <p class="form-helper" style="margin-bottom: 8px;">
+            <code>input</code>イベントはキーストロークごとに発火するため、高速タイピングでもカウンターは追従します。パフォーマンスが懸念される場合は <code>requestAnimationFrame</code> でデバウンスできますが、200文字程度の処理なら不要です。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    // ===================================================================
+    // テキストエリア — 自動リサイズ＋文字数カウンター
+    // ===================================================================
+
+    (function () {
+      'use strict';
+
+      var textarea = document.getElementById('comment');
+      var counter = document.getElementById('comment-counter');
+      var errorMsg = document.getElementById('comment-error');
+      var MAX_LENGTH = 200;
+
+      // --- 警告しきい値：全体の80%（160文字）を超えたら警告色にする ---
+      var WARNING_THRESHOLD = Math.floor(MAX_LENGTH * 0.8);
+
+      // === 自動リサイズ関数 ===
+      // textareaのscrollHeight（内容の実際の高さ）に合わせて
+      // 要素の高さを動的に変更する
+      function autoResize() {
+        // 1. まずheightを'auto'にリセットする。
+        //    これをしないと、前回設定したheightが残り、
+        //    scrollHeightが正しく計算されない（縮小できない）
+        textarea.style.height = 'auto';
+
+        // 2. scrollHeight → パディングを含む内容全体の高さ（px）。
+        //    スクロールしないと見えない部分も含む。
+        //    これをheightに設定することで、内容に合わせて伸縮する
+        textarea.style.height = textarea.scrollHeight + 'px';
+      }
+
+      // === 文字数カウンター更新関数 ===
+      function updateCounter() {
+        // --- 文字数の取得 ---
+        // [...textarea.value].length を使う理由：
+        // String.prototype.length は UTF-16 コード単位で数える。
+        // 絵文字などサロゲートペアを含む文字は2以上にカウントされてしまう。
+        // 例："😀".length === 2
+        //
+        // スプレッド構文 [...str] はUnicodeコードポイント単位で展開するため、
+        // "😀" → ["😀"] → length === 1 と正しくカウントできる。
+        //
+        // ただしZWJシーケンス（家族絵文字など）は複数コードポイントのため
+        // 複数文字としてカウントされる。完全な書記素クラスタ単位のカウントは
+        // Intl.Segmenter（モダンブラウザ対応）を使う。
+        var charCount = [...textarea.value].length;
+
+        // --- カウンター表示を更新 ---
+        counter.textContent = charCount + ' / ' + MAX_LENGTH;
+
+        // --- 状態に応じてクラスを切り替え ---
+        // まず全状態クラスをリセットしてから条件に応じて付与する
+        counter.classList.remove('char-counter--warning', 'char-counter--over');
+        textarea.classList.remove('textarea--over');
+        errorMsg.classList.remove('form-error--visible');
+
+        if (charCount > MAX_LENGTH) {
+          // 超過状態：赤いカウンター＋赤いボーダー＋エラーメッセージ表示
+          counter.classList.add('char-counter--over');
+          textarea.classList.add('textarea--over');
+          errorMsg.classList.add('form-error--visible');
+        } else if (charCount > WARNING_THRESHOLD) {
+          // 警告状態：黄色いカウンターで「もうすぐ上限」を伝える
+          counter.classList.add('char-counter--warning');
+        }
+      }
+
+      // === イベントリスナーの登録 ===
+
+      // 【inputイベント vs changeイベント】
+      // - input → 値が変わるたびに即座に発火する。
+      //   キーストローク、ペースト、ドラッグ＆ドロップ、
+      //   音声入力、IME確定時など、あらゆる入力方法で発火する。
+      // - change → フォーカスが外れた時（blur）に発火する。
+      //   リアルタイム更新には使えない。
+      //
+      // 文字数カウンターはリアルタイムの反映が重要なので input を使う。
+      textarea.addEventListener('input', function () {
+        updateCounter();
+        autoResize();
+      });
+
+      // --- ページ読み込み時の初期化 ---
+      // ブラウザの「戻る」ボタンで入力値が復元される場合や、
+      // 自動入力で初期値がある場合に備えて、
+      // ページロード時に一度カウンターとリサイズを実行する
+      updateCounter();
+      autoResize();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ステッパーウィザード — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       ステッパーウィザード — コンポーネントスタイル
+       =================================================================== */
+
+    .wizard {
+      max-width: 560px;
+      width: 100%;
+    }
+
+    /* ステップインジケーター */
+    .stepper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-6);
+      position: relative;
+    }
+
+    /* コネクターライン（ステップ間の線） */
+    .stepper::before {
+      content: '';
+      position: absolute;
+      top: 16px;
+      left: 32px;
+      right: 32px;
+      height: 2px;
+      background: var(--color-border-secondary);
+      z-index: 0;
+    }
+
+    /* プログレスライン */
+    .stepper-progress {
+      position: absolute;
+      top: 16px;
+      left: 32px;
+      height: 2px;
+      background: var(--color-brand-500);
+      z-index: 1;
+      transition: width 400ms ease;
+    }
+
+    /* 各ステップ */
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ステップ円 */
+    .step-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      background: var(--color-bg-primary);
+      border: 2px solid var(--color-border-secondary);
+      color: var(--color-text-tertiary);
+      transition: all var(--duration-normal);
+    }
+
+    /* 現在のステップ */
+    .step.active .step-circle {
+      border-color: var(--color-brand-500);
+      color: var(--color-brand-500);
+      box-shadow: 0 0 0 4px var(--color-brand-100);
+    }
+
+    /* 完了済みステップ */
+    .step.completed .step-circle {
+      background: var(--color-brand-500);
+      border-color: var(--color-brand-500);
+      color: white;
+    }
+
+    /* チェックマーク */
+    .step.completed .step-circle::after {
+      content: '';
+      display: block;
+      width: 8px;
+      height: 5px;
+      border-left: 2px solid white;
+      border-bottom: 2px solid white;
+      transform: rotate(-45deg) translateY(-1px);
+    }
+
+    /* ステップラベル */
+    .step-label {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .step.active .step-label {
+      color: var(--color-brand-600);
+      font-weight: var(--font-semibold);
+    }
+
+    .step.completed .step-label {
+      color: var(--color-text-secondary);
+    }
+
+    /* フォームパネル（fieldset） */
+    .wizard-panel {
+      display: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      animation: panelFadeIn 300ms ease-out;
+    }
+
+    .wizard-panel.active {
+      display: block;
+    }
+
+    @keyframes panelFadeIn {
+      from { opacity: 0; transform: translateX(16px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .wizard-panel-title {
+      font-size: var(--text-base);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-4);
+    }
+
+    /* フォームフィールド */
+    .form-group {
+      margin-bottom: var(--space-4);
+    }
+
+    .form-label {
+      display: block;
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-1);
+    }
+
+    .form-label .required {
+      color: #dc2626;
+      margin-left: 2px;
+    }
+
+    .form-input,
+    .form-select {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: var(--text-sm);
+      border: 1px solid var(--color-border-secondary);
+      border-radius: var(--radius-md);
+      background: var(--color-bg-primary);
+      color: var(--color-text-primary);
+      transition: border-color var(--duration-fast),
+                  box-shadow var(--duration-fast);
+    }
+
+    .form-input:focus,
+    .form-select:focus {
+      outline: none;
+      border-color: var(--color-brand-500);
+      box-shadow: 0 0 0 3px var(--color-brand-100);
+    }
+
+    .form-input:invalid:not(:placeholder-shown) {
+      border-color: #dc2626;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-3);
+    }
+
+    /* ナビゲーションボタン */
+    .wizard-nav {
+      display: flex;
+      justify-content: space-between;
+      margin-top: var(--space-6);
+      padding-top: var(--space-4);
+      border-top: 1px solid var(--color-border-secondary);
+    }
+
+    .wizard-btn {
+      padding: 10px 24px;
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background-color var(--duration-fast),
+                  transform var(--duration-fast);
+    }
+
+    .wizard-btn:active {
+      transform: scale(0.98);
+    }
+
+    .wizard-btn--prev {
+      background: var(--color-bg-tertiary);
+      color: var(--color-text-secondary);
+    }
+
+    .wizard-btn--prev:hover {
+      background: var(--color-bg-secondary);
+    }
+
+    .wizard-btn--prev:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .wizard-btn--next {
+      background: var(--color-brand-500);
+      color: white;
+    }
+
+    .wizard-btn--next:hover {
+      background: var(--color-brand-600);
+    }
+
+    /* 完了画面 */
+    .wizard-complete {
+      text-align: center;
+      padding: var(--space-6) 0;
+    }
+
+    .wizard-complete-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #dcfce7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto var(--space-4);
+    }
+
+    .wizard-complete-icon::after {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 12px;
+      border-left: 3px solid #16a34a;
+      border-bottom: 3px solid #16a34a;
+      transform: rotate(-45deg) translateY(-2px);
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">その他</span>
+      <h1 class="component-title">ステッパーウィザード</h1>
+      <p class="component-description">
+        4ステップのフォームウィザード。ステップインジケーター、前へ/次へボタン、バリデーション付きで、複雑な入力フローを分割して案内します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col" style="align-items: center;">
+        <div class="wizard" id="wizard">
+          <!-- ステップインジケーター -->
+          <div class="stepper">
+            <div class="stepper-progress" id="stepperProgress" style="width: 0%;"></div>
+            <div class="step active" data-step="1">
+              <div class="step-circle">1</div>
+              <div class="step-label">基本情報</div>
+            </div>
+            <div class="step" data-step="2">
+              <div class="step-circle">2</div>
+              <div class="step-label">連絡先</div>
+            </div>
+            <div class="step" data-step="3">
+              <div class="step-circle">3</div>
+              <div class="step-label">プラン選択</div>
+            </div>
+            <div class="step" data-step="4">
+              <div class="step-circle">4</div>
+              <div class="step-label">確認</div>
+            </div>
+          </div>
+
+          <!-- パネル1: 基本情報 -->
+          <fieldset class="wizard-panel active" data-panel="1">
+            <div class="wizard-panel-title">基本情報を入力してください</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">姓<span class="required">*</span></label>
+                <input type="text" class="form-input" placeholder="山田" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">名<span class="required">*</span></label>
+                <input type="text" class="form-input" placeholder="太郎" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">表示名</label>
+              <input type="text" class="form-input" placeholder="yamada_taro">
+            </div>
+          </fieldset>
+
+          <!-- パネル2: 連絡先 -->
+          <fieldset class="wizard-panel" data-panel="2">
+            <div class="wizard-panel-title">連絡先を入力してください</div>
+            <div class="form-group">
+              <label class="form-label">メールアドレス<span class="required">*</span></label>
+              <input type="email" class="form-input" placeholder="example@email.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">電話番号</label>
+              <input type="tel" class="form-input" placeholder="090-1234-5678">
+            </div>
+          </fieldset>
+
+          <!-- パネル3: プラン選択 -->
+          <fieldset class="wizard-panel" data-panel="3">
+            <div class="wizard-panel-title">プランを選択してください</div>
+            <div class="form-group">
+              <label class="form-label">プラン<span class="required">*</span></label>
+              <select class="form-select" required>
+                <option value="">選択してください</option>
+                <option value="free">フリープラン（無料）</option>
+                <option value="pro">プロプラン（月額980円）</option>
+                <option value="enterprise">エンタープライズ（月額4,980円）</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">利用開始日</label>
+              <input type="date" class="form-input">
+            </div>
+          </fieldset>
+
+          <!-- パネル4: 確認 -->
+          <fieldset class="wizard-panel" data-panel="4">
+            <div class="wizard-complete">
+              <div class="wizard-complete-icon"></div>
+              <div class="wizard-panel-title">入力内容を確認してください</div>
+              <p style="font-size: var(--text-sm); color: var(--color-text-secondary);">
+                すべての情報が正しいことを確認したら「完了」ボタンを押してください。
+              </p>
+            </div>
+          </fieldset>
+
+          <!-- ナビゲーション -->
+          <div class="wizard-nav">
+            <button type="button" class="wizard-btn wizard-btn--prev" id="prevBtn" disabled>戻る</button>
+            <button type="button" class="wizard-btn wizard-btn--next" id="nextBtn">次へ</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>ステップ分割で認知負荷を軽減</strong><br>
+        長いフォームを一度に表示すると離脱率が上がります。4つのステップに分割し、各ステップで求める情報を限定することで、ユーザーの心理的ハードルを下げます。</p>
+        <p><strong>コネクターラインと進捗表示</strong><br>
+        ステップ円をコネクターラインで結び、完了済みのステップまでを色付きの進捗バーで示します。「あとどのくらいか」を視覚的に伝え、完了への動機付けを強化します。</p>
+        <p><strong>reportValidity()によるバリデーション</strong><br>
+        ブラウザネイティブのreportValidity()メソッドを使い、required属性やtype属性（email, tel等）に基づく検証を行います。ライブラリ不要で基本的なバリデーションを実現できます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;div class="wizard" id="wizard"&gt;
+  &lt;!-- ステップインジケーター --&gt;
+  &lt;div class="stepper"&gt;
+    &lt;!-- プログレスライン → widthをJSで制御 --&gt;
+    &lt;div class="stepper-progress" id="stepperProgress"&gt;&lt;/div&gt;
+
+    &lt;!-- 各ステップ → active/completedクラスで状態を管理 --&gt;
+    &lt;div class="step active" data-step="1"&gt;
+      &lt;div class="step-circle"&gt;1&lt;/div&gt;
+      &lt;div class="step-label"&gt;基本情報&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="step" data-step="2"&gt;...&lt;/div&gt;
+    &lt;div class="step" data-step="3"&gt;...&lt;/div&gt;
+    &lt;div class="step" data-step="4"&gt;...&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- fieldset → フォームのグループ化。各ステップの入力パネル --&gt;
+  &lt;fieldset class="wizard-panel active" data-panel="1"&gt;
+    &lt;div class="form-group"&gt;
+      &lt;label class="form-label"&gt;
+        姓&lt;span class="required"&gt;*&lt;/span&gt;
+      &lt;/label&gt;
+      &lt;!-- required → 入力必須。reportValidity()で検証される --&gt;
+      &lt;input type="text" class="form-input" required&gt;
+    &lt;/div&gt;
+  &lt;/fieldset&gt;
+
+  &lt;!-- ナビゲーションボタン --&gt;
+  &lt;div class="wizard-nav"&gt;
+    &lt;button class="wizard-btn wizard-btn--prev" disabled&gt;戻る&lt;/button&gt;
+    &lt;button class="wizard-btn wizard-btn--next"&gt;次へ&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* ステッパー → flexで横並びに配置 */
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+/* ::before → ステップ間のコネクターライン（背景の灰色線） */
+.stepper::before {
+  content: '';
+  position: absolute;
+  top: 16px; /* ステップ円の中心位置 */
+  left: 32px;
+  right: 32px;
+  height: 2px;
+  background: var(--color-border-secondary);
+}
+
+/* プログレスライン → widthで進捗度を表現 */
+.stepper-progress {
+  position: absolute;
+  top: 16px;
+  left: 32px;
+  height: 2px;
+  background: var(--color-brand-500);
+  z-index: 1;
+  /* transition → 幅の変化をスムーズにアニメーション */
+  transition: width 400ms ease;
+}
+
+/* ステップ円 → 現在のステップはリングシャドウで強調 */
+.step.active .step-circle {
+  border-color: var(--color-brand-500);
+  color: var(--color-brand-500);
+  /* box-shadow → 外側にブランドカラーの薄いリングを表示 */
+  box-shadow: 0 0 0 4px var(--color-brand-100);
+}
+
+/* 完了済みステップ → 塗りつぶし + チェックマーク */
+.step.completed .step-circle {
+  background: var(--color-brand-500);
+  border-color: var(--color-brand-500);
+  color: white;
+}
+
+/* チェックマーク → borderで「L字」を作りrotateで回転 */
+.step.completed .step-circle::after {
+  content: '';
+  width: 8px;
+  height: 5px;
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+  transform: rotate(-45deg) translateY(-1px);
+}
+
+/* パネルの切り替えアニメーション */
+@keyframes panelFadeIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">let currentStep = 1;
+const totalSteps = 4;
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const progress = document.getElementById('stepperProgress');
+
+nextBtn.addEventListener('click', () =&gt; {
+  // 現在のパネルのバリデーション
+  const currentPanel = document.querySelector(
+    `.wizard-panel[data-panel="${currentStep}"]`
+  );
+
+  // reportValidity() → ブラウザネイティブのバリデーション
+  // required属性やtype="email"などの制約を検証
+  // 不正な値があるとブラウザがエラーメッセージを表示
+  const inputs = currentPanel.querySelectorAll('input, select');
+  let valid = true;
+  inputs.forEach(input =&gt; {
+    if (!input.reportValidity()) {
+      valid = false;
+    }
+  });
+  if (!valid) return;
+
+  if (currentStep &lt; totalSteps) {
+    currentStep++;
+    updateWizard();
+  }
+});
+
+prevBtn.addEventListener('click', () =&gt; {
+  if (currentStep &gt; 1) {
+    currentStep--;
+    updateWizard();
+  }
+});
+
+function updateWizard() {
+  // パネルの表示切り替え
+  document.querySelectorAll('.wizard-panel').forEach(panel =&gt; {
+    panel.classList.toggle('active',
+      panel.dataset.panel == currentStep);
+  });
+
+  // ステップインジケーターの更新
+  document.querySelectorAll('.step').forEach(step =&gt; {
+    const stepNum = parseInt(step.dataset.step);
+    step.classList.remove('active', 'completed');
+    if (stepNum === currentStep) {
+      step.classList.add('active');
+    } else if (stepNum &lt; currentStep) {
+      step.classList.add('completed');
+    }
+  });
+
+  // プログレスバーの幅を更新
+  // (currentStep - 1) / (totalSteps - 1) → 0%〜100%に変換
+  const pct = ((currentStep - 1) / (totalSteps - 1)) * 100;
+  progress.style.width = pct + '%';
+
+  // ボタンの状態を更新
+  prevBtn.disabled = currentStep === 1;
+  nextBtn.textContent = currentStep === totalSteps ? '完了' : '次へ';
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">バリデーションエラー時</div>
+          <div style="max-width: 400px;">
+            <div class="form-group">
+              <label class="form-label">メールアドレス<span class="required">*</span></label>
+              <input type="email" class="form-input" value="invalid-email" style="border-color: #dc2626;">
+              <div style="font-size: var(--text-xs); color: #dc2626; margin-top: 4px;">有効なメールアドレスを入力してください</div>
+            </div>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">完了状態のステッパー</div>
+          <div style="max-width: 400px;">
+            <div class="stepper" style="margin-bottom: 0;">
+              <div class="stepper-progress" style="width: 100%;"></div>
+              <div class="step completed" data-step="1">
+                <div class="step-circle"></div>
+                <div class="step-label">基本情報</div>
+              </div>
+              <div class="step completed" data-step="2">
+                <div class="step-circle"></div>
+                <div class="step-label">連絡先</div>
+              </div>
+              <div class="step completed" data-step="3">
+                <div class="step-circle"></div>
+                <div class="step-label">プラン選択</div>
+              </div>
+              <div class="step active" data-step="4">
+                <div class="step-circle">4</div>
+                <div class="step-label">確認</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    /* ===================================================================
+       ステッパーウィザード — ステップ制御
+       =================================================================== */
+
+    let currentStep = 1;
+    const totalSteps = 4;
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const progress = document.getElementById('stepperProgress');
+
+    /* 次へボタン → バリデーション後にステップを進める */
+    nextBtn.addEventListener('click', () => {
+      const currentPanel = document.querySelector(`.wizard-panel[data-panel="${currentStep}"]`);
+
+      /* reportValidity() → ブラウザネイティブのバリデーション実行 */
+      const inputs = currentPanel.querySelectorAll('input[required], select[required]');
+      let valid = true;
+      for (const input of inputs) {
+        if (!input.reportValidity()) {
+          valid = false;
+          break;
+        }
+      }
+      if (!valid) return;
+
+      if (currentStep < totalSteps) {
+        currentStep++;
+        updateWizard();
+      }
+    });
+
+    /* 戻るボタン → 前のステップに戻る */
+    prevBtn.addEventListener('click', () => {
+      if (currentStep > 1) {
+        currentStep--;
+        updateWizard();
+      }
+    });
+
+    /* ウィザードの状態を更新する関数 */
+    function updateWizard() {
+      /* パネルの表示切り替え */
+      document.querySelectorAll('.wizard-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.dataset.panel == currentStep);
+      });
+
+      /* ステップインジケーターの更新 */
+      document.querySelectorAll('.step').forEach(step => {
+        const stepNum = parseInt(step.dataset.step);
+        step.classList.remove('active', 'completed');
+        if (stepNum === currentStep) {
+          step.classList.add('active');
+        } else if (stepNum < currentStep) {
+          step.classList.add('completed');
+        }
+      });
+
+      /* プログレスバーの幅を更新 */
+      const pct = ((currentStep - 1) / (totalSteps - 1)) * 100;
+      progress.style.width = pct + '%';
+
+      /* ボタンの状態を更新 */
+      prevBtn.disabled = currentStep === 1;
+      nextBtn.textContent = currentStep === totalSteps ? '完了' : '次へ';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+/* ===================================================================
+   シンタックスハイライト用スタイル
+
+   コードブロック内の各トークン（キーワード、文字列など）に
+   色を付けて読みやすくします。
+   日本語コメントは特に目立つスタイルにしています。
+   =================================================================== */
+
+/* --- HTML トークン --- */
+.hl-tag        { color: hsl(350, 70%, 65%); }
+.hl-attr-name  { color: hsl(35, 80%, 65%); }
+.hl-attr-value { color: hsl(90, 55%, 60%); }
+
+/* --- CSS トークン --- */
+.hl-selector   { color: hsl(350, 70%, 65%); }
+.hl-property   { color: hsl(200, 80%, 70%); }
+.hl-value      { color: hsl(35, 80%, 65%); }
+.hl-unit       { color: hsl(35, 60%, 55%); }
+.hl-at-rule    { color: hsl(280, 60%, 70%); }
+
+/* --- JS トークン --- */
+.hl-keyword    { color: hsl(280, 60%, 70%); }
+.hl-string     { color: hsl(90, 55%, 60%); }
+.hl-number     { color: hsl(35, 80%, 65%); }
+.hl-function   { color: hsl(200, 80%, 70%); }
+.hl-operator   { color: hsl(50, 80%, 65%); }
+.hl-boolean    { color: hsl(35, 80%, 65%); }
+
+/* --- 共通 --- */
+.hl-punctuation { color: hsl(220, 15%, 60%); }
+
+/* --- コメント（最重要：学習コンテンツ） ---
+   通常のIDEではコメントは薄いグレーですが、
+   この学習アプリではコメントが主役なので目立たせます */
+.hl-comment {
+  color: hsl(140, 40%, 55%);
+  font-style: italic;
+}
+
+/* 日本語を含むコメントはさらに強調 */
+.hl-comment-ja {
+  color: hsl(152, 50%, 50%);
+  font-weight: 500;
+  font-style: normal;
+}

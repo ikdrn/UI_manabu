@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>マテリアル風トグル — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    .toggle-material {
+      --toggle-width: 52px;
+      --toggle-height: 32px;
+      --thumb-size: 24px;
+      --track-color: var(--color-neutral-300);
+      --track-color-active: var(--color-brand-200);
+      --thumb-color: white;
+      --thumb-color-active: var(--color-brand-500);
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-3);
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle-material input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-track {
+      position: relative;
+      width: var(--toggle-width);
+      height: var(--toggle-height);
+      background: var(--track-color);
+      border-radius: var(--radius-full);
+      transition: background var(--duration-normal);
+    }
+    .toggle-thumb {
+      position: absolute;
+      top: 50%;
+      left: 4px;
+      width: var(--thumb-size);
+      height: var(--thumb-size);
+      background: var(--thumb-color);
+      border-radius: 50%;
+      transform: translateY(-50%);
+      transition: left var(--duration-normal) var(--ease-out),
+                  background var(--duration-normal),
+                  box-shadow var(--duration-normal);
+      box-shadow: 0 1px 3px hsla(0,0%,0%,0.2);
+    }
+    .toggle-thumb::after {
+      content: "";
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      background: transparent;
+      transition: background var(--duration-fast);
+    }
+    .toggle-material:hover .toggle-thumb::after {
+      background: hsla(222, 80%, 50%, 0.08);
+    }
+    .toggle-material:active .toggle-thumb::after {
+      background: hsla(222, 80%, 50%, 0.15);
+    }
+    input:checked + .toggle-track {
+      background: var(--track-color-active);
+    }
+    input:checked + .toggle-track .toggle-thumb {
+      left: calc(var(--toggle-width) - var(--thumb-size) - 4px);
+      background: var(--thumb-color-active);
+      box-shadow: 0 2px 6px hsla(222, 80%, 50%, 0.3);
+    }
+    input:focus-visible + .toggle-track {
+      outline: 2px solid var(--color-brand-500);
+      outline-offset: 2px;
+    }
+    input:disabled + .toggle-track {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .toggle-label { font-size: var(--text-sm); color: var(--color-neutral-700); }
+    .settings-list {
+      display: flex; flex-direction: column; gap: 0;
+      border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md); overflow: hidden;
+    }
+    .settings-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: var(--space-4); background: var(--color-surface-raised);
+      border-bottom: 1px solid var(--color-neutral-100);
+    }
+    .settings-item:last-child { border-bottom: none; }
+    .settings-info { display: flex; flex-direction: column; gap: 2px; }
+    .settings-name { font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--color-neutral-800); }
+    .settings-desc { font-size: var(--text-xs); color: var(--color-neutral-500); }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+    <header class="component-header">
+      <span class="component-category">トグルスイッチ</span>
+      <h1 class="component-title">マテリアル風トグル</h1>
+      <p class="component-description">Googleのマテリアルデザインに見られるトグルスイッチ。サム（丸い部分）がトラックからはみ出す特徴的なデザインです。</p>
+    </header>
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container" style="gap: 32px;">
+        <label class="toggle-material"><input type="checkbox"><span class="toggle-track"><span class="toggle-thumb"></span></span><span class="toggle-label">OFF</span></label>
+        <label class="toggle-material"><input type="checkbox" checked><span class="toggle-track"><span class="toggle-thumb"></span></span><span class="toggle-label">ON</span></label>
+        <label class="toggle-material"><input type="checkbox" disabled><span class="toggle-track"><span class="toggle-thumb"></span></span><span class="toggle-label">無効</span></label>
+      </div>
+    </section>
+    <section class="component-section">
+      <h2 class="section-title">実際の使用例 — 設定画面</h2>
+      <div class="preview-container preview-container--col" style="max-width: 480px; margin: 0 auto;">
+        <div class="settings-list">
+          <div class="settings-item"><div class="settings-info"><span class="settings-name">プッシュ通知</span><span class="settings-desc">新しいメッセージの通知を受け取る</span></div><label class="toggle-material"><input type="checkbox" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label></div>
+          <div class="settings-item"><div class="settings-info"><span class="settings-name">ダークモード</span><span class="settings-desc">画面の明るさを暗くする</span></div><label class="toggle-material"><input type="checkbox"><span class="toggle-track"><span class="toggle-thumb"></span></span></label></div>
+          <div class="settings-item"><div class="settings-info"><span class="settings-name">自動保存</span><span class="settings-desc">変更を自動的に保存する</span></div><label class="toggle-material"><input type="checkbox" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label></div>
+        </div>
+      </div>
+    </section>
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>サムがトラックより大きい理由</strong><br>マテリアルデザインでは、サム（つまみ）がトラックから少しはみ出します。これはタップ可能な領域を視覚的に示し、物理的なスイッチの「つまむ」感覚を再現しています。</p>
+        <p><strong>リップルエフェクト（波紋）</strong><br>ホバーやタップ時に淡い円形が広がるエフェクトは、ユーザーの操作に対するフィードバックです。「ここに触れている」ことを視覚的に確認できます。</p>
+        <p><strong>44pxタッチターゲット</strong><br>サムの周囲にリップル領域を設けることで、見た目は24pxでも実際のタッチ可能領域は40px以上を確保しています。</p>
+      </div>
+    </section>
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="html">HTML</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">.toggle-material {
+  /* CSS変数でサイズを一箇所管理 → 後からサイズ変更が簡単 */
+  --toggle-width: 52px;
+  --thumb-size: 24px;
+  /* position: relative → サム（丸）をabsoluteで配置するための基準点 */
+  position: relative;
+  cursor: pointer;
+}
+
+/* チェックボックスを見えなくする（機能は残す） */
+.toggle-material input {
+  position: absolute;
+  opacity: 0; /* 透明にするだけ → フォーカスやクリックは受け取れる */
+}
+
+/* トラック（レール部分） */
+.toggle-track {
+  width: var(--toggle-width);
+  height: 32px;
+  background: var(--color-neutral-300);
+  /* border-radius: 9999px → 高さに関係なく完全な丸端になる */
+  border-radius: 9999px;
+  transition: background 250ms;
+}
+
+/* サム（つまみ） — position: absoluteでトラックの上に浮かせる */
+.toggle-thumb {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  background: white;
+  border-radius: 50%;
+  /* translateY(-50%) → 縦方向の中央揃え */
+  transform: translateY(-50%);
+  transition: left 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px hsla(0,0%,0%,0.2);
+}
+
+/* リップル（波紋）エフェクト — ::afterで見えない大きな円を作る */
+.toggle-thumb::after {
+  content: "";
+  position: absolute;
+  /* inset: -8px → 上下左右に8px拡張した領域 */
+  inset: -8px;
+  border-radius: 50%;
+  background: transparent;
+}
+.toggle-material:hover .toggle-thumb::after {
+  /* ホバーで薄い色の円を表示 → リップルの第1段階 */
+  background: hsla(222, 80%, 50%, 0.08);
+}
+
+/* チェック時 → サムを右に移動、色を変える */
+input:checked + .toggle-track .toggle-thumb {
+  /* calc()で右端の位置を計算 */
+  left: calc(var(--toggle-width) - var(--thumb-size) - 4px);
+  background: var(--color-brand-500);
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- label要素で全体を囲む → ラベルクリックでもトグルが切り替わる -->
+<label class="toggle-material">
+  <!-- 実際の状態を持つcheckbox（見えないが機能する） -->
+  <input type="checkbox">
+  <!-- 見た目のトラックとサム -->
+  <span class="toggle-track">
+    <span class="toggle-thumb"></span>
+  </span>
+  <span class="toggle-label">通知</span>
+</label></code></pre>
+        </div>
+      </div>
+    </section>
+    <nav class="component-nav"></nav>
+  </div>
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

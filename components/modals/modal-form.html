@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>フォームモーダル — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       フォームモーダル — コンポーネントスタイル
+       =================================================================== */
+
+    /* ダイアログ本体 */
+    .form-dialog {
+      border: none;
+      border-radius: var(--radius-lg, 12px);
+      padding: 0;
+      max-width: 480px;
+      width: 90%;
+      background: var(--color-surface, #fff);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: form-dialog-enter 250ms ease-out;
+    }
+
+    @keyframes form-dialog-enter {
+      from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .form-dialog::backdrop {
+      background: rgba(0, 0, 0, 0.5);
+      animation: form-backdrop-fade 200ms ease-out;
+    }
+
+    @keyframes form-backdrop-fade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* ヘッダー */
+    .form-dialog__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--color-border, #e5e7eb);
+    }
+
+    .form-dialog__title {
+      font-size: var(--text-lg, 18px);
+      font-weight: var(--font-semibold, 600);
+      color: var(--color-text-primary, #1a1a2e);
+    }
+
+    .form-dialog__close {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      color: var(--color-text-secondary, #6b7280);
+      font-size: 20px;
+      cursor: pointer;
+      border-radius: var(--radius-md, 8px);
+      transition: background-color var(--duration-fast, 150ms);
+    }
+
+    .form-dialog__close:hover {
+      background: var(--color-surface-alt, #f3f4f6);
+    }
+
+    /* フォーム本体 */
+    .form-dialog__body {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* フォームグループ */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group__label {
+      font-size: var(--text-sm, 14px);
+      font-weight: var(--font-semibold, 600);
+      color: var(--color-text-primary, #1a1a2e);
+    }
+
+    .form-group__label--required::after {
+      content: " *";
+      color: #ef4444;
+    }
+
+    .form-group__input,
+    .form-group__textarea,
+    .form-group__select {
+      padding: 10px 12px;
+      font-size: var(--text-sm, 14px);
+      color: var(--color-text-primary, #1a1a2e);
+      background: var(--color-surface, #fff);
+      border: 1px solid var(--color-border, #d1d5db);
+      border-radius: var(--radius-md, 8px);
+      transition: border-color var(--duration-fast, 150ms),
+                  box-shadow var(--duration-fast, 150ms);
+      font-family: inherit;
+    }
+
+    .form-group__input:focus,
+    .form-group__textarea:focus,
+    .form-group__select:focus {
+      outline: none;
+      border-color: var(--color-brand-500, #4f6ef7);
+      box-shadow: 0 0 0 3px hsla(222, 80%, 50%, 0.15);
+    }
+
+    .form-group__input:invalid:not(:placeholder-shown),
+    .form-group__textarea:invalid:not(:placeholder-shown) {
+      border-color: #ef4444;
+    }
+
+    .form-group__textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-group__select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+
+    .form-group__hint {
+      font-size: var(--text-xs, 12px);
+      color: var(--color-text-secondary, #6b7280);
+    }
+
+    /* フッター（ボタンエリア） */
+    .form-dialog__footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 16px 24px;
+      border-top: 1px solid var(--color-border, #e5e7eb);
+      background: var(--color-surface-alt, #f9fafb);
+      border-radius: 0 0 var(--radius-lg, 12px) var(--radius-lg, 12px);
+    }
+
+    .form-dialog__btn {
+      padding: 8px 20px;
+      font-size: var(--text-sm, 14px);
+      font-weight: var(--font-semibold, 600);
+      border-radius: var(--radius-md, 8px);
+      cursor: pointer;
+      transition: background-color var(--duration-fast, 150ms);
+      border: 1px solid var(--color-border, #e5e7eb);
+      background: white;
+      color: var(--color-text-primary, #1a1a2e);
+    }
+
+    .form-dialog__btn:hover {
+      background: var(--color-surface-alt, #f9fafb);
+    }
+
+    .form-dialog__btn--primary {
+      background: var(--color-brand-500, #4f6ef7);
+      color: white;
+      border-color: var(--color-brand-500, #4f6ef7);
+    }
+
+    .form-dialog__btn--primary:hover {
+      background: var(--color-brand-600, #3b5de7);
+    }
+
+    .form-dialog__btn--primary:active {
+      background: var(--color-brand-700, #2a4ad4);
+    }
+
+    .form-dialog__btn--primary:disabled {
+      background: var(--color-action-disabled, #d1d5db);
+      border-color: var(--color-action-disabled, #d1d5db);
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">モーダル</span>
+      <h1 class="component-title">フォームモーダル</h1>
+      <p class="component-description">
+        タスクの新規作成など、短いフォーム入力をモーダル内で完結させるパターン。&lt;form method="dialog"&gt;を使うことで、送信時にダイアログが自動的に閉じます。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container">
+        <button type="button" style="
+          padding: 10px 20px;
+          font-size: 14px;
+          font-weight: 600;
+          color: white;
+          background: var(--color-brand-500, #4f6ef7);
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+        " onclick="document.getElementById('formDialog').showModal()">
+          新しいタスクを作成
+        </button>
+      </div>
+
+      <!-- dialog要素 -->
+      <dialog id="formDialog" class="form-dialog">
+        <div class="form-dialog__header">
+          <h3 class="form-dialog__title">タスクを作成</h3>
+          <button type="button" class="form-dialog__close" onclick="document.getElementById('formDialog').close()" aria-label="閉じる">✕</button>
+        </div>
+        <form method="dialog" id="taskForm">
+          <div class="form-dialog__body">
+            <div class="form-group">
+              <label class="form-group__label form-group__label--required" for="taskName">タスク名</label>
+              <input type="text" id="taskName" class="form-group__input" placeholder="例：デザインレビューを実施" required>
+            </div>
+            <div class="form-group">
+              <label class="form-group__label" for="taskDesc">説明</label>
+              <textarea id="taskDesc" class="form-group__textarea" placeholder="タスクの詳細を入力..."></textarea>
+              <span class="form-group__hint">任意。タスクの背景や目的を記入してください。</span>
+            </div>
+            <div class="form-group">
+              <label class="form-group__label" for="taskPriority">優先度</label>
+              <select id="taskPriority" class="form-group__select">
+                <option value="low">低</option>
+                <option value="medium" selected>中</option>
+                <option value="high">高</option>
+                <option value="urgent">緊急</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-dialog__footer">
+            <button type="button" class="form-dialog__btn" onclick="document.getElementById('formDialog').close()">キャンセル</button>
+            <button type="submit" class="form-dialog__btn form-dialog__btn--primary">作成する</button>
+          </div>
+        </form>
+      </dialog>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜ&lt;form method="dialog"&gt;を使うのか？</strong><br>
+        method="dialog"を指定すると、フォームの送信ボタンを押したときにページ遷移やリロードが起きず、代わりにダイアログが自動的に閉じます。JavaScriptでpreventDefault()を書く必要がなく、ブラウザのネイティブなバリデーションもそのまま使えます。</p>
+        <p><strong>バリデーションの仕組み</strong><br>
+        required属性を使ったHTML標準のバリデーションにより、空のタスク名では送信できません。:invalid:not(:placeholder-shown)セレクタで、ユーザーが入力を始めた後にだけエラー状態を表示し、初回表示時に赤枠が出る問題を防ぎます。</p>
+        <p><strong>フォームモーダルの適切な使いどころ</strong><br>
+        入力項目が3〜5つ程度の短いフォームはモーダルに適しています。それ以上の項目数になる場合は、専用のページに遷移した方がユーザーの集中力を維持しやすくなります。</p>
+        <p><strong>閉じるボタン（✕）の配置</strong><br>
+        ヘッダー右上の✕ボタンは、ユーザーが「いつでも離脱できる」安心感を与えます。キャンセルボタンとの重複に見えますが、✕は視線の流れ（右上）で自然に見つかる位置にあるため、両方あることでユーザビリティが向上します。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;dialog id="formDialog" class="form-dialog"&gt;
+  &lt;!-- ヘッダー → タイトルと閉じるボタン --&gt;
+  &lt;div class="form-dialog__header"&gt;
+    &lt;h3 class="form-dialog__title"&gt;タスクを作成&lt;/h3&gt;
+    &lt;button type="button" class="form-dialog__close"
+            aria-label="閉じる"&gt;✕&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;!-- form method="dialog" → 送信でダイアログが自動的に閉じる --&gt;
+  &lt;form method="dialog"&gt;
+    &lt;div class="form-dialog__body"&gt;
+
+      &lt;!-- タスク名（必須入力） --&gt;
+      &lt;div class="form-group"&gt;
+        &lt;label class="form-group__label form-group__label--required"
+               for="taskName"&gt;タスク名&lt;/label&gt;
+        &lt;input type="text" id="taskName"
+               class="form-group__input"
+               placeholder="例：デザインレビューを実施"
+               required&gt;
+      &lt;/div&gt;
+
+      &lt;!-- 説明（任意） --&gt;
+      &lt;div class="form-group"&gt;
+        &lt;label class="form-group__label"
+               for="taskDesc"&gt;説明&lt;/label&gt;
+        &lt;textarea id="taskDesc"
+                  class="form-group__textarea"
+                  placeholder="タスクの詳細を入力..."&gt;&lt;/textarea&gt;
+        &lt;span class="form-group__hint"&gt;任意&lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;!-- 優先度（セレクトボックス） --&gt;
+      &lt;div class="form-group"&gt;
+        &lt;label class="form-group__label"
+               for="taskPriority"&gt;優先度&lt;/label&gt;
+        &lt;select id="taskPriority"
+                class="form-group__select"&gt;
+          &lt;option value="low"&gt;低&lt;/option&gt;
+          &lt;option value="medium" selected&gt;中&lt;/option&gt;
+          &lt;option value="high"&gt;高&lt;/option&gt;
+          &lt;option value="urgent"&gt;緊急&lt;/option&gt;
+        &lt;/select&gt;
+      &lt;/div&gt;
+
+    &lt;/div&gt;
+
+    &lt;div class="form-dialog__footer"&gt;
+      &lt;button type="button" class="form-dialog__btn"&gt;
+        キャンセル
+      &lt;/button&gt;
+      &lt;!-- type="submit" → フォームバリデーション後に送信 --&gt;
+      &lt;button type="submit"
+              class="form-dialog__btn form-dialog__btn--primary"&gt;
+        作成する
+      &lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/form&gt;
+&lt;/dialog&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* ダイアログ本体 */
+.form-dialog {
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  max-width: 480px;
+  width: 90%;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: form-dialog-enter 250ms ease-out;
+}
+
+/* ::backdrop → モーダル背景 */
+.form-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* フォーム入力フィールドのフォーカス状態 */
+.form-group__input:focus,
+.form-group__textarea:focus,
+.form-group__select:focus {
+  outline: none;
+  /* ブランドカラーの枠線でフォーカスを示す */
+  border-color: var(--color-brand-500);
+  /* box-shadow → 枠線の外側にうっすら色を広げる（グロー効果） */
+  box-shadow: 0 0 0 3px hsla(222, 80%, 50%, 0.15);
+}
+
+/* バリデーションエラー状態 */
+.form-group__input:invalid:not(:placeholder-shown) {
+  /* :invalid → HTML標準のバリデーションに失敗した状態 */
+  /* :not(:placeholder-shown) → プレースホルダーが見えていない
+     ＝ユーザーが入力を始めた後にだけ赤枠を表示 */
+  border-color: #ef4444;
+}
+
+/* カスタムセレクトボックス */
+.form-group__select {
+  /* appearance: none → ブラウザデフォルトの矢印を消す */
+  appearance: none;
+  /* SVGの矢印アイコンを背景画像として配置 */
+  background-image: url("data:image/svg+xml,...");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  /* 矢印アイコン分の余白を確保 */
+  padding-right: 36px;
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="javascript">const dialog = document.getElementById('formDialog');
+const form = document.getElementById('taskForm');
+
+// ダイアログを開く
+dialog.showModal();
+
+// 閉じるボタン（✕）の処理
+const closeBtn = dialog.querySelector('.form-dialog__close');
+closeBtn.addEventListener('click', () =&gt; {
+  dialog.close();
+});
+
+// キャンセルボタンの処理
+const cancelBtn = dialog.querySelector('.form-dialog__btn:not(.form-dialog__btn--primary)');
+cancelBtn.addEventListener('click', () =&gt; {
+  dialog.close();
+});
+
+// 背景クリックで閉じる
+dialog.addEventListener('click', (e) =&gt; {
+  if (e.target === dialog) {
+    dialog.close();
+  }
+});
+
+// フォーム送信時の処理
+// method="dialog"のため、submit後にダイアログが自動で閉じる
+form.addEventListener('submit', (e) =&gt; {
+  // フォームデータを取得
+  const formData = new FormData(form);
+  console.log('タスク名:', formData.get('taskName'));
+  console.log('優先度:', formData.get('taskPriority'));
+
+  // 送信後にフォームをリセット
+  form.reset();
+});</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">バリデーションエラー時</div>
+          <p style="font-size: 14px; color: var(--color-text-secondary, #6b7280);">
+            required属性付きの入力欄が空のまま送信ボタンを押すと、ブラウザ標準のバリデーションメッセージが表示されます。method="dialog"でもバリデーションは正しく動作します。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">フォームのリセット</div>
+          <p style="font-size: 14px; color: var(--color-text-secondary, #6b7280);">
+            ダイアログを閉じた後にform.reset()を呼ばないと、再度開いた時に前回の入力値が残ります。closeイベントでリセットするのがベストプラクティスです。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">モバイルでのキーボード表示</div>
+          <p style="font-size: 14px; color: var(--color-text-secondary, #6b7280);">
+            モバイルデバイスでは、テキスト入力にフォーカスするとソフトウェアキーボードが表示されます。ダイアログのmax-heightをビューポート高さに制限し、スクロール可能にすることで、キーボード表示時にもフォームが操作できるようにします。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script>
+    // 背景クリックでダイアログを閉じる
+    const formDialog = document.getElementById('formDialog');
+    formDialog.addEventListener('click', (e) => {
+      if (e.target === formDialog) {
+        formDialog.close();
+      }
+    });
+
+    // ダイアログが閉じたらフォームをリセット
+    formDialog.addEventListener('close', () => {
+      document.getElementById('taskForm').reset();
+    });
+  </script>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>アクセシビリティ特化トグル — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    .a11y-toggle-group { display: flex; flex-direction: column; gap: var(--space-4); max-width: 480px; }
+    .a11y-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-3) 0; }
+    .a11y-toggle-info { display: flex; flex-direction: column; gap: 2px; }
+    .a11y-toggle-label { font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--color-neutral-800); }
+    .a11y-toggle-desc { font-size: var(--text-xs); color: var(--color-neutral-500); }
+    .toggle-switch {
+      position: relative; display: inline-flex; align-items: center;
+      width: 56px; height: 32px; flex-shrink: 0;
+      background: var(--color-neutral-300); border-radius: var(--radius-full);
+      cursor: pointer; transition: background var(--duration-normal);
+      border: 2px solid transparent;
+    }
+    .toggle-switch[aria-checked="true"] {
+      background: var(--color-brand-500);
+    }
+    .toggle-switch::before {
+      content: ""; position: absolute; left: 4px; width: 22px; height: 22px;
+      background: white; border-radius: 50%;
+      transition: transform var(--duration-normal) var(--ease-out);
+      box-shadow: 0 1px 3px hsla(0,0%,0%,0.2);
+    }
+    .toggle-switch[aria-checked="true"]::before {
+      transform: translateX(24px);
+    }
+    .toggle-switch:focus-visible {
+      outline: 3px solid var(--color-brand-400);
+      outline-offset: 2px;
+    }
+    .toggle-switch .toggle-status {
+      position: absolute; left: 8px; right: 8px;
+      font-size: 10px; font-weight: var(--font-semibold); letter-spacing: 0.05em;
+      color: white; pointer-events: none; text-align: right;
+    }
+    .toggle-switch[aria-checked="true"] .toggle-status { text-align: left; }
+    @media (prefers-reduced-motion: reduce) {
+      .toggle-switch, .toggle-switch::before { transition: none; }
+    }
+    @media (forced-colors: active) {
+      .toggle-switch { border: 2px solid ButtonText; }
+      .toggle-switch[aria-checked="true"] { background: Highlight; }
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+    <header class="component-header">
+      <span class="component-category">トグルスイッチ</span>
+      <h1 class="component-title">アクセシビリティ特化トグル</h1>
+      <p class="component-description">スクリーンリーダー、キーボード操作、ハイコントラストモード、モーション軽減設定など、あらゆるアクセシビリティ要件に対応したトグルスイッチ。</p>
+    </header>
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col" style="max-width: 480px; margin: 0 auto;">
+        <div class="a11y-toggle-group">
+          <div class="a11y-toggle-row">
+            <div class="a11y-toggle-info"><span class="a11y-toggle-label" id="label-notif">通知</span><span class="a11y-toggle-desc" id="desc-notif">新しいメッセージを受信した時に通知します</span></div>
+            <div class="toggle-switch" role="switch" aria-checked="false" aria-labelledby="label-notif" aria-describedby="desc-notif" tabindex="0"><span class="toggle-status">OFF</span></div>
+          </div>
+          <div class="a11y-toggle-row">
+            <div class="a11y-toggle-info"><span class="a11y-toggle-label" id="label-dark">ダークモード</span><span class="a11y-toggle-desc" id="desc-dark">画面の背景を暗い色に変更します</span></div>
+            <div class="toggle-switch" role="switch" aria-checked="true" aria-labelledby="label-dark" aria-describedby="desc-dark" tabindex="0"><span class="toggle-status">ON</span></div>
+          </div>
+          <div class="a11y-toggle-row">
+            <div class="a11y-toggle-info"><span class="a11y-toggle-label" id="label-motion">アニメーション</span><span class="a11y-toggle-desc" id="desc-motion">UIの動きを有効にします（prefers-reduced-motion対応）</span></div>
+            <div class="toggle-switch" role="switch" aria-checked="true" aria-labelledby="label-motion" aria-describedby="desc-motion" tabindex="0"><span class="toggle-status">ON</span></div>
+          </div>
+        </div>
+        <p style="font-size: var(--text-xs); color: var(--color-neutral-400); margin-top: 8px;">キーボードの Space または Enter キーでも切り替えられます</p>
+      </div>
+    </section>
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜアクセシビリティは「あると良い」ではなく「必須」なのか</strong><br>日本では障害者差別解消法により、Webサイトのアクセシビリティ対応は努力義務です。また、全人口の約15%が何らかの障害を持つとされ、一時的な障害（骨折、目の手術後）を含めるとさらに多くの人が恩恵を受けます。</p>
+        <p><strong>role="switch" の意味</strong><br>スクリーンリーダーはこの要素を「スイッチ」として読み上げ、「オン」「オフ」の状態を伝えます。role="checkbox"とは異なり、即座に効果が反映されることを暗示します。</p>
+        <p><strong>色だけに頼らない状態表示</strong><br>色覚特性のあるユーザーのために、ON/OFFは色だけでなく位置（左/右）とテキスト（ON/OFF）でも示します。</p>
+        <p><strong>prefers-reduced-motion</strong><br>前庭障害や視覚過敏のあるユーザーは、アニメーションで体調を崩すことがあります。このメディアクエリでアニメーションを無効化できます。</p>
+      </div>
+    </section>
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- role="switch" → スクリーンリーダーに「これはスイッチです」と伝える -->
+<!-- aria-checked → 現在の状態（true=ON, false=OFF） -->
+<!-- aria-labelledby → どのテキストがこのスイッチのラベルかを指定 -->
+<!-- aria-describedby → 補足説明テキストを関連付ける -->
+<!-- tabindex="0" → キーボードのTabキーでフォーカス可能にする -->
+<div class="toggle-switch"
+     role="switch"
+     aria-checked="false"
+     aria-labelledby="label-notif"
+     aria-describedby="desc-notif"
+     tabindex="0">
+  <!-- ON/OFFテキスト → 色覚特性のあるユーザーへの配慮 -->
+  <span class="toggle-status">OFF</span>
+</div>
+
+<!-- ラベルと説明 → id属性でスイッチと関連付ける -->
+<span id="label-notif">通知</span>
+<span id="desc-notif">新しいメッセージを受信した時に通知します</span></code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* :focus-visible → キーボード操作時のみフォーカスリングを表示。
+   マウスクリック時には出ない（:focusだと両方で出る） */
+.toggle-switch:focus-visible {
+  outline: 3px solid var(--color-brand-400);
+  outline-offset: 2px; /* スイッチから少し離して見やすくする */
+}
+
+/* prefers-reduced-motion: reduce → ユーザーがOS設定で
+   「動きを減らす」を選んでいる場合、アニメーションを無効化 */
+@media (prefers-reduced-motion: reduce) {
+  .toggle-switch,
+  .toggle-switch::before {
+    transition: none; /* すべてのアニメーションを即座に切り替え */
+  }
+}
+
+/* forced-colors: active → Windows高コントラストモード対応。
+   通常のCSSカラーが上書きされるため、システムカラーを使う */
+@media (forced-colors: active) {
+  .toggle-switch {
+    border: 2px solid ButtonText; /* システムのボタンテキスト色 */
+  }
+  .toggle-switch[aria-checked="true"] {
+    background: Highlight; /* システムのハイライト色 */
+  }
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">/* すべてのトグルスイッチに対してイベントを設定 */
+document.querySelectorAll('.toggle-switch').forEach(function(toggle) {
+
+  /* toggle関数 → 状態を反転させる */
+  function toggleSwitch() {
+    /* aria-checkedの値を取得して反転 */
+    var isChecked = toggle.getAttribute('aria-checked') === 'true';
+    var newState = !isChecked;
+
+    /* aria-checkedを更新 → スクリーンリーダーが状態変化を通知 */
+    toggle.setAttribute('aria-checked', String(newState));
+
+    /* 表示テキストも更新（色に頼らない状態表示） */
+    var status = toggle.querySelector('.toggle-status');
+    if (status) {
+      status.textContent = newState ? 'ON' : 'OFF';
+    }
+  }
+
+  /* クリックで切り替え */
+  toggle.addEventListener('click', toggleSwitch);
+
+  /* キーボード操作: SpaceキーまたはEnterキーで切り替え */
+  toggle.addEventListener('keydown', function(e) {
+    if (e.key === ' ' || e.key === 'Enter') {
+      /* preventDefault → Spaceキーのスクロール、Enterのフォーム送信を防ぐ */
+      e.preventDefault();
+      toggleSwitch();
+    }
+  });
+});</code></pre>
+        </div>
+      </div>
+    </section>
+    <nav class="component-nav"></nav>
+  </div>
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    document.querySelectorAll('.toggle-switch').forEach(function(toggle) {
+      function toggleSwitch() {
+        var isChecked = toggle.getAttribute('aria-checked') === 'true';
+        toggle.setAttribute('aria-checked', String(!isChecked));
+        var status = toggle.querySelector('.toggle-status');
+        if (status) status.textContent = !isChecked ? 'ON' : 'OFF';
+      }
+      toggle.addEventListener('click', toggleSwitch);
+      toggle.addEventListener('keydown', function(e) {
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleSwitch(); }
+      });
+    });
+  </script>
+</body>
+</html>

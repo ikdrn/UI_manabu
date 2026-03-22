@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>セレクトドロップダウン — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       セレクトドロップダウン — コンポーネントスタイル
+       =================================================================== */
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .form-label {
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--color-neutral-800);
+    }
+
+    /* ============================================================
+       ネイティブ <select> のスタイリング
+       ============================================================ */
+    .native-select {
+      width: 100%;
+      padding: 10px 36px 10px 12px;
+      font-size: var(--text-sm);
+      font-family: inherit;
+      color: var(--color-neutral-800);
+      background-color: var(--color-surface-raised);
+      border: 1px solid var(--color-neutral-300);
+      border-radius: var(--radius-md);
+      outline: none;
+      cursor: pointer;
+      /* appearance: none → ブラウザデフォルトの矢印アイコンを消す */
+      appearance: none;
+      -webkit-appearance: none;
+      /* 独自の矢印アイコンをSVGで背景に配置する */
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 16px;
+      transition: border-color var(--duration-fast),
+                  box-shadow var(--duration-fast);
+    }
+
+    .native-select:focus {
+      border-color: var(--color-brand-500);
+      box-shadow: 0 0 0 3px hsla(222, 80%, 50%, 0.15);
+    }
+
+    .native-select:disabled {
+      background-color: var(--color-neutral-100);
+      color: var(--color-neutral-400);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    /* ============================================================
+       カスタムドロップダウン
+       ============================================================ */
+    .custom-select {
+      position: relative;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    /* --- トリガーボタン --- */
+    .custom-select-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 10px 12px;
+      font-size: var(--text-sm);
+      font-family: inherit;
+      color: var(--color-neutral-800);
+      background-color: var(--color-surface-raised);
+      border: 1px solid var(--color-neutral-300);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      outline: none;
+      transition: border-color var(--duration-fast),
+                  box-shadow var(--duration-fast);
+      text-align: left;
+    }
+
+    .custom-select-trigger:focus {
+      border-color: var(--color-brand-500);
+      box-shadow: 0 0 0 3px hsla(222, 80%, 50%, 0.15);
+    }
+
+    .custom-select-trigger[aria-expanded="true"] {
+      border-color: var(--color-brand-500);
+    }
+
+    .custom-select-arrow {
+      width: 16px;
+      height: 16px;
+      color: var(--color-neutral-500);
+      transition: transform var(--duration-fast);
+      flex-shrink: 0;
+    }
+
+    .custom-select-trigger[aria-expanded="true"] .custom-select-arrow {
+      transform: rotate(180deg);
+    }
+
+    .custom-select-text {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .custom-select-placeholder {
+      color: var(--color-neutral-400);
+    }
+
+    /* --- オプションリスト --- */
+    .custom-select-options {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: var(--z-dropdown);
+      display: none;
+      padding: var(--space-1) 0;
+    }
+
+    .custom-select-options.open {
+      display: block;
+    }
+
+    .custom-select-option {
+      padding: 9px 12px;
+      font-size: var(--text-sm);
+      color: var(--color-neutral-700);
+      cursor: pointer;
+      transition: background-color var(--duration-fast);
+      outline: none;
+    }
+
+    .custom-select-option:hover,
+    .custom-select-option.focused {
+      background-color: var(--color-brand-50);
+    }
+
+    .custom-select-option.selected {
+      color: var(--color-brand-600);
+      font-weight: var(--font-semibold);
+      background-color: var(--color-brand-50);
+    }
+
+    .custom-select-option.selected::after {
+      content: '✓';
+      float: right;
+      color: var(--color-brand-500);
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">フォーム</span>
+      <h1 class="component-title">セレクトドロップダウン</h1>
+      <p class="component-description">
+        セレクトは複数の選択肢から1つを選ぶUIです。ネイティブの<code>&lt;select&gt;</code>要素のスタイリングと、キーボードナビゲーション対応のカスタムドロップダウンの2つのアプローチを学びます。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー：ネイティブselect ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー：ネイティブ &lt;select&gt;</h2>
+      <div class="preview-container preview-container--col" style="gap: 24px; align-items: flex-start;">
+
+        <div class="form-group">
+          <label class="form-label" for="native-pref">都道府県</label>
+          <select class="native-select" id="native-pref">
+            <option value="" disabled selected>選択してください</option>
+            <option value="tokyo">東京都</option>
+            <option value="osaka">大阪府</option>
+            <option value="kyoto">京都府</option>
+            <option value="hokkaido">北海道</option>
+            <option value="fukuoka">福岡県</option>
+            <option value="okinawa">沖縄県</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="native-disabled">無効状態</label>
+          <select class="native-select" id="native-disabled" disabled>
+            <option>変更できません</option>
+          </select>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== プレビュー：カスタムドロップダウン ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー：カスタムドロップダウン</h2>
+      <div class="preview-container preview-container--col" style="gap: 24px; align-items: flex-start; min-height: 320px;">
+
+        <div class="form-group">
+          <label class="form-label" id="custom-label">プログラミング言語</label>
+
+          <div class="custom-select" id="custom-select-demo">
+            <button
+              class="custom-select-trigger"
+              type="button"
+              role="combobox"
+              aria-expanded="false"
+              aria-haspopup="listbox"
+              aria-labelledby="custom-label"
+              aria-controls="custom-options"
+            >
+              <span class="custom-select-text custom-select-placeholder">選択してください</span>
+              <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+
+            <div class="custom-select-options" id="custom-options" role="listbox" aria-labelledby="custom-label">
+              <div class="custom-select-option" role="option" data-value="js" tabindex="-1">JavaScript</div>
+              <div class="custom-select-option" role="option" data-value="ts" tabindex="-1">TypeScript</div>
+              <div class="custom-select-option" role="option" data-value="py" tabindex="-1">Python</div>
+              <div class="custom-select-option" role="option" data-value="go" tabindex="-1">Go</div>
+              <div class="custom-select-option" role="option" data-value="rust" tabindex="-1">Rust</div>
+              <div class="custom-select-option" role="option" data-value="java" tabindex="-1">Java</div>
+              <div class="custom-select-option" role="option" data-value="swift" tabindex="-1">Swift</div>
+              <div class="custom-select-option" role="option" data-value="kotlin" tabindex="-1">Kotlin</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong><code>appearance: none</code>でブラウザデフォルトを消す</strong><br>
+        ネイティブの<code>&lt;select&gt;</code>はブラウザごとに見た目が異なります。<code>appearance: none</code>でデフォルトスタイルをリセットし、SVGの背景画像で統一された矢印アイコンを表示します。</p>
+
+        <p><strong>ネイティブ vs カスタムの使い分け</strong><br>
+        ネイティブ<code>&lt;select&gt;</code>はアクセシビリティとモバイル対応が組み込まれている利点があります。カスタムドロップダウンはデザインの自由度が高い反面、キーボードナビゲーションとARIAロールを自分で実装する必要があります。</p>
+
+        <p><strong>キーボードナビゲーションは必須</strong><br>
+        カスタムドロップダウンでは<kbd>↑</kbd><kbd>↓</kbd>で移動、<kbd>Enter</kbd>で選択、<kbd>Escape</kbd>で閉じるキーボード操作を実装します。<code>role="listbox"</code>と<code>role="option"</code>でスクリーンリーダーにもリストであることを伝えます。</p>
+
+        <p><strong>フォーカス管理の重要性</strong><br>
+        ドロップダウンを開いた時にフォーカスを最初の選択肢に移動し、閉じた時にトリガーボタンに戻す。この「フォーカストラップ」がないと、キーボードユーザーは迷子になります。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- ===== ネイティブ &lt;select&gt; ===== -->
+&lt;div class="form-group"&gt;
+  &lt;label class="form-label" for="pref"&gt;都道府県&lt;/label&gt;
+  <!-- select要素 → ブラウザ組み込みのドロップダウン。
+       アクセシビリティが自動的に確保される -->
+  &lt;select class="native-select" id="pref"&gt;
+    <!-- disabled selected → 初期状態で選択不可の案内テキスト -->
+    &lt;option value="" disabled selected&gt;選択してください&lt;/option&gt;
+    &lt;option value="tokyo"&gt;東京都&lt;/option&gt;
+    &lt;option value="osaka"&gt;大阪府&lt;/option&gt;
+  &lt;/select&gt;
+&lt;/div&gt;
+
+<!-- ===== カスタムドロップダウン ===== -->
+&lt;div class="custom-select"&gt;
+  <!-- role="combobox" → 入力＋リストの組み合わせを示すARIAロール -->
+  &lt;button class="custom-select-trigger" type="button"
+          role="combobox"
+          aria-expanded="false"
+          aria-haspopup="listbox"
+          aria-labelledby="custom-label"
+          aria-controls="custom-options"&gt;
+    &lt;span class="custom-select-text"&gt;選択してください&lt;/span&gt;
+    &lt;svg class="custom-select-arrow" ...&gt;...&lt;/svg&gt;
+  &lt;/button&gt;
+
+  <!-- role="listbox" → 選択リストであることをARIAで示す -->
+  &lt;div class="custom-select-options" id="custom-options"
+       role="listbox"&gt;
+    <!-- role="option" → 各選択肢。data-valueに値を持たせる -->
+    &lt;div class="custom-select-option" role="option"
+         data-value="js"&gt;JavaScript&lt;/div&gt;
+    &lt;div class="custom-select-option" role="option"
+         data-value="py"&gt;Python&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- ネイティブ &lt;select&gt; のスタイリング --- */
+.native-select {
+  /* appearance: none → ブラウザデフォルトの外観を完全にリセットする。
+     これがないとOSごとに異なる矢印アイコンが表示される */
+  appearance: none;
+  -webkit-appearance: none; /* Safari対応 */
+
+  /* padding-right → 矢印アイコン分のスペースを確保 */
+  padding: 10px 36px 10px 12px;
+
+  /* background-image → SVGをインラインで埋め込んで矢印アイコンにする。
+     URLエンコードしたSVGをdata:URIとして指定する */
+  background-image: url("data:image/svg+xml,...");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+}
+
+/* --- カスタムドロップダウンのオプションリスト --- */
+.custom-select-options {
+  /* position: absolute → ボタンの真下に浮かせて表示 */
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  /* z-index → 他の要素より手前に表示する */
+  z-index: var(--z-dropdown);
+  display: none; /* 初期状態は非表示 */
+}
+
+.custom-select-options.open {
+  display: block; /* .openクラスで表示する */
+}
+
+/* .focused → キーボードナビゲーション中の現在位置を示す */
+.custom-select-option.focused {
+  background-color: var(--color-brand-50);
+}
+
+/* .selected → 選択済みの項目。チェックマークを表示 */
+.custom-select-option.selected::after {
+  content: '✓';
+  float: right;
+  color: var(--color-brand-500);
+}
+
+/* --- 矢印の回転アニメーション --- */
+.custom-select-arrow {
+  transition: transform 150ms;
+}
+
+/* aria-expanded="true"時に矢印を180度回転 */
+.custom-select-trigger[aria-expanded="true"] .custom-select-arrow {
+  transform: rotate(180deg);
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// --- カスタムドロップダウンの実装 ---
+const select = document.getElementById('custom-select-demo');
+const trigger = select.querySelector('.custom-select-trigger');
+const options = select.querySelector('.custom-select-options');
+const optionEls = [...options.querySelectorAll('.custom-select-option')];
+const textEl = trigger.querySelector('.custom-select-text');
+
+let focusedIndex = -1; // 現在フォーカスされている項目のインデックス
+
+// --- 開閉トグル ---
+trigger.addEventListener('click', () => {
+  const isOpen = options.classList.contains('open');
+  if (isOpen) {
+    closeDropdown();
+  } else {
+    openDropdown();
+  }
+});
+
+function openDropdown() {
+  options.classList.add('open');
+  trigger.setAttribute('aria-expanded', 'true');
+  // 選択済みの項目があればそこにフォーカス
+  const selectedIdx = optionEls.findIndex(
+    el =&gt; el.classList.contains('selected')
+  );
+  setFocus(selectedIdx &gt;= 0 ? selectedIdx : 0);
+}
+
+function closeDropdown() {
+  options.classList.remove('open');
+  trigger.setAttribute('aria-expanded', 'false');
+  clearFocus();
+  trigger.focus(); // トリガーにフォーカスを戻す
+}
+
+// --- キーボードナビゲーション ---
+trigger.addEventListener('keydown', (e) => {
+  switch (e.key) {
+    case 'ArrowDown':
+    case 'ArrowUp':
+      e.preventDefault();
+      if (!options.classList.contains('open')) {
+        openDropdown();
+      }
+      break;
+    case 'Escape':
+      closeDropdown();
+      break;
+  }
+});
+
+options.addEventListener('keydown', (e) => {
+  switch (e.key) {
+    case 'ArrowDown':
+      e.preventDefault();
+      // 次の項目に移動（最後なら最初に戻る）
+      setFocus((focusedIndex + 1) % optionEls.length);
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      // 前の項目に移動（最初なら最後に飛ぶ）
+      setFocus(
+        (focusedIndex - 1 + optionEls.length) % optionEls.length
+      );
+      break;
+    case 'Enter':
+    case ' ':
+      e.preventDefault();
+      selectOption(focusedIndex);
+      closeDropdown();
+      break;
+    case 'Escape':
+      closeDropdown();
+      break;
+  }
+});
+
+// --- フォーカス管理 ---
+function setFocus(index) {
+  clearFocus();
+  focusedIndex = index;
+  const el = optionEls[index];
+  el.classList.add('focused');
+  el.focus();
+  // スクロール位置を調整
+  el.scrollIntoView({ block: 'nearest' });
+}
+
+function clearFocus() {
+  optionEls.forEach(el =&gt; el.classList.remove('focused'));
+  focusedIndex = -1;
+}
+
+// --- 選択処理 ---
+function selectOption(index) {
+  optionEls.forEach(el =&gt; {
+    el.classList.remove('selected');
+    el.setAttribute('aria-selected', 'false');
+  });
+  const el = optionEls[index];
+  el.classList.add('selected');
+  el.setAttribute('aria-selected', 'true');
+  textEl.textContent = el.textContent;
+  textEl.classList.remove('custom-select-placeholder');
+}
+
+// クリックで選択
+optionEls.forEach((el, i) =&gt; {
+  el.addEventListener('click', () =&gt; {
+    selectOption(i);
+    closeDropdown();
+  });
+});
+
+// 外側クリックで閉じる
+document.addEventListener('click', (e) =&gt; {
+  if (!e.target.closest('#custom-select-demo')) {
+    closeDropdown();
+  }
+});</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">長いオプションテキスト</div>
+          <div class="form-group">
+            <select class="native-select">
+              <option>非常に長い選択肢のテキストが入った場合の表示確認用オプション</option>
+            </select>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">選択肢が多い場合（スクロール）</div>
+          <div class="form-group">
+            <select class="native-select">
+              <option value="" disabled selected>47都道府県から選択</option>
+              <option>北海道</option><option>青森県</option><option>岩手県</option>
+              <option>宮城県</option><option>秋田県</option><option>山形県</option>
+              <option>福島県</option><option>茨城県</option><option>栃木県</option>
+              <option>群馬県</option><option>埼玉県</option><option>千葉県</option>
+              <option>東京都</option><option>神奈川県</option>
+            </select>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">キーボード操作のテスト</div>
+          <p style="font-size: var(--text-xs); color: var(--color-neutral-500); margin: 4px 0 0;">
+            上のカスタムドロップダウンで<kbd>Tab</kbd>でフォーカス → <kbd>Enter</kbd>/<kbd>Space</kbd>で開く → <kbd>↑</kbd><kbd>↓</kbd>で移動 → <kbd>Enter</kbd>で選択 → <kbd>Escape</kbd>で閉じる、を確認してください。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    // カスタムドロップダウン
+    const select = document.getElementById('custom-select-demo');
+    const trigger = select.querySelector('.custom-select-trigger');
+    const optionsList = select.querySelector('.custom-select-options');
+    const optionEls = [...optionsList.querySelectorAll('.custom-select-option')];
+    const textEl = trigger.querySelector('.custom-select-text');
+
+    let focusedIndex = -1;
+
+    trigger.addEventListener('click', () => {
+      const isOpen = optionsList.classList.contains('open');
+      if (isOpen) closeDropdown();
+      else openDropdown();
+    });
+
+    function openDropdown() {
+      optionsList.classList.add('open');
+      trigger.setAttribute('aria-expanded', 'true');
+      const selectedIdx = optionEls.findIndex(el => el.classList.contains('selected'));
+      setFocus(selectedIdx >= 0 ? selectedIdx : 0);
+    }
+
+    function closeDropdown() {
+      optionsList.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+      clearFocus();
+      trigger.focus();
+    }
+
+    trigger.addEventListener('keydown', (e) => {
+      switch (e.key) {
+        case 'ArrowDown':
+        case 'ArrowUp':
+          e.preventDefault();
+          if (!optionsList.classList.contains('open')) openDropdown();
+          break;
+        case 'Escape':
+          closeDropdown();
+          break;
+      }
+    });
+
+    optionsList.addEventListener('keydown', (e) => {
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setFocus((focusedIndex + 1) % optionEls.length);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setFocus((focusedIndex - 1 + optionEls.length) % optionEls.length);
+          break;
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          selectOption(focusedIndex);
+          closeDropdown();
+          break;
+        case 'Escape':
+          closeDropdown();
+          break;
+      }
+    });
+
+    function setFocus(index) {
+      clearFocus();
+      focusedIndex = index;
+      const el = optionEls[index];
+      el.classList.add('focused');
+      el.focus();
+      el.scrollIntoView({ block: 'nearest' });
+    }
+
+    function clearFocus() {
+      optionEls.forEach(el => el.classList.remove('focused'));
+      focusedIndex = -1;
+    }
+
+    function selectOption(index) {
+      optionEls.forEach(el => {
+        el.classList.remove('selected');
+        el.setAttribute('aria-selected', 'false');
+      });
+      const el = optionEls[index];
+      el.classList.add('selected');
+      el.setAttribute('aria-selected', 'true');
+      textEl.textContent = el.textContent;
+      textEl.classList.remove('custom-select-placeholder');
+    }
+
+    optionEls.forEach((el, i) => {
+      el.addEventListener('click', () => {
+        selectOption(i);
+        closeDropdown();
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#custom-select-demo')) {
+        if (optionsList.classList.contains('open')) closeDropdown();
+      }
+    });
+  </script>
+</body>
+</html>

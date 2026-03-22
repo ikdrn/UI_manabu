@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>レンジスライダー — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       レンジスライダー — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- シングルスライダー --- */
+    .single-slider-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      padding-top: 36px;
+    }
+
+    .single-slider-wrap .slider-value {
+      position: absolute;
+      top: 0;
+      transform: translateX(-50%);
+      background-color: var(--color-brand-500);
+      color: #fff;
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      padding: 3px 10px;
+      border-radius: var(--radius-sm);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .single-slider-wrap .slider-value::after {
+      content: "";
+      position: absolute;
+      bottom: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 5px 5px 0;
+      border-style: solid;
+      border-color: var(--color-brand-500) transparent transparent;
+    }
+
+    .range-input {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--color-neutral-200);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .range-input::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 3px;
+    }
+
+    .range-input::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--color-brand-500);
+      border: 3px solid #fff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+      margin-top: -8px;
+      cursor: pointer;
+      transition: box-shadow var(--duration-fast);
+    }
+
+    .range-input::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 0 6px hsla(222, 80%, 50%, 0.15),
+                  0 1px 4px rgba(0, 0, 0, 0.25);
+    }
+
+    .range-input::-moz-range-track {
+      height: 6px;
+      border-radius: 3px;
+      background: var(--color-neutral-200);
+    }
+
+    .range-input::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--color-brand-500);
+      border: 3px solid #fff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+      cursor: pointer;
+    }
+
+    .range-input::-moz-range-thumb:hover {
+      box-shadow: 0 0 0 6px hsla(222, 80%, 50%, 0.15),
+                  0 1px 4px rgba(0, 0, 0, 0.25);
+    }
+
+    .range-input:focus-visible {
+      outline: none;
+    }
+
+    .range-input:focus-visible::-webkit-slider-thumb {
+      box-shadow: 0 0 0 3px var(--color-brand-500),
+                  0 0 0 5px #fff;
+    }
+
+    .range-input:focus-visible::-moz-range-thumb {
+      box-shadow: 0 0 0 3px var(--color-brand-500),
+                  0 0 0 5px #fff;
+    }
+
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: var(--space-2);
+      font-size: var(--text-xs);
+      color: var(--color-neutral-500);
+    }
+
+    /* --- デュアルレンジスライダー --- */
+    .dual-slider-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .dual-slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: var(--space-3);
+    }
+
+    .dual-slider-header .label {
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--color-neutral-700);
+    }
+
+    .dual-slider-header .range-display {
+      font-size: var(--text-sm);
+      color: var(--color-brand-600);
+      font-weight: var(--font-semibold);
+    }
+
+    .dual-track {
+      position: relative;
+      height: 6px;
+      margin: 28px 0 8px;
+    }
+
+    .dual-track-bg {
+      position: absolute;
+      inset: 0;
+      background: var(--color-neutral-200);
+      border-radius: 3px;
+    }
+
+    .dual-track-fill {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      background: var(--color-brand-500);
+      border-radius: 3px;
+    }
+
+    .dual-slider-wrap input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: transparent;
+      pointer-events: none;
+      outline: none;
+      margin: 0;
+    }
+
+    .dual-slider-wrap input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--color-brand-500);
+      border: 3px solid #fff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+      margin-top: -8px;
+      cursor: pointer;
+      pointer-events: auto;
+      position: relative;
+      z-index: 2;
+      transition: box-shadow var(--duration-fast);
+    }
+
+    .dual-slider-wrap input[type="range"]::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 0 6px hsla(222, 80%, 50%, 0.15),
+                  0 1px 4px rgba(0, 0, 0, 0.25);
+    }
+
+    .dual-slider-wrap input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--color-brand-500);
+      border: 3px solid #fff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+      cursor: pointer;
+      pointer-events: auto;
+      position: relative;
+      z-index: 2;
+    }
+
+    .dual-slider-wrap input[type="range"]::-moz-range-thumb:hover {
+      box-shadow: 0 0 0 6px hsla(222, 80%, 50%, 0.15),
+                  0 1px 4px rgba(0, 0, 0, 0.25);
+    }
+
+    .dual-slider-wrap input[type="range"]:focus-visible::-webkit-slider-thumb {
+      box-shadow: 0 0 0 3px var(--color-brand-500),
+                  0 0 0 5px #fff;
+    }
+
+    .dual-slider-wrap input[type="range"]:focus-visible::-moz-range-thumb {
+      box-shadow: 0 0 0 3px var(--color-brand-500),
+                  0 0 0 5px #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">スライダー・カルーセル</span>
+      <h1 class="component-title">レンジスライダー</h1>
+      <p class="component-description">
+        数値の選択や範囲の絞り込みに使うスライダーコンポーネント。ネイティブの <code>&lt;input type="range"&gt;</code> をカスタマイズし、視覚的なフィードバックとクロスブラウザ対応を実現します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー：シングルスライダー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー — シングルスライダー</h2>
+      <div class="preview-container preview-container--col" style="align-items: center;">
+        <div class="single-slider-wrap" id="singleSliderWrap">
+          <span class="slider-value" id="singleValue">50</span>
+          <input
+            type="range"
+            class="range-input"
+            id="singleSlider"
+            min="0"
+            max="100"
+            step="1"
+            value="50"
+          >
+          <div class="slider-labels">
+            <span>0</span>
+            <span>100</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== プレビュー：デュアルスライダー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー — 価格レンジスライダー</h2>
+      <div class="preview-container preview-container--col" style="align-items: center;">
+        <div class="dual-slider-wrap" id="dualSliderWrap">
+          <div class="dual-slider-header">
+            <span class="label">価格帯</span>
+            <span class="range-display" id="dualDisplay">¥1,000 — ¥8,000</span>
+          </div>
+          <div class="dual-track">
+            <div class="dual-track-bg"></div>
+            <div class="dual-track-fill" id="dualFill"></div>
+            <input
+              type="range"
+              id="dualMin"
+              min="0"
+              max="10000"
+              step="500"
+              value="1000"
+              aria-label="最小価格"
+            >
+            <input
+              type="range"
+              id="dualMax"
+              min="0"
+              max="10000"
+              step="500"
+              value="8000"
+              aria-label="最大価格"
+            >
+          </div>
+          <div class="slider-labels">
+            <span>¥0</span>
+            <span>¥10,000</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜネイティブ range input をカスタマイズするのか？</strong><br>
+        ブラウザ標準の <code>&lt;input type="range"&gt;</code> は、Chrome・Firefox・Safari で見た目が大きく異なります。<code>appearance: none</code> でデフォルトスタイルをリセットし、ベンダープレフィックス付きの擬似要素（<code>::-webkit-slider-thumb</code> 等）で統一的なデザインを実現します。</p>
+
+        <p><strong>デュアルレンジで価格・範囲フィルタリング</strong><br>
+        ECサイトの価格フィルターや、不動産の面積検索など「最小値〜最大値」を同時に指定する場面で使います。2つの <code>&lt;input type="range"&gt;</code> を重ね、JavaScript で最小値が最大値を超えないように制御します。</p>
+
+        <p><strong>視覚的フィードバックの重要性</strong><br>
+        選択中の値を追従するツールチップや、塗りつぶされたトラック（フィルドトラック）は、現在の選択値を直感的に伝えます。数値だけでなく「割合」を色で表すことで、ユーザーは素早く現在地を把握できます。</p>
+
+        <p><strong>モバイルでのタッチターゲット</strong><br>
+        つまみ（thumb）のサイズは最低 44px &times; 44px を確保するのが推奨です。見た目の円は 22px でも、<code>::-webkit-slider-thumb</code> のタッチ領域は十分な大きさが必要で、指で正確に操作できるようにします。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JS</button>
+        <button class="code-tab" data-tab="html">HTML</button>
+      </div>
+      <div class="code-block-wrapper">
+
+        <!-- CSS パネル -->
+        <div class="code-panel active" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* === シングルスライダーのトラック・つまみ === */
+
+.range-input {
+  /* appearance: none → ブラウザ標準の見た目をすべてリセットする。
+     これがないとカスタムスタイルが効かない */
+  -webkit-appearance: none;
+  appearance: none;
+
+  /* width: 100% → 親要素の横幅いっぱいに広げる */
+  width: 100%;
+
+  /* height: 6px → トラック（レール）の太さを指定する */
+  height: 6px;
+
+  /* border-radius: 3px → トラックの角を丸くして柔らかい印象にする */
+  border-radius: 3px;
+
+  /* background → トラックの背景色。
+     JSからlinear-gradientで塗り分ける（左：ブランド色、右：グレー） */
+  background: var(--color-neutral-200);
+
+  /* outline: none → フォーカス時のデフォルト枠を消す（別途 focus-visible で対応） */
+  outline: none;
+
+  /* cursor: pointer → つまみ以外のトラック部分もクリックで移動できることを示す */
+  cursor: pointer;
+}
+
+/* ::-webkit-slider-thumb → Chrome/Safari/Edgeのつまみ */
+.range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+
+  /* width/height: 22px → つまみの直径。タッチしやすいサイズ */
+  width: 22px;
+  height: 22px;
+
+  /* border-radius: 50% → 円形にする */
+  border-radius: 50%;
+
+  /* background → つまみの塗り色。ブランドカラーで目立たせる */
+  background: var(--color-brand-500);
+
+  /* border: 3px solid #fff → 白い縁取りでトラックとの境界を明確にする */
+  border: 3px solid #fff;
+
+  /* box-shadow → 影で浮き上がった感覚を出す */
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+
+  /* margin-top: -8px → つまみをトラックの中央に配置する調整値
+     計算: -(つまみ高さ - トラック高さ) / 2 = -(22-6)/2 = -8 */
+  margin-top: -8px;
+
+  cursor: pointer;
+}
+
+/* ::-webkit-slider-thumb:hover → ホバー時に光の輪を出す */
+.range-input::-webkit-slider-thumb:hover {
+  /* 薄いブランドカラーの輪で「触れている」フィードバック */
+  box-shadow: 0 0 0 6px hsla(222, 80%, 50%, 0.15),
+              0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* ::-moz-range-thumb → Firefoxのつまみ */
+.range-input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-brand-500);
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+/* ::-moz-range-track → Firefoxのトラック */
+.range-input::-moz-range-track {
+  /* height: 6px → トラックの太さ */
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-neutral-200);
+}
+
+/* === フィルドトラック（塗りつぶし）のテクニック === */
+/* linear-gradientでトラック背景を動的に塗り分ける */
+/* JSから以下のように設定する：
+   background: linear-gradient(
+     to right,
+     var(--color-brand-500) 0%,
+     var(--color-brand-500) 50%,  ← 現在値の割合
+     var(--color-neutral-200) 50%,
+     var(--color-neutral-200) 100%
+   ); */
+
+/* === デュアルスライダーの塗り部分 === */
+.dual-track-fill {
+  /* position: absolute → 親の .dual-track 内で自由に配置する */
+  position: absolute;
+  top: 0;
+
+  /* height: 100% → トラックと同じ高さにする */
+  height: 100%;
+
+  /* background → min〜max間を塗りつぶすブランドカラー */
+  background: var(--color-brand-500);
+  border-radius: 3px;
+
+  /* left と width は JS から動的に設定する */
+}
+
+/* === デュアルスライダーのつまみ（重ね配置） === */
+.dual-slider-wrap input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+
+  /* background: transparent → トラック背景を透明にして
+     下のdual-track-bg/dual-track-fillを見せる */
+  background: transparent;
+
+  /* pointer-events: none → トラック部分のクリックを無効化し
+     つまみだけ操作可能にする（つまみ側でautoに戻す） */
+  pointer-events: none;
+}
+
+.dual-slider-wrap input[type="range"]::-webkit-slider-thumb {
+  /* pointer-events: auto → つまみだけクリック可能にする */
+  pointer-events: auto;
+
+  /* z-index: 2 → つまみを最前面に出して確実に掴めるようにする */
+  z-index: 2;
+}</code></pre>
+        </div>
+
+        <!-- JS パネル -->
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="javascript">/* === シングルスライダーのロジック === */
+
+// 要素を取得する
+const slider = document.getElementById('singleSlider');
+const valueLabel = document.getElementById('singleValue');
+
+// updateSingle() → スライダーの値と見た目を同期する関数
+function updateSingle() {
+  const val = Number(slider.value);   // 現在値を数値として取得
+  const min = Number(slider.min);     // 最小値
+  const max = Number(slider.max);     // 最大値
+
+  // percent → 現在値が全体の何%かを計算する
+  const percent = ((val - min) / (max - min)) * 100;
+
+  // ツールチップのテキストを更新する
+  valueLabel.textContent = val;
+
+  // ツールチップの位置をつまみに追従させる
+  // left: percent% で大まかな位置を決め、
+  // つまみの幅によるズレを補正する（中央で0px、端で±11px）
+  const thumbOffset = 11 - (percent / 100) * 22;
+  valueLabel.style.left = `calc(${percent}% + ${thumbOffset}px)`;
+
+  // フィルドトラック → linear-gradientで左側をブランド色に塗る
+  slider.style.background =
+    `linear-gradient(to right, ` +
+    `var(--color-brand-500) 0%, ` +
+    `var(--color-brand-500) ${percent}%, ` +
+    `var(--color-neutral-200) ${percent}%, ` +
+    `var(--color-neutral-200) 100%)`;
+}
+
+// input イベント → つまみをドラッグするたびに発火する
+slider.addEventListener('input', updateSingle);
+
+// 初期表示でも値を反映する
+updateSingle();
+
+
+/* === デュアルスライダーのロジック === */
+
+const minInput = document.getElementById('dualMin');
+const maxInput = document.getElementById('dualMax');
+const fill = document.getElementById('dualFill');
+const display = document.getElementById('dualDisplay');
+
+// formatYen() → 数値を日本円表記にフォーマットする関数
+function formatYen(num) {
+  // toLocaleString('ja-JP') → 3桁ごとにカンマを入れる
+  return '¥' + Number(num).toLocaleString('ja-JP');
+}
+
+// updateDual() → デュアルスライダーの値と見た目を同期する関数
+function updateDual() {
+  let minVal = Number(minInput.value);
+  let maxVal = Number(maxInput.value);
+  const rangeMin = Number(minInput.min);
+  const rangeMax = Number(minInput.max);
+
+  // クランプ処理 → 最小値が最大値を超えないようにする
+  if (minVal > maxVal) {
+    // どちらの入力が最後に動いたかで、超えた方を戻す
+    // ここでは minInput を maxVal に合わせる
+    minInput.value = maxVal;
+    minVal = maxVal;
+  }
+  if (maxVal < minVal) {
+    maxInput.value = minVal;
+    maxVal = minVal;
+  }
+
+  // パーセンテージ位置を計算する
+  const minPercent = ((minVal - rangeMin) / (rangeMax - rangeMin)) * 100;
+  const maxPercent = ((maxVal - rangeMin) / (rangeMax - rangeMin)) * 100;
+
+  // fill要素のleftとwidthを更新して、選択範囲を視覚的に示す
+  fill.style.left = minPercent + '%';
+  fill.style.width = (maxPercent - minPercent) + '%';
+
+  // 価格表示を更新する
+  display.textContent = formatYen(minVal) + ' — ' + formatYen(maxVal);
+}
+
+// 両方のinputにイベントリスナーを設定する
+minInput.addEventListener('input', function () {
+  // 最小値が最大値を超えた場合、最大値に制限する
+  if (Number(minInput.value) > Number(maxInput.value)) {
+    minInput.value = maxInput.value;
+  }
+  updateDual();
+});
+
+maxInput.addEventListener('input', function () {
+  // 最大値が最小値を下回った場合、最小値に制限する
+  if (Number(maxInput.value) < Number(minInput.value)) {
+    maxInput.value = minInput.value;
+  }
+  updateDual();
+});
+
+// 初期表示でも値を反映する
+updateDual();</code></pre>
+        </div>
+
+        <!-- HTML パネル -->
+        <div class="code-panel" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- === シングルレンジスライダー === --&gt;
+
+&lt;!-- 外側のラッパー → ツールチップの位置基準になるrelative要素 --&gt;
+&lt;div class="single-slider-wrap"&gt;
+
+  &lt;!-- span.slider-value → つまみに追従する値表示。
+       JSでleftを動的に変えて位置を合わせる --&gt;
+  &lt;span class="slider-value" id="singleValue"&gt;50&lt;/span&gt;
+
+  &lt;!-- input type="range" → ブラウザ標準のスライダー入力。
+       min: 最小値, max: 最大値, step: 刻み幅, value: 初期値 --&gt;
+  &lt;input
+    type="range"
+    class="range-input"
+    id="singleSlider"
+    min="0"
+    max="100"
+    step="1"
+    value="50"
+  &gt;
+
+  &lt;!-- ラベル → トラックの両端に最小・最大値を表示する --&gt;
+  &lt;div class="slider-labels"&gt;
+    &lt;span&gt;0&lt;/span&gt;
+    &lt;span&gt;100&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+
+&lt;!-- === デュアルレンジスライダー（価格帯） === --&gt;
+
+&lt;div class="dual-slider-wrap"&gt;
+
+  &lt;!-- ヘッダー → ラベルと現在の範囲表示 --&gt;
+  &lt;div class="dual-slider-header"&gt;
+    &lt;span class="label"&gt;価格帯&lt;/span&gt;
+    &lt;!-- output要素相当 → 選択中の範囲をテキストで表示する --&gt;
+    &lt;span class="range-display" id="dualDisplay"&gt;¥1,000 — ¥8,000&lt;/span&gt;
+  &lt;/div&gt;
+
+  &lt;!-- dual-track → 2つのinputを重ねるコンテナ。
+       position: relative で子要素の基準点になる --&gt;
+  &lt;div class="dual-track"&gt;
+    &lt;!-- 背景トラック → 全長をグレーで塗る --&gt;
+    &lt;div class="dual-track-bg"&gt;&lt;/div&gt;
+
+    &lt;!-- 塗りつぶし部分 → JSでleftとwidthを動的に設定する --&gt;
+    &lt;div class="dual-track-fill" id="dualFill"&gt;&lt;/div&gt;
+
+    &lt;!-- 最小値スライダー → aria-labelで役割を明示する --&gt;
+    &lt;input type="range" id="dualMin"
+      min="0" max="10000" step="500" value="1000"
+      aria-label="最小価格"&gt;
+
+    &lt;!-- 最大値スライダー → 同じ範囲で重ね配置する --&gt;
+    &lt;input type="range" id="dualMax"
+      min="0" max="10000" step="500" value="8000"
+      aria-label="最大価格"&gt;
+  &lt;/div&gt;
+
+  &lt;div class="slider-labels"&gt;
+    &lt;span&gt;¥0&lt;/span&gt;
+    &lt;span&gt;¥10,000&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    /* ===================================================================
+       レンジスライダー — インラインスクリプト
+       =================================================================== */
+
+    /* === シングルスライダーのロジック === */
+
+    /* 要素を取得する */
+    const singleSlider = document.getElementById('singleSlider');
+    const singleValue = document.getElementById('singleValue');
+
+    /* updateSingle() → スライダーの値と見た目を同期する関数 */
+    function updateSingle() {
+      const val = Number(singleSlider.value);   /* 現在値を数値として取得 */
+      const min = Number(singleSlider.min);     /* 最小値 */
+      const max = Number(singleSlider.max);     /* 最大値 */
+
+      /* percent → 現在値が全体の何%かを計算する */
+      const percent = ((val - min) / (max - min)) * 100;
+
+      /* ツールチップのテキストを更新する */
+      singleValue.textContent = val;
+
+      /* ツールチップの位置をつまみに追従させる。
+         つまみの幅によるズレを補正する（中央で0px、端で±11px） */
+      const thumbOffset = 11 - (percent / 100) * 22;
+      singleValue.style.left = 'calc(' + percent + '% + ' + thumbOffset + 'px)';
+
+      /* フィルドトラック → linear-gradientで左側をブランド色に塗る */
+      singleSlider.style.background =
+        'linear-gradient(to right, ' +
+        'var(--color-brand-500) 0%, ' +
+        'var(--color-brand-500) ' + percent + '%, ' +
+        'var(--color-neutral-200) ' + percent + '%, ' +
+        'var(--color-neutral-200) 100%)';
+    }
+
+    /* input イベント → つまみをドラッグするたびに発火する */
+    singleSlider.addEventListener('input', updateSingle);
+
+    /* 初期表示でも値を反映する */
+    updateSingle();
+
+
+    /* === デュアルスライダーのロジック === */
+
+    const dualMin = document.getElementById('dualMin');
+    const dualMax = document.getElementById('dualMax');
+    const dualFill = document.getElementById('dualFill');
+    const dualDisplay = document.getElementById('dualDisplay');
+
+    /* formatYen() → 数値を日本円表記にフォーマットする関数 */
+    function formatYen(num) {
+      /* toLocaleString('ja-JP') → 3桁ごとにカンマを入れる */
+      return '\u00a5' + Number(num).toLocaleString('ja-JP');
+    }
+
+    /* updateDual() → デュアルスライダーの値と見た目を同期する関数 */
+    function updateDual() {
+      const minVal = Number(dualMin.value);
+      const maxVal = Number(dualMax.value);
+      const rangeMin = Number(dualMin.min);
+      const rangeMax = Number(dualMin.max);
+
+      /* パーセンテージ位置を計算する */
+      const minPercent = ((minVal - rangeMin) / (rangeMax - rangeMin)) * 100;
+      const maxPercent = ((maxVal - rangeMin) / (rangeMax - rangeMin)) * 100;
+
+      /* fill要素のleftとwidthを更新して、選択範囲を視覚的に示す */
+      dualFill.style.left = minPercent + '%';
+      dualFill.style.width = (maxPercent - minPercent) + '%';
+
+      /* 価格表示を更新する */
+      dualDisplay.textContent = formatYen(minVal) + ' \u2014 ' + formatYen(maxVal);
+    }
+
+    /* 両方のinputにイベントリスナーを設定する */
+    dualMin.addEventListener('input', function () {
+      /* 最小値が最大値を超えた場合、最大値に制限する */
+      if (Number(dualMin.value) > Number(dualMax.value)) {
+        dualMin.value = dualMax.value;
+      }
+      updateDual();
+    });
+
+    dualMax.addEventListener('input', function () {
+      /* 最大値が最小値を下回った場合、最小値に制限する */
+      if (Number(dualMax.value) < Number(dualMin.value)) {
+        dualMax.value = dualMin.value;
+      }
+      updateDual();
+    });
+
+    /* 初期表示でも値を反映する */
+    updateDual();
+  </script>
+</body>
+</html>

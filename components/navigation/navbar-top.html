@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>トップナビバー — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       トップナビバー — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- ナビバー本体 --- */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: var(--z-sticky);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-3) var(--space-6);
+      background: hsla(0, 0%, 100%, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-neutral-200);
+    }
+
+    /* --- ロゴ --- */
+    .navbar__logo {
+      font-size: var(--text-xl);
+      font-weight: var(--font-bold);
+      color: var(--color-brand-600);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+
+    /* --- ナビリンク群 --- */
+    .navbar__links {
+      display: flex;
+      align-items: center;
+      gap: var(--space-6);
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .navbar__link {
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      color: var(--color-neutral-600);
+      text-decoration: none;
+      padding: var(--space-1) 0;
+      border-bottom: 2px solid transparent;
+      transition: color var(--duration-fast), border-color var(--duration-fast);
+    }
+
+    .navbar__link:hover {
+      color: var(--color-brand-600);
+    }
+
+    .navbar__link--active {
+      color: var(--color-brand-600);
+      border-bottom-color: var(--color-brand-500);
+    }
+
+    /* --- CTAボタン --- */
+    .navbar__cta {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 18px;
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: white;
+      background: var(--color-brand-500);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background var(--duration-fast);
+      text-decoration: none;
+    }
+
+    .navbar__cta:hover {
+      background: var(--color-brand-600);
+    }
+
+    /* --- ハンバーガーメニュー --- */
+    .navbar__hamburger {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      width: 36px;
+      height: 36px;
+      padding: 6px;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    .navbar__hamburger span {
+      display: block;
+      width: 100%;
+      height: 2px;
+      background: var(--color-neutral-700);
+      border-radius: 1px;
+      transition: transform var(--duration-normal), opacity var(--duration-fast);
+    }
+
+    /* ハンバーガー → ×アニメーション */
+    .navbar__hamburger[aria-expanded="true"] span:nth-child(1) {
+      transform: translateY(7px) rotate(45deg);
+    }
+    .navbar__hamburger[aria-expanded="true"] span:nth-child(2) {
+      opacity: 0;
+    }
+    .navbar__hamburger[aria-expanded="true"] span:nth-child(3) {
+      transform: translateY(-7px) rotate(-45deg);
+    }
+
+    /* --- モバイルメニュー --- */
+    .navbar__mobile-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: hsla(0, 0%, 100%, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-neutral-200);
+      padding: var(--space-4) var(--space-6);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .navbar__mobile-menu.is-open {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .navbar__mobile-menu .navbar__link {
+      font-size: var(--text-base);
+      padding: var(--space-2) 0;
+    }
+
+    .navbar__mobile-menu .navbar__cta {
+      text-align: center;
+      justify-content: center;
+      margin-top: var(--space-2);
+    }
+
+    /* --- レスポンシブ --- */
+    @media (max-width: 768px) {
+      .navbar__links { display: none; }
+      .navbar__cta-desktop { display: none; }
+      .navbar__hamburger { display: flex; }
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">ナビゲーション</span>
+      <h1 class="component-title">トップナビバー</h1>
+      <p class="component-description">
+        ページ上部に固定表示されるナビゲーションバー。ロゴ、リンク、CTAボタンを配置し、モバイルではハンバーガーメニューに切り替わります。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col" style="padding:0; overflow:hidden; position:relative; min-height:200px;">
+        <nav class="navbar" style="position:relative;" aria-label="メインナビゲーション">
+          <a href="#" class="navbar__logo">MyApp</a>
+          <ul class="navbar__links">
+            <li><a href="#" class="navbar__link navbar__link--active">ホーム</a></li>
+            <li><a href="#" class="navbar__link">機能</a></li>
+            <li><a href="#" class="navbar__link">料金</a></li>
+            <li><a href="#" class="navbar__link">お問い合わせ</a></li>
+          </ul>
+          <a href="#" class="navbar__cta navbar__cta-desktop">無料で始める</a>
+          <button class="navbar__hamburger" aria-expanded="false" aria-label="メニューを開く">
+            <span></span><span></span><span></span>
+          </button>
+          <div class="navbar__mobile-menu">
+            <a href="#" class="navbar__link navbar__link--active">ホーム</a>
+            <a href="#" class="navbar__link">機能</a>
+            <a href="#" class="navbar__link">料金</a>
+            <a href="#" class="navbar__link">お問い合わせ</a>
+            <a href="#" class="navbar__cta">無料で始める</a>
+          </div>
+        </nav>
+        <div style="padding: var(--space-6); color: var(--color-neutral-400); text-align:center;">
+          <p>画面幅を768px以下に縮めるとハンバーガーメニューに切り替わります</p>
+          <p style="margin-top:var(--space-2);">実運用では position: sticky でスクロール時も上部に固定されます</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜ backdrop-filter: blur を使うのか？</strong><br>
+        半透明の背景にブラーを掛けることで、コンテンツの上に浮いている感覚を出しつつ、下のコンテンツが完全に隠れないため圧迫感が軽減されます。</p>
+        <p><strong>position: sticky vs fixed</strong><br>
+        sticky はスクロール時に上部に固定されますが、通常のドキュメントフロー内に留まるため、下のコンテンツが自動的に押し下げられます。fixed は完全に浮くため、body に padding-top が必要になります。</p>
+        <p><strong>モバイルでのハンバーガーメニュー</strong><br>
+        画面幅が狭い時、全リンクを横に並べると読めなくなります。ハンバーガーアイコンに格納することで、必要な時だけ展開できるようにします。CSSだけで3本線から×への変形アニメーションを実現しています。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- nav要素 → ナビゲーションのセマンティックタグ --&gt;
+&lt;!-- aria-label → スクリーンリーダーに「これはメインナビ」と伝える --&gt;
+&lt;nav class="navbar" aria-label="メインナビゲーション"&gt;
+
+  &lt;!-- ロゴ：トップページへのリンク --&gt;
+  &lt;a href="/" class="navbar__logo"&gt;MyApp&lt;/a&gt;
+
+  &lt;!-- ナビリンク群：ul/liで意味的にリスト化 --&gt;
+  &lt;ul class="navbar__links"&gt;
+    &lt;li&gt;&lt;a href="/" class="navbar__link navbar__link--active"&gt;ホーム&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;a href="/features" class="navbar__link"&gt;機能&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;a href="/pricing" class="navbar__link"&gt;料金&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;a href="/contact" class="navbar__link"&gt;お問い合わせ&lt;/a&gt;&lt;/li&gt;
+  &lt;/ul&gt;
+
+  &lt;!-- CTA：最も目立つアクションボタン --&gt;
+  &lt;a href="/signup" class="navbar__cta"&gt;無料で始める&lt;/a&gt;
+
+  &lt;!-- ハンバーガー：モバイル時のみ表示 --&gt;
+  &lt;!-- aria-expanded → メニューの開閉状態をスクリーンリーダーに伝える --&gt;
+  &lt;button class="navbar__hamburger"
+          aria-expanded="false"
+          aria-label="メニューを開く"&gt;
+    &lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;
+  &lt;/button&gt;
+
+  &lt;!-- モバイルメニュー：ハンバーガー押下で表示 --&gt;
+  &lt;div class="navbar__mobile-menu"&gt;
+    &lt;a href="/" class="navbar__link"&gt;ホーム&lt;/a&gt;
+    &lt;a href="/features" class="navbar__link"&gt;機能&lt;/a&gt;
+    &lt;a href="/pricing" class="navbar__link"&gt;料金&lt;/a&gt;
+    &lt;a href="/contact" class="navbar__link"&gt;お問い合わせ&lt;/a&gt;
+    &lt;a href="/signup" class="navbar__cta"&gt;無料で始める&lt;/a&gt;
+  &lt;/div&gt;
+&lt;/nav&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- ナビバー本体 --- */
+.navbar {
+  /* position: sticky → スクロールしても画面上部に固定される。
+     fixedと違い、通常フロー内に留まるのでレイアウトが崩れにくい */
+  position: sticky;
+  top: 0;
+
+  /* z-index → 他の要素より上に表示。変数で管理して衝突を防ぐ */
+  z-index: var(--z-sticky);
+
+  /* display: flex → 横並びにして、ロゴ・リンク・CTAを配置 */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  /* 半透明背景＋ブラー → すりガラス効果。
+     下のコンテンツが透けて見えるがぼやけるので邪魔にならない */
+  background: hsla(0, 0%, 100%, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px); /* Safari対応 */
+
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+/* --- ハンバーガーメニューのCSS変形 --- */
+.navbar__hamburger {
+  /* デフォルトは非表示。モバイル時のみdisplay:flexに */
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* span3本で三本線を描く。CSSだけでアイコンを作る手法 */
+.navbar__hamburger span {
+  display: block;
+  height: 2px;
+  background: var(--color-neutral-700);
+  transition: transform 250ms, opacity 150ms;
+}
+
+/* ×アニメーション：上の線を回転、中央を消す、下の線を逆回転 */
+.navbar__hamburger[aria-expanded="true"] span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.navbar__hamburger[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+.navbar__hamburger[aria-expanded="true"] span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* --- レスポンシブ切り替え --- */
+@media (max-width: 768px) {
+  /* PCのリンク群とCTAを隠して、ハンバーガーを出す */
+  .navbar__links { display: none; }
+  .navbar__cta-desktop { display: none; }
+  .navbar__hamburger { display: flex; }
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// ハンバーガーメニューの開閉処理
+const hamburger = document.querySelector('.navbar__hamburger');
+const mobileMenu = document.querySelector('.navbar__mobile-menu');
+
+hamburger.addEventListener('click', () => {
+  // aria-expandedを切り替え → CSSが×アニメーションを制御
+  const isOpen = hamburger.getAttribute('aria-expanded') === 'true';
+  hamburger.setAttribute('aria-expanded', !isOpen);
+
+  // メニューの表示/非表示をクラスで切り替え
+  mobileMenu.classList.toggle('is-open');
+
+  // aria-labelも状態に合わせて更新
+  hamburger.setAttribute('aria-label',
+    isOpen ? 'メニューを開く' : 'メニューを閉じる'
+  );
+});</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">長いロゴ名</div>
+          <nav class="navbar" style="position:static;" aria-label="長いロゴのデモ">
+            <a href="#" class="navbar__logo">MyApplication Premium Plus</a>
+            <ul class="navbar__links">
+              <li><a href="#" class="navbar__link">ホーム</a></li>
+              <li><a href="#" class="navbar__link">機能</a></li>
+            </ul>
+          </nav>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">リンク数が多い場合</div>
+          <nav class="navbar" style="position:static; flex-wrap:wrap;" aria-label="多いリンクのデモ">
+            <a href="#" class="navbar__logo">MyApp</a>
+            <ul class="navbar__links" style="flex-wrap:wrap;">
+              <li><a href="#" class="navbar__link">ホーム</a></li>
+              <li><a href="#" class="navbar__link">機能</a></li>
+              <li><a href="#" class="navbar__link">料金</a></li>
+              <li><a href="#" class="navbar__link">ブログ</a></li>
+              <li><a href="#" class="navbar__link">ドキュメント</a></li>
+              <li><a href="#" class="navbar__link">サポート</a></li>
+              <li><a href="#" class="navbar__link">お問い合わせ</a></li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script>
+    // ハンバーガーメニュー開閉
+    const hamburger = document.querySelector('.navbar__hamburger');
+    const mobileMenu = document.querySelector('.navbar__mobile-menu');
+    if (hamburger && mobileMenu) {
+      hamburger.addEventListener('click', () => {
+        const isOpen = hamburger.getAttribute('aria-expanded') === 'true';
+        hamburger.setAttribute('aria-expanded', !isOpen);
+        mobileMenu.classList.toggle('is-open');
+        hamburger.setAttribute('aria-label', isOpen ? 'メニューを開く' : 'メニューを閉じる');
+      });
+    }
+  </script>
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

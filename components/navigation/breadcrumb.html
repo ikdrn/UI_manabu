@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>パンくずリスト — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       パンくずリスト — コンポーネントスタイル
+       =================================================================== */
+
+    .bc {
+      font-size: var(--text-sm);
+      color: var(--color-neutral-500);
+    }
+
+    .bc__list {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .bc__item {
+      display: flex;
+      align-items: center;
+    }
+
+    /* ::before疑似要素でセパレーターを表示 */
+    .bc__item + .bc__item::before {
+      content: '/';
+      margin: 0 var(--space-2);
+      color: var(--color-neutral-300);
+      font-size: var(--text-xs);
+      user-select: none;
+    }
+
+    .bc__link {
+      color: var(--color-neutral-500);
+      text-decoration: none;
+      padding: var(--space-1) 0;
+      transition: color var(--duration-fast);
+    }
+
+    .bc__link:hover {
+      color: var(--color-brand-600);
+      text-decoration: underline;
+    }
+
+    /* 現在のページ（リンクでなくテキスト） */
+    .bc__current {
+      color: var(--color-neutral-800);
+      font-weight: var(--font-medium);
+    }
+
+    /* --- バリエーション：矢印セパレーター --- */
+    .bc--arrow .bc__item + .bc__item::before {
+      content: '›';
+      font-size: var(--text-base);
+      font-weight: var(--font-bold);
+    }
+
+    /* --- バリエーション：背景付き --- */
+    .bc--bg {
+      background: var(--color-neutral-50);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-neutral-200);
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">ナビゲーション</span>
+      <h1 class="component-title">パンくずリスト</h1>
+      <p class="component-description">
+        ユーザーが現在のページの階層構造を把握し、上位ページに素早く戻るためのナビゲーション。セマンティックHTMLとARIAで正しくマークアップします。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col" style="gap:var(--space-6); align-items:flex-start;">
+        <!-- 基本 -->
+        <div>
+          <div style="font-size:var(--text-xs); color:var(--color-neutral-400); margin-bottom:var(--space-2);">基本（/ セパレーター）</div>
+          <nav class="bc" aria-label="パンくずリスト">
+            <ol class="bc__list">
+              <li class="bc__item"><a href="#" class="bc__link">ホーム</a></li>
+              <li class="bc__item"><a href="#" class="bc__link">製品</a></li>
+              <li class="bc__item"><a href="#" class="bc__link">カテゴリ</a></li>
+              <li class="bc__item"><span class="bc__current" aria-current="page">商品名</span></li>
+            </ol>
+          </nav>
+        </div>
+        <!-- 矢印 -->
+        <div>
+          <div style="font-size:var(--text-xs); color:var(--color-neutral-400); margin-bottom:var(--space-2);">矢印セパレーター</div>
+          <nav class="bc bc--arrow" aria-label="パンくずリスト">
+            <ol class="bc__list">
+              <li class="bc__item"><a href="#" class="bc__link">ホーム</a></li>
+              <li class="bc__item"><a href="#" class="bc__link">製品</a></li>
+              <li class="bc__item"><a href="#" class="bc__link">カテゴリ</a></li>
+              <li class="bc__item"><span class="bc__current" aria-current="page">商品名</span></li>
+            </ol>
+          </nav>
+        </div>
+        <!-- 背景付き -->
+        <div>
+          <div style="font-size:var(--text-xs); color:var(--color-neutral-400); margin-bottom:var(--space-2);">背景付き</div>
+          <nav class="bc bc--bg" aria-label="パンくずリスト">
+            <ol class="bc__list">
+              <li class="bc__item"><a href="#" class="bc__link">ホーム</a></li>
+              <li class="bc__item"><a href="#" class="bc__link">製品</a></li>
+              <li class="bc__item"><a href="#" class="bc__link">カテゴリ</a></li>
+              <li class="bc__item"><span class="bc__current" aria-current="page">商品名</span></li>
+            </ol>
+          </nav>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>nav + ol でマークアップする理由</strong><br>
+        パンくずリストは順序のある階層構造なので、ol（順序付きリスト）が意味的に正しい選択です。nav要素で囲み aria-label を付けることで、スクリーンリーダーユーザーがページ内のナビゲーション領域を識別できます。</p>
+        <p><strong>現在のページはリンクにしない</strong><br>
+        最後の項目（現在のページ）は span にして aria-current="page" を付けます。自分自身へのリンクは意味がなく、スクリーンリーダーが「現在のページ」と読み上げることで位置を伝えます。</p>
+        <p><strong>::before でセパレーターを表示</strong><br>
+        HTMLにセパレーター文字を書くのではなく、CSSの ::before 疑似要素で追加します。これにより、セパレーターの種類を変えたい時にCSSだけで対応でき、HTMLをクリーンに保てます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- nav要素 → ナビゲーション領域を示す --&gt;
+&lt;!-- aria-label → 他のnavと区別するためのラベル --&gt;
+&lt;nav class="bc" aria-label="パンくずリスト"&gt;
+
+  &lt;!-- ol → 順序付きリスト。階層構造の順番を意味的に表現 --&gt;
+  &lt;ol class="bc__list"&gt;
+    &lt;!-- 各階層をliで記述 --&gt;
+    &lt;li class="bc__item"&gt;
+      &lt;a href="/" class="bc__link"&gt;ホーム&lt;/a&gt;
+    &lt;/li&gt;
+    &lt;li class="bc__item"&gt;
+      &lt;a href="/products" class="bc__link"&gt;製品&lt;/a&gt;
+    &lt;/li&gt;
+    &lt;li class="bc__item"&gt;
+      &lt;a href="/products/category" class="bc__link"&gt;カテゴリ&lt;/a&gt;
+    &lt;/li&gt;
+
+    &lt;!-- 最後の項目：現在のページ --&gt;
+    &lt;!-- span（リンクでない） + aria-current="page" --&gt;
+    &lt;li class="bc__item"&gt;
+      &lt;span class="bc__current" aria-current="page"&gt;商品名&lt;/span&gt;
+    &lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/nav&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* ol のリストマーカーを消し、横並びに */
+.bc__list {
+  display: flex;
+  flex-wrap: wrap; /* 幅が狭い時に折り返す */
+  list-style: none; /* 1. 2. 3. のマーカーを消す */
+  padding: 0;
+  margin: 0;
+}
+
+/* --- セパレーターを ::before で自動挿入 --- */
+/* + は「隣接兄弟セレクタ」。最初の項目以外にセパレーターを付ける */
+.bc__item + .bc__item::before {
+  content: '/';        /* ここを '›' に変えれば矢印になる */
+  margin: 0 8px;
+  color: var(--color-neutral-300);
+  user-select: none;   /* テキスト選択時にセパレーターを除外 */
+}
+
+/* 現在のページ：太字で目立たせ、リンクにしない */
+.bc__current {
+  color: var(--color-neutral-800);
+  font-weight: var(--font-medium);
+}
+
+/* ホバー時のスタイル：リンクであることを示す */
+.bc__link:hover {
+  color: var(--color-brand-600);
+  text-decoration: underline;
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">深い階層（折り返し）</div>
+          <nav class="bc" aria-label="パンくずリスト">
+            <ol class="bc__list">
+              <li class="bc__item"><a href="#" class="bc__link">ホーム</a></li>
+              <li class="bc__item"><a href="#" class="bc__link">ドキュメント</a></li>
+              <li class="bc__item"><a href="#" class="bc__link">API リファレンス</a></li>
+              <li class="bc__item"><a href="#" class="bc__link">認証モジュール</a></li>
+              <li class="bc__item"><a href="#" class="bc__link">OAuth 2.0</a></li>
+              <li class="bc__item"><span class="bc__current" aria-current="page">アクセストークンの取得と更新</span></li>
+            </ol>
+          </nav>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">2階層のみ</div>
+          <nav class="bc" aria-label="パンくずリスト">
+            <ol class="bc__list">
+              <li class="bc__item"><a href="#" class="bc__link">ホーム</a></li>
+              <li class="bc__item"><span class="bc__current" aria-current="page">お問い合わせ</span></li>
+            </ol>
+          </nav>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">長い商品名</div>
+          <nav class="bc" aria-label="パンくずリスト">
+            <ol class="bc__list">
+              <li class="bc__item"><a href="#" class="bc__link">ホーム</a></li>
+              <li class="bc__item"><a href="#" class="bc__link">製品</a></li>
+              <li class="bc__item"><span class="bc__current" aria-current="page">【数量限定】プレミアムオーガニックコットン100%使用 高級タオルセット ギフトボックス入り</span></li>
+            </ol>
+          </nav>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

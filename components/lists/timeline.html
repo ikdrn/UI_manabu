@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>タイムライン — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       タイムライン / アクティビティフィード — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- タイムライン全体のコンテナ ---
+       position: relative → 子要素の絶対配置の基準点になる。
+       中央の縦線（::before）をこのコンテナ内に配置するために必要 */
+    .timeline {
+      position: relative;
+      padding: var(--space-6) 0;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* --- 中央の縦線 ---
+       ::before擬似要素 → HTMLを追加せずに装飾要素を作れる。
+       ここではイベント同士をつなぐ縦線を表現する。
+       position: absolute → 親要素（.timeline）を基準に位置を固定する。
+       left: 50% → コンテナの水平中央に配置。
+       transform: translateX(-50%) → 線自身の幅の半分だけ左にずらして正確に中央へ。
+       top: 0, bottom: 0 → コンテナの上端から下端まで線を伸ばす。
+       width: 2px → 線の太さ。細すぎず太すぎず、存在感を控えめに保つ */
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background-color: var(--color-border, #d1d5db);
+    }
+
+    /* --- 各イベントアイテム ---
+       position: relative → ドットマーカー（::after）の配置基準になる。
+       width: 50% → デスクトップでは左右交互に配置するので、幅は半分。
+       padding: 0 var(--space-8) → 縦線との間に余白を確保 */
+    .timeline-item {
+      position: relative;
+      width: 50%;
+      padding: 0 var(--space-8);
+      margin-bottom: var(--space-8);
+    }
+
+    /* --- 奇数番目のアイテム（左側に配置） ---
+       :nth-child(odd) → 1番目、3番目、5番目…のアイテムに適用。
+       左側に配置するので、左端を基準にする。
+       text-align: right → テキストを右寄せにして縦線側に寄せる */
+    .timeline-item:nth-child(odd) {
+      left: 0;
+      text-align: right;
+      padding-right: var(--space-10);
+      padding-left: 0;
+    }
+
+    /* --- 偶数番目のアイテム（右側に配置） ---
+       :nth-child(even) → 2番目、4番目、6番目…のアイテムに適用。
+       left: 50% → 左半分を飛ばして右側に配置。
+       text-align: left → テキストを左寄せにして縦線側に寄せる */
+    .timeline-item:nth-child(even) {
+      left: 50%;
+      text-align: left;
+      padding-left: var(--space-10);
+      padding-right: 0;
+    }
+
+    /* --- ドットマーカー（縦線上の丸い点） ---
+       ::after擬似要素 → 各イベントの位置を示す丸い点を作る。
+       position: absolute → タイムラインアイテムを基準に絶対配置。
+       top: 8px → テキストの先頭行に合わせて微調整。
+       width/height: 16px → ドットの大きさ。小さすぎると見づらく、大きすぎると邪魔になる。
+       border-radius: 50% → 正円にする（正方形 + 50%の角丸 = 円）。
+       border: 3px solid white → 白い縁取りで縦線との区切りを明確にする。
+       z-index: 1 → 縦線（::before）の上に重ねて表示する */
+    .timeline-item::after {
+      content: "";
+      position: absolute;
+      top: 8px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 3px solid white;
+      z-index: 1;
+      box-shadow: 0 0 0 2px var(--color-border, #d1d5db);
+    }
+
+    /* --- 奇数アイテムのドット位置 ---
+       right: -8px → 右端から8px（ドット幅の半分）はみ出させて縦線上に配置 */
+    .timeline-item:nth-child(odd)::after {
+      right: -8px;
+    }
+
+    /* --- 偶数アイテムのドット位置 ---
+       left: -8px → 左端から8px はみ出させて縦線上に配置 */
+    .timeline-item:nth-child(even)::after {
+      left: -8px;
+    }
+
+    /* --- ステータス別のドット色 ---
+       完了（緑）→ 作業が終わったことを直感的に伝える */
+    .timeline-item--completed::after {
+      background-color: #22c55e;
+      box-shadow: 0 0 0 2px #22c55e;
+    }
+
+    /* 進行中（青）→ 現在アクティブな状態を強調する */
+    .timeline-item--current::after {
+      background-color: #3b82f6;
+      box-shadow: 0 0 0 2px #3b82f6;
+      /* アニメーションで「今ここ」感を強調 */
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    /* 未来（グレー）→ まだ到達していないことを控えめに示す */
+    .timeline-item--future::after {
+      background-color: #d1d5db;
+      box-shadow: 0 0 0 2px #d1d5db;
+    }
+
+    /* --- ドットの脈動アニメーション ---
+       @keyframes → アニメーションの動きを定義する。
+       box-shadowを拡大・縮小させて「脈打つ」効果を作る。
+       現在進行中のイベントに注目を集める */
+    @keyframes pulse-dot {
+      0%, 100% {
+        box-shadow: 0 0 0 2px #3b82f6;
+      }
+      50% {
+        box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.3);
+      }
+    }
+
+    /* --- イベントカード ---
+       タイムラインの各イベントの内容を表示するカード。
+       背景色と影で「カード」の立体感を出す */
+    .timeline-card {
+      background-color: var(--color-bg, #ffffff);
+      border: 1px solid var(--color-border, #e5e7eb);
+      border-radius: var(--radius-lg, 12px);
+      padding: var(--space-4);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      transition: box-shadow var(--duration-fast, 150ms),
+                  transform var(--duration-fast, 150ms);
+    }
+
+    .timeline-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+
+    /* --- タイムスタンプ ---
+       <time>要素 → 日時を意味的に正しくマークアップするHTML要素。
+       ブラウザや検索エンジンが「これは日時だ」と理解できる。
+       datetime属性で機械可読な形式を指定し、表示は人間向けにする */
+    .timeline-time {
+      display: block;
+      font-size: var(--text-xs, 12px);
+      color: var(--color-text-muted, #6b7280);
+      margin-bottom: var(--space-1, 4px);
+      font-weight: var(--font-medium, 500);
+    }
+
+    /* --- イベントタイトル --- */
+    .timeline-title {
+      font-size: var(--text-sm, 14px);
+      font-weight: var(--font-semibold, 600);
+      color: var(--color-text, #111827);
+      margin-bottom: var(--space-1, 4px);
+      line-height: 1.4;
+    }
+
+    /* --- イベント説明文 --- */
+    .timeline-desc {
+      font-size: var(--text-xs, 12px);
+      color: var(--color-text-secondary, #6b7280);
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    /* --- ステータスバッジ ---
+       イベントの状態をテキストでも伝える（色だけに頼らないアクセシビリティ配慮） */
+    .timeline-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: var(--font-semibold, 600);
+      padding: 2px 8px;
+      border-radius: var(--radius-full, 9999px);
+      margin-bottom: var(--space-2, 8px);
+    }
+
+    .timeline-badge--completed {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+
+    .timeline-badge--current {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+
+    .timeline-badge--future {
+      background-color: #f3f4f6;
+      color: #6b7280;
+    }
+
+    /* ===================================================================
+       レスポンシブ対応 — モバイル版
+       =================================================================== */
+
+    /* @media → 画面サイズに応じてスタイルを切り替える。
+       max-width: 768px → タブレット以下のサイズでモバイル用レイアウトに変更。
+       デスクトップの左右交互配置から、全アイテムを右側に一列配置に変更する */
+    @media (max-width: 768px) {
+      /* モバイルでは縦線を左端に寄せる */
+      .timeline::before {
+        left: 20px;
+        transform: none;
+      }
+
+      /* 全アイテムを右側に配置（左右交互をやめる） ---
+         width: 100% → 幅いっぱいに使う。
+         left: 0 → 左端から配置。
+         padding-left → 縦線とドットの分だけ左に余白を確保。
+         text-align: left → テキストは常に左揃え */
+      .timeline-item,
+      .timeline-item:nth-child(odd),
+      .timeline-item:nth-child(even) {
+        width: 100%;
+        left: 0;
+        text-align: left;
+        padding-left: 50px;
+        padding-right: 0;
+      }
+
+      /* モバイルでは全ドットを左端の縦線上に配置 ---
+         left: 12px → 縦線（left: 20px）の中心にドットを配置（20px - 8px = 12px） */
+      .timeline-item::after,
+      .timeline-item:nth-child(odd)::after,
+      .timeline-item:nth-child(even)::after {
+        left: 12px;
+        right: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">リスト</span>
+      <h1 class="component-title">タイムライン / アクティビティフィード</h1>
+      <p class="component-description">
+        時系列に沿ったイベントや活動履歴を視覚的に表現するコンポーネント。縦線とドットマーカーで出来事のつながりを示し、色分けでステータスを伝えます。デスクトップでは左右交互配置で視覚的な単調さを防ぎ、モバイルでは一列配置で読みやすさを優先します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col">
+        <div class="timeline" role="list" aria-label="プロジェクトの進行状況">
+
+          <!-- イベント1: 完了 -->
+          <div class="timeline-item timeline-item--completed" role="listitem">
+            <div class="timeline-card">
+              <span class="timeline-badge timeline-badge--completed">完了</span>
+              <!-- <time>要素 → datetime属性に機械可読な日時を指定する。
+                   表示テキストは人間向けの形式。SEOやアクセシビリティに有効 -->
+              <time class="timeline-time" datetime="2025-01-15T09:00">2025年1月15日 9:00</time>
+              <h3 class="timeline-title">プロジェクト企画書の承認</h3>
+              <p class="timeline-desc">ステークホルダー全員の承認を得て、プロジェクトが正式にキックオフしました。予算とスケジュールが確定しました。</p>
+            </div>
+          </div>
+
+          <!-- イベント2: 完了 -->
+          <div class="timeline-item timeline-item--completed" role="listitem">
+            <div class="timeline-card">
+              <span class="timeline-badge timeline-badge--completed">完了</span>
+              <time class="timeline-time" datetime="2025-02-03T14:30">2025年2月3日 14:30</time>
+              <h3 class="timeline-title">デザインレビュー完了</h3>
+              <p class="timeline-desc">UIデザインのレビューが完了し、開発チームへのハンドオフが行われました。デザインシステムのコンポーネント一覧も確定しました。</p>
+            </div>
+          </div>
+
+          <!-- イベント3: 完了 -->
+          <div class="timeline-item timeline-item--completed" role="listitem">
+            <div class="timeline-card">
+              <span class="timeline-badge timeline-badge--completed">完了</span>
+              <time class="timeline-time" datetime="2025-03-20T11:00">2025年3月20日 11:00</time>
+              <h3 class="timeline-title">フロントエンド実装完了</h3>
+              <p class="timeline-desc">全ページのフロントエンド実装が完了しました。レスポンシブ対応とクロスブラウザテストも実施済みです。</p>
+            </div>
+          </div>
+
+          <!-- イベント4: 進行中 -->
+          <div class="timeline-item timeline-item--current" role="listitem">
+            <div class="timeline-card">
+              <span class="timeline-badge timeline-badge--current">進行中</span>
+              <time class="timeline-time" datetime="2025-04-10T10:00">2025年4月10日 10:00</time>
+              <h3 class="timeline-title">バックエンドAPI連携</h3>
+              <p class="timeline-desc">フロントエンドとバックエンドAPIの連携作業を進めています。認証フローとデータ取得部分の実装中です。</p>
+            </div>
+          </div>
+
+          <!-- イベント5: 未来 -->
+          <div class="timeline-item timeline-item--future" role="listitem">
+            <div class="timeline-card">
+              <span class="timeline-badge timeline-badge--future">予定</span>
+              <time class="timeline-time" datetime="2025-05-15T09:00">2025年5月15日 9:00</time>
+              <h3 class="timeline-title">QAテスト・品質検証</h3>
+              <p class="timeline-desc">結合テスト、パフォーマンステスト、セキュリティ監査を実施予定。バグ修正とリグレッションテストも含みます。</p>
+            </div>
+          </div>
+
+          <!-- イベント6: 未来 -->
+          <div class="timeline-item timeline-item--future" role="listitem">
+            <div class="timeline-card">
+              <span class="timeline-badge timeline-badge--future">予定</span>
+              <time class="timeline-time" datetime="2025-06-01T09:00">2025年6月1日 9:00</time>
+              <h3 class="timeline-title">本番リリース</h3>
+              <p class="timeline-desc">ステージング環境での最終確認後、本番環境へデプロイします。リリースノートの公開とユーザー通知も行います。</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜ時系列表現にタイムラインを使うのか？</strong><br>
+        縦方向に時間の流れを表現するのは人間にとって直感的です。上から下へ読む自然な流れと、時間の経過を一致させることで、ユーザーは意識せずに情報の前後関係を理解できます。</p>
+
+        <p><strong>縦線とドットによる視覚的接続</strong><br>
+        縦線はイベント同士が「つながっている」ことを視覚的に示します。ドットマーカーは各イベントの「位置」を明確にし、線上のどこにイベントがあるかを示します。この2つの要素が、個別のカードをひとつの物語として結びつけます。</p>
+
+        <p><strong>デスクトップでの左右交互配置</strong><br>
+        全てのカードを片側に並べると、縦に長くなり視覚的に単調になります。左右交互に配置することで、ジグザグに視線が動き、各イベントに注意が向きやすくなります。</p>
+
+        <p><strong>色によるステータスの即時伝達</strong><br>
+        緑（完了）・青（進行中）・グレー（未来）の色分けは、テキストを読む前にステータスを把握できるようにします。ただし色だけに頼らず、テキストバッジも併用してアクセシビリティを確保しています。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- タイムラインのコンテナ -->
+<!-- role="list" → スクリーンリーダーに「これはリストです」と伝える -->
+<!-- aria-label → このリストが何のリストかを説明する -->
+&lt;div class="timeline" role="list" aria-label="プロジェクトの進行状況"&gt;
+
+  <!-- 各イベント -->
+  <!-- role="listitem" → リストの1項目であることを伝える -->
+  <!-- timeline-item--completed/current/future → ステータスを示すクラス -->
+  &lt;div class="timeline-item timeline-item--completed" role="listitem"&gt;
+    &lt;div class="timeline-card"&gt;
+
+      <!-- ステータスバッジ → 色だけでなくテキストでもステータスを伝える -->
+      &lt;span class="timeline-badge timeline-badge--completed"&gt;完了&lt;/span&gt;
+
+      <!-- &lt;time&gt;要素 → 日時を意味的にマークアップする専用要素。
+           datetime属性 → ISO 8601形式で機械が読める日時を指定。
+           表示テキストは人間向けの読みやすい形式にする。
+           検索エンジンやカレンダーアプリが日時を正確に理解できる -->
+      &lt;time class="timeline-time" datetime="2025-01-15T09:00"&gt;
+        2025年1月15日 9:00
+      &lt;/time&gt;
+
+      &lt;h3 class="timeline-title"&gt;プロジェクト企画書の承認&lt;/h3&gt;
+      &lt;p class="timeline-desc"&gt;説明テキスト…&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  <!-- 他のイベントも同様の構造 -->
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- タイムラインコンテナ ---
+   position: relative → ::before（縦線）の絶対配置の基準になる */
+.timeline {
+  position: relative;
+  padding: 24px 0;
+}
+
+/* --- 中央の縦線 ---
+   ::before擬似要素 → HTMLに要素を追加せず、CSSだけで装飾要素を作る。
+   content: "" → 空のコンテンツを指定。これがないと擬似要素は表示されない。
+   position: absolute → 通常のレイアウトフローから外れ、親要素を基準に配置。
+   left: 50% + transform → コンテナの正確な中央に配置。
+   top: 0, bottom: 0 → 親要素の高さいっぱいに伸びる */
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #d1d5db;
+}
+
+/* --- タイムラインアイテム ---
+   width: 50% → デスクトップでは片側半分だけ使う */
+.timeline-item {
+  position: relative;
+  width: 50%;
+  margin-bottom: 32px;
+}
+
+/* --- :nth-child(odd) → 1,3,5番目（奇数番目）に適用 ---
+   左側に配置し、テキストを右寄せにする */
+.timeline-item:nth-child(odd) {
+  left: 0;
+  text-align: right;
+  padding-right: 40px;
+}
+
+/* --- :nth-child(even) → 2,4,6番目（偶数番目）に適用 ---
+   left: 50% → 右側に配置。テキストは左寄せ */
+.timeline-item:nth-child(even) {
+  left: 50%;
+  text-align: left;
+  padding-left: 40px;
+}
+
+/* --- ドットマーカー ---
+   ::after擬似要素 → 縦線上にステータスを示す丸い点を作る。
+   border-radius: 50% → 正方形の要素を完全な円にする。
+   z-index: 1 → 縦線（::before）の上に表示 */
+.timeline-item::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 3px solid white;
+  z-index: 1;
+}
+
+/* 奇数アイテム → ドットを右端（縦線上）に配置 */
+.timeline-item:nth-child(odd)::after {
+  right: -8px;
+}
+
+/* 偶数アイテム → ドットを左端（縦線上）に配置 */
+.timeline-item:nth-child(even)::after {
+  left: -8px;
+}
+
+/* --- ステータス色 --- */
+/* 完了: 緑 → 達成感・安心感を伝える色 */
+.timeline-item--completed::after {
+  background-color: #22c55e;
+  box-shadow: 0 0 0 2px #22c55e;
+}
+
+/* 進行中: 青 → アクティブ・行動中を示す色 */
+.timeline-item--current::after {
+  background-color: #3b82f6;
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+/* 未来: グレー → 未達・待機中を控えめに示す色 */
+.timeline-item--future::after {
+  background-color: #d1d5db;
+  box-shadow: 0 0 0 2px #d1d5db;
+}
+
+/* ===== モバイル対応 =====
+   @media (max-width: 768px) → 画面幅768px以下で適用。
+   デスクトップの左右交互配置から、一列配置に切り替える。
+   縦線を左端に移動し、全カードを右側に統一する */
+@media (max-width: 768px) {
+  .timeline::before {
+    left: 20px;
+    transform: none;
+  }
+
+  .timeline-item,
+  .timeline-item:nth-child(odd),
+  .timeline-item:nth-child(even) {
+    width: 100%;
+    left: 0;
+    text-align: left;
+    padding-left: 50px;
+    padding-right: 0;
+  }
+
+  .timeline-item::after,
+  .timeline-item:nth-child(odd)::after,
+  .timeline-item:nth-child(even)::after {
+    left: 12px;
+    right: auto;
+  }
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">イベントが1つだけ</div>
+          <div class="preview-container preview-container--col">
+            <div class="timeline" role="list" aria-label="単一イベント" id="timeline-single">
+              <div class="timeline-item timeline-item--current" role="listitem">
+                <div class="timeline-card">
+                  <span class="timeline-badge timeline-badge--current">進行中</span>
+                  <time class="timeline-time" datetime="2025-04-10T10:00">2025年4月10日 10:00</time>
+                  <h3 class="timeline-title">唯一のイベント</h3>
+                  <p class="timeline-desc">イベントが1つしかない場合でも、タイムラインの構造は崩れません。縦線は短くなりますが、デザインは維持されます。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="edge-case-item">
+          <div class="edge-case-label">非常に長い説明文</div>
+          <div class="preview-container preview-container--col">
+            <div class="timeline" role="list" aria-label="長い説明文の例" id="timeline-long">
+              <div class="timeline-item timeline-item--completed" role="listitem">
+                <div class="timeline-card">
+                  <span class="timeline-badge timeline-badge--completed">完了</span>
+                  <time class="timeline-time" datetime="2025-01-15T09:00">2025年1月15日 9:00</time>
+                  <h3 class="timeline-title">詳細な報告書を含むイベント</h3>
+                  <p class="timeline-desc">この説明文は意図的に長くしています。実際の運用では、ユーザーが詳細な活動ログを残す場合や、自動生成されたシステムメッセージが長文になる場合があります。そのような場合でもカードのレイアウトが崩れないことを確認するためのテストケースです。テキストが複数行に渡っても、カードは自然に高さを拡張し、読みやすさを維持します。左右交互配置でも高さの違いが問題にならないことを確認してください。</p>
+                </div>
+              </div>
+              <div class="timeline-item timeline-item--completed" role="listitem">
+                <div class="timeline-card">
+                  <span class="timeline-badge timeline-badge--completed">完了</span>
+                  <time class="timeline-time" datetime="2025-02-01T14:00">2025年2月1日 14:00</time>
+                  <h3 class="timeline-title">短い説明</h3>
+                  <p class="timeline-desc">比較用の短いカード。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

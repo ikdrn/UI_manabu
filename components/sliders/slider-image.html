@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>画像カルーセル — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       画像カルーセル — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- カルーセル全体のコンテナ --- */
+    .carousel {
+      position: relative;
+      width: 100%;
+      max-width: 640px;
+      margin: 0 auto;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    /* --- スクロールコンテナ（スライドの並ぶ横スクロール領域） --- */
+    .carousel__track {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .carousel__track::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* --- 各スライド --- */
+    .carousel__slide {
+      flex: 0 0 100%;
+      scroll-snap-align: start;
+      aspect-ratio: 16 / 9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: var(--text-lg);
+      font-weight: var(--font-semibold);
+      user-select: none;
+    }
+
+    /* --- スライドごとのグラデーション背景 --- */
+    .carousel__slide:nth-child(1) {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+    .carousel__slide:nth-child(2) {
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+    }
+    .carousel__slide:nth-child(3) {
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+    }
+    .carousel__slide:nth-child(4) {
+      background: linear-gradient(135deg, #43e97b, #38f9d7);
+    }
+    .carousel__slide:nth-child(5) {
+      background: linear-gradient(135deg, #fa709a, #fee140);
+    }
+
+    /* --- 矢印ボタン（左右ナビゲーション） --- */
+    .carousel__arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px;
+      height: 40px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.45);
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--duration-fast);
+      z-index: 2;
+    }
+
+    .carousel__arrow:hover {
+      background: rgba(0, 0, 0, 0.7);
+    }
+
+    .carousel__arrow:focus-visible {
+      outline: 2px solid white;
+      outline-offset: 2px;
+    }
+
+    .carousel__arrow--prev {
+      left: 12px;
+    }
+
+    .carousel__arrow--next {
+      right: 12px;
+    }
+
+    /* --- ドットナビゲーション --- */
+    .carousel__dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 0;
+    }
+
+    .carousel__dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: none;
+      background: var(--color-border);
+      cursor: pointer;
+      padding: 0;
+      transition: background var(--duration-fast),
+                  transform var(--duration-fast);
+    }
+
+    .carousel__dot:hover {
+      background: var(--color-brand-300);
+    }
+
+    .carousel__dot.is-active {
+      background: var(--color-brand-500);
+      transform: scale(1.25);
+    }
+
+    .carousel__dot:focus-visible {
+      outline: 2px solid var(--color-brand-500);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">スライダー・カルーセル</span>
+      <h1 class="component-title">画像カルーセル</h1>
+      <p class="component-description">
+        横スクロールで画像を切り替えるカルーセル。CSSの<code>scroll-snap</code>を活用することで、タッチ操作にも対応したスムーズなスライドを実現します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container">
+        <div class="carousel" role="region" aria-label="画像カルーセル" aria-roledescription="カルーセル">
+          <div class="carousel__track" id="carouselTrack">
+            <div class="carousel__slide" role="group" aria-roledescription="スライド" aria-label="スライド 1 / 5">スライド 1</div>
+            <div class="carousel__slide" role="group" aria-roledescription="スライド" aria-label="スライド 2 / 5">スライド 2</div>
+            <div class="carousel__slide" role="group" aria-roledescription="スライド" aria-label="スライド 3 / 5">スライド 3</div>
+            <div class="carousel__slide" role="group" aria-roledescription="スライド" aria-label="スライド 4 / 5">スライド 4</div>
+            <div class="carousel__slide" role="group" aria-roledescription="スライド" aria-label="スライド 5 / 5">スライド 5</div>
+          </div>
+          <button class="carousel__arrow carousel__arrow--prev" aria-label="前のスライド" id="prevBtn">&#10094;</button>
+          <button class="carousel__arrow carousel__arrow--next" aria-label="次のスライド" id="nextBtn">&#10095;</button>
+          <div class="carousel__dots" role="tablist" aria-label="スライド選択" id="carouselDots">
+            <button class="carousel__dot is-active" role="tab" aria-selected="true" aria-label="スライド1へ移動"></button>
+            <button class="carousel__dot" role="tab" aria-selected="false" aria-label="スライド2へ移動"></button>
+            <button class="carousel__dot" role="tab" aria-selected="false" aria-label="スライド3へ移動"></button>
+            <button class="carousel__dot" role="tab" aria-selected="false" aria-label="スライド4へ移動"></button>
+            <button class="carousel__dot" role="tab" aria-selected="false" aria-label="スライド5へ移動"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜscroll-snapを使うのか？</strong><br>
+        従来のカルーセルは<code>transform: translateX()</code>で位置を手動計算していましたが、scroll-snapを使えばブラウザがネイティブにスナップ位置を管理します。慣性スクロールもブラウザ任せになるため、モバイルでの操作感が格段に向上し、アクセシビリティも標準のスクロール動作に準拠します。</p>
+        <p><strong>IntersectionObserver vs scrollイベント</strong><br>
+        scrollイベントは毎フレーム発火するため、パフォーマンスに悪影響を及ぼす可能性があります。IntersectionObserverは要素の可視状態が変わった時だけコールバックが実行されるため、ドットの更新を効率的に行えます。</p>
+        <p><strong>タッチ・スワイプ対応が無料で付いてくる</strong><br>
+        scroll-snapはブラウザのネイティブスクロールを利用するため、タッチデバイスでのスワイプ操作が追加のJSなしで自然に動作します。Hammer.jsなどのタッチライブラリは不要です。</p>
+        <p><strong>矢印キーによるアクセシビリティ</strong><br>
+        矢印ボタンにはaria-labelを設定し、スクリーンリーダーで「前のスライド」「次のスライド」と読み上げられます。また、カルーセル全体にrole="region"とaria-roledescription="カルーセル"を付与して、支援技術がコンポーネントの役割を正しく認識できるようにしています。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JS</button>
+        <button class="code-tab" data-tab="html">HTML</button>
+      </div>
+      <div class="code-block-wrapper">
+        <!-- CSS パネル -->
+        <div class="code-panel active" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- カルーセル全体のコンテナ --- */
+.carousel {
+  /* position: relative → 矢印ボタンの絶対配置の基準にする */
+  position: relative;
+
+  /* width: 100% → 親要素の幅いっぱいに広がる */
+  width: 100%;
+
+  /* max-width: 640px → 大きい画面でも広がりすぎないよう制限 */
+  max-width: 640px;
+
+  /* margin: 0 auto → 左右均等の余白で中央寄せ */
+  margin: 0 auto;
+
+  /* border-radius → 角を丸くして柔らかい印象にする */
+  border-radius: var(--radius-md);
+
+  /* overflow: hidden → はみ出したスライドを隠す */
+  overflow: hidden;
+}
+
+/* --- スクロールトラック（スライドが横並びする領域） --- */
+.carousel__track {
+  /* display: flex → 子要素（スライド）を横一列に並べる */
+  display: flex;
+
+  /* overflow-x: auto → 横方向にスクロール可能にする */
+  overflow-x: auto;
+
+  /* scroll-snap-type: x mandatory → 横方向のスナップを強制する。
+     mandatory はスクロールが必ずスナップ位置に止まることを保証する */
+  scroll-snap-type: x mandatory;
+
+  /* scroll-behavior: smooth → JSからのscrollTo()をなめらかにアニメーション */
+  scroll-behavior: smooth;
+
+  /* -webkit-overflow-scrolling: touch → iOS Safariで慣性スクロールを有効化 */
+  -webkit-overflow-scrolling: touch;
+
+  /* scrollbar-width: none → Firefox用：スクロールバーを非表示にする */
+  scrollbar-width: none;
+}
+
+/* WebKit系ブラウザでスクロールバーを非表示にする */
+.carousel__track::-webkit-scrollbar {
+  display: none;
+}
+
+/* --- 各スライド --- */
+.carousel__slide {
+  /* flex: 0 0 100% → 縮まず広がらず、親の幅ぴったりに固定。
+     0 0 100% は grow shrink basis の順 */
+  flex: 0 0 100%;
+
+  /* scroll-snap-align: start → このスライドの左端がスナップ位置になる */
+  scroll-snap-align: start;
+
+  /* aspect-ratio: 16/9 → 画像の一般的な横長比率を維持 */
+  aspect-ratio: 16 / 9;
+
+  /* 中央寄せのフレックスボックスでテキストを配置 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* スライド上のテキストスタイル */
+  color: white;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+
+  /* user-select: none → テキスト選択を防止（スワイプ時の誤選択防止） */
+  user-select: none;
+}
+
+/* --- 矢印ボタン --- */
+.carousel__arrow {
+  /* position: absolute → カルーセル内で自由配置 */
+  position: absolute;
+
+  /* top: 50% + transform → 縦方向の中央に配置 */
+  top: 50%;
+  transform: translateY(-50%);
+
+  /* 円形ボタンのサイズ */
+  width: 40px;
+  height: 40px;
+
+  /* border: none → ブラウザデフォルトの枠を消す */
+  border: none;
+
+  /* border-radius: 50% → 完全な円形にする */
+  border-radius: 50%;
+
+  /* 半透明の黒背景で視認性を確保 */
+  background: rgba(0, 0, 0, 0.45);
+  color: white;
+  font-size: 18px;
+
+  /* cursor: pointer → クリック可能であることを示す */
+  cursor: pointer;
+
+  /* フレックスボックスで矢印記号を中央配置 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* なめらかなホバー遷移 */
+  transition: background var(--duration-fast);
+
+  /* z-index: 2 → スライドの上に表示する */
+  z-index: 2;
+}
+
+/* 左矢印の位置 */
+.carousel__arrow--prev { left: 12px; }
+
+/* 右矢印の位置 */
+.carousel__arrow--next { right: 12px; }
+
+/* --- ドットナビゲーション --- */
+.carousel__dots {
+  /* 横並びで中央寄せ */
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.carousel__dot {
+  /* 丸いドットのサイズ */
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+
+  /* 非アクティブ時はグレー */
+  background: var(--color-border);
+  cursor: pointer;
+
+  /* 色と大きさの変化をなめらかに */
+  transition: background var(--duration-fast),
+              transform var(--duration-fast);
+}
+
+/* is-active → 現在表示中のスライドに対応するドット */
+.carousel__dot.is-active {
+  /* ブランドカラーで強調 */
+  background: var(--color-brand-500);
+
+  /* 1.25倍に拡大して目立たせる */
+  transform: scale(1.25);
+}</code></pre>
+        </div>
+
+        <!-- JS パネル -->
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// --- 要素の取得 ---
+// querySelector → CSSセレクタで要素を1つ取得する
+const track = document.querySelector('#carouselTrack');
+// querySelectorAll → 一致する要素をすべて取得（NodeList）
+const slides = track.querySelectorAll('.carousel__slide');
+const dots = document.querySelectorAll('.carousel__dot');
+const prevBtn = document.querySelector('#prevBtn');
+const nextBtn = document.querySelector('#nextBtn');
+
+// --- 現在のスライド番号を追跡する変数 ---
+let currentIndex = 0;
+
+// --- ドットの表示を更新する関数 ---
+function updateDots(index) {
+  // forEach → 配列やNodeListの各要素に対して関数を実行する
+  dots.forEach((dot, i) => {
+    // classList.toggle → 条件がtrueならクラスを追加、falseなら削除
+    dot.classList.toggle('is-active', i === index);
+    // aria-selected → スクリーンリーダーに選択状態を伝える属性
+    dot.setAttribute('aria-selected', i === index);
+  });
+  // 現在のインデックスを保存
+  currentIndex = index;
+}
+
+// --- 指定インデックスのスライドまでスクロールする関数 ---
+function scrollToSlide(index) {
+  // scrollTo → 要素のスクロール位置を指定座標に移動する
+  // behavior: 'smooth' → なめらかにアニメーションする
+  track.scrollTo({
+    left: slides[index].offsetLeft, // offsetLeft → 要素の左端位置
+    behavior: 'smooth'
+  });
+}
+
+// --- IntersectionObserverでスライドの可視状態を監視 ---
+// IntersectionObserver → 要素がビューポートに入った/出たを検知するAPI
+const observer = new IntersectionObserver(
+  (entries) => {
+    // entries → 監視対象要素の状態変化の配列
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        // isIntersecting → 要素が表示領域に入っているかどうか
+        // Array.from → NodeListを配列に変換する
+        const index = Array.from(slides).indexOf(entry.target);
+        updateDots(index);
+      }
+    });
+  },
+  {
+    root: track,        // root → 交差判定の基準となる要素（スクロール領域）
+    threshold: 0.5      // threshold → 50%以上見えたら「交差した」と判定
+  }
+);
+
+// 各スライドを監視対象に登録する
+slides.forEach((slide) => observer.observe(slide));
+
+// --- 矢印ボタンのクリックイベント ---
+prevBtn.addEventListener('click', () => {
+  // Math.max → 0未満にならないよう下限を設定
+  const newIndex = Math.max(currentIndex - 1, 0);
+  scrollToSlide(newIndex);
+});
+
+nextBtn.addEventListener('click', () => {
+  // Math.min → スライド数を超えないよう上限を設定
+  const newIndex = Math.min(currentIndex + 1, slides.length - 1);
+  scrollToSlide(newIndex);
+});
+
+// --- ドットのクリックイベント ---
+dots.forEach((dot, index) => {
+  dot.addEventListener('click', () => {
+    scrollToSlide(index);
+  });
+});
+
+// --- キーボードナビゲーション ---
+// カルーセルにフォーカスがある時、左右矢印キーで操作可能にする
+track.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft') {
+    // ArrowLeft → 前のスライドへ
+    e.preventDefault(); // デフォルトのスクロール動作を防ぐ
+    const newIndex = Math.max(currentIndex - 1, 0);
+    scrollToSlide(newIndex);
+  } else if (e.key === 'ArrowRight') {
+    // ArrowRight → 次のスライドへ
+    e.preventDefault();
+    const newIndex = Math.min(currentIndex + 1, slides.length - 1);
+    scrollToSlide(newIndex);
+  }
+});</code></pre>
+        </div>
+
+        <!-- HTML パネル -->
+        <div class="code-panel" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- role="region" → スクリーンリーダーにランドマーク領域として認識させる --&gt;
+&lt;!-- aria-label → この領域の名前を設定（読み上げに使われる） --&gt;
+&lt;!-- aria-roledescription → 「カルーセル」と読み上げさせる --&gt;
+&lt;div class="carousel"
+     role="region"
+     aria-label="画像カルーセル"
+     aria-roledescription="カルーセル"&gt;
+
+  &lt;!-- スクロールトラック：スライドが横に並ぶコンテナ --&gt;
+  &lt;div class="carousel__track" id="carouselTrack"&gt;
+
+    &lt;!-- role="group" → 関連する要素のグループとして認識させる --&gt;
+    &lt;!-- aria-roledescription="スライド" → 各グループを「スライド」と読み上げ --&gt;
+    &lt;!-- aria-label → 現在位置を「スライド 1 / 5」のように伝える --&gt;
+    &lt;div class="carousel__slide"
+         role="group"
+         aria-roledescription="スライド"
+         aria-label="スライド 1 / 5"&gt;
+      スライド 1
+    &lt;/div&gt;
+
+    &lt;div class="carousel__slide"
+         role="group"
+         aria-roledescription="スライド"
+         aria-label="スライド 2 / 5"&gt;
+      スライド 2
+    &lt;/div&gt;
+
+    &lt;!-- ... 残りのスライドも同様 ... --&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 矢印ボタン：aria-labelで操作内容を伝える --&gt;
+  &lt;button class="carousel__arrow carousel__arrow--prev"
+          aria-label="前のスライド"&gt;
+    &amp;#10094;
+  &lt;/button&gt;
+  &lt;button class="carousel__arrow carousel__arrow--next"
+          aria-label="次のスライド"&gt;
+    &amp;#10095;
+  &lt;/button&gt;
+
+  &lt;!-- ドットナビゲーション --&gt;
+  &lt;!-- role="tablist" → タブのようなナビゲーション要素のグループ --&gt;
+  &lt;div class="carousel__dots"
+       role="tablist"
+       aria-label="スライド選択"&gt;
+
+    &lt;!-- role="tab" → 各ドットをタブとして認識させる --&gt;
+    &lt;!-- aria-selected → 現在選択されているかどうか --&gt;
+    &lt;button class="carousel__dot is-active"
+            role="tab"
+            aria-selected="true"
+            aria-label="スライド1へ移動"&gt;&lt;/button&gt;
+
+    &lt;button class="carousel__dot"
+            role="tab"
+            aria-selected="false"
+            aria-label="スライド2へ移動"&gt;&lt;/button&gt;
+
+    &lt;!-- ... 残りのドットも同様 ... --&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">スライド1枚のみ（矢印・ドット不要のケース）</div>
+          <p style="font-size: var(--text-sm, 14px); color: var(--color-text-secondary, #64748b);">
+            スライドが1枚しかない場合は、矢印ボタンとドットを非表示にするべきです。CSSで <code>.carousel__dots:has(.carousel__dot:only-child)</code> や、JSでスライド数を確認して制御します。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">画像読み込み失敗時のフォールバック</div>
+          <p style="font-size: var(--text-sm, 14px); color: var(--color-text-secondary, #64748b);">
+            実際の画像を使う場合、読み込みエラーに備えて背景色やプレースホルダー画像を設定しておくと、壊れた画像アイコンが表示されるのを防げます。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">キーボード操作（左右矢印キー）</div>
+          <p style="font-size: var(--text-sm, 14px); color: var(--color-text-secondary, #64748b);">
+            上のプレビューでカルーセルをクリックしてフォーカスし、左右矢印キーでスライドを移動してみてください。ドットが連動して更新されることを確認できます。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    // ===================================================================
+    // 画像カルーセル — インライン動作スクリプト
+    // ===================================================================
+
+    (function () {
+      // --- 要素の取得 ---
+      const track = document.querySelector('#carouselTrack');
+      const slides = track.querySelectorAll('.carousel__slide');
+      const dots = document.querySelectorAll('.carousel__dot');
+      const prevBtn = document.querySelector('#prevBtn');
+      const nextBtn = document.querySelector('#nextBtn');
+
+      // --- 現在のスライド番号を追跡する変数 ---
+      let currentIndex = 0;
+
+      // --- ドットの表示を更新する関数 ---
+      function updateDots(index) {
+        dots.forEach(function (dot, i) {
+          dot.classList.toggle('is-active', i === index);
+          dot.setAttribute('aria-selected', i === index);
+        });
+        currentIndex = index;
+      }
+
+      // --- 指定インデックスのスライドまでスクロールする関数 ---
+      function scrollToSlide(index) {
+        track.scrollTo({
+          left: slides[index].offsetLeft,
+          behavior: 'smooth'
+        });
+      }
+
+      // --- IntersectionObserverでスライドの可視状態を監視 ---
+      var observer = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              var index = Array.from(slides).indexOf(entry.target);
+              updateDots(index);
+            }
+          });
+        },
+        {
+          root: track,
+          threshold: 0.5
+        }
+      );
+
+      // 各スライドを監視対象に登録
+      slides.forEach(function (slide) {
+        observer.observe(slide);
+      });
+
+      // --- 矢印ボタンのクリックイベント ---
+      prevBtn.addEventListener('click', function () {
+        var newIndex = Math.max(currentIndex - 1, 0);
+        scrollToSlide(newIndex);
+      });
+
+      nextBtn.addEventListener('click', function () {
+        var newIndex = Math.min(currentIndex + 1, slides.length - 1);
+        scrollToSlide(newIndex);
+      });
+
+      // --- ドットのクリックイベント ---
+      dots.forEach(function (dot, index) {
+        dot.addEventListener('click', function () {
+          scrollToSlide(index);
+        });
+      });
+
+      // --- キーボードナビゲーション ---
+      track.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          var newIndex = Math.max(currentIndex - 1, 0);
+          scrollToSlide(newIndex);
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          var newIndex = Math.min(currentIndex + 1, slides.length - 1);
+          scrollToSlide(newIndex);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ツールチップ — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       ツールチップ — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- トリガーとなるボタンの基本スタイル --- */
+    .tooltip-trigger {
+      /* position: relative → 子要素（ツールチップ）の基準位置になる。
+         absoluteで配置するツールチップが、このボタンを起点に位置決めされる */
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 20px;
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      line-height: 1;
+      color: white;
+      background-color: var(--color-brand-500);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background-color var(--duration-fast),
+                  box-shadow var(--duration-fast);
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .tooltip-trigger:hover {
+      background-color: var(--color-brand-600);
+      box-shadow: 0 2px 8px hsla(222, 80%, 50%, 0.3);
+    }
+
+    .tooltip-trigger:focus-visible {
+      outline: 2px solid var(--color-brand-500);
+      outline-offset: 2px;
+    }
+
+    /* ===================================================================
+       ツールチップ共通スタイル（::after = テキスト部分）
+       =================================================================== */
+
+    .tooltip-trigger::after {
+      /* content: attr(data-tooltip) → HTML側のdata-tooltip属性の値を
+         テキストとして表示する。CSSだけでテキストを動的に変えられる便利なテクニック */
+      content: attr(data-tooltip);
+
+      /* position: absolute → 通常の文書フローから外れて、
+         親要素（position: relativeのボタン）を基準に自由配置できる */
+      position: absolute;
+
+      /* ツールチップの見た目 */
+      padding: 6px 12px;
+      font-size: var(--text-xs);
+      font-weight: var(--font-normal);
+      line-height: 1.4;
+      color: white;
+      background-color: var(--color-neutral-800);
+      border-radius: var(--radius-sm);
+
+      /* white-space: nowrap → テキストを1行に保つ。
+         短いツールチップは改行せず横に伸ばす方が読みやすい */
+      white-space: nowrap;
+
+      /* pointer-events: none → ツールチップ自体にマウスイベントを透過させる。
+         これがないと、ツールチップにカーソルが乗った時にちらつきが起きる。
+         ボタンから離れた→ツールチップ消える→またボタンに乗る→表示…の無限ループを防ぐ */
+      pointer-events: none;
+
+      /* z-index → 他の要素の上に表示されるように高い値を設定 */
+      z-index: 1000;
+
+      /* --- 非表示状態（デフォルト） ---
+         visibility: hidden + opacity: 0 を組み合わせる理由：
+         ・display: none は transition でアニメーションできない（瞬時に消える）
+         ・visibility: hidden はアニメーション可能で、要素のサイズも保持される
+         ・opacity: 0 でフェードアウト効果を実現
+         ・この2つを組み合わせることで、滑らかなフェードイン/アウトが可能になる */
+      visibility: hidden;
+      opacity: 0;
+
+      /* transition → 表示/非表示の切り替えをなめらかにする。
+         200msは自然に感じる速さ。
+         150ms の delay（遅延）を入れることで、マウスが一瞬通過しただけでは
+         ツールチップが出ない＝誤表示を防ぐ */
+      transition: visibility 200ms 150ms,
+                  opacity 200ms 150ms;
+    }
+
+    /* ===================================================================
+       ツールチップの矢印（::before = 三角形の部分）
+       =================================================================== */
+
+    .tooltip-trigger::before {
+      content: "";
+      position: absolute;
+
+      /* --- CSSで三角形を作るトリック（border trick） ---
+         ・width/heightが0の要素に太いborderを付ける
+         ・4辺のborderを全てtransparent（透明）にする
+         ・表示したい方向のborderだけ色を付ける
+         ・例：下向き三角 → border-topだけ色付き、左右と下は透明
+         ・各borderが45度の斜辺を作るため、合わせると三角形になる */
+      border: 6px solid transparent;
+
+      /* pointer-events: none → 矢印もマウスイベントを透過させる */
+      pointer-events: none;
+
+      z-index: 1000;
+
+      /* 矢印も同じフェードアニメーション */
+      visibility: hidden;
+      opacity: 0;
+      transition: visibility 200ms 150ms,
+                  opacity 200ms 150ms;
+    }
+
+    /* ===================================================================
+       ホバー/フォーカス時にツールチップを表示
+       =================================================================== */
+
+    /* :hover → マウスを乗せた時、:focus-visible → キーボードフォーカス時 */
+    .tooltip-trigger:hover::after,
+    .tooltip-trigger:hover::before,
+    .tooltip-trigger:focus-visible::after,
+    .tooltip-trigger:focus-visible::before {
+      /* visibility: visible + opacity: 1 で表示する。
+         transitionにより、opacity: 0 → 1 の変化がフェードインアニメーションになる */
+      visibility: visible;
+      opacity: 1;
+    }
+
+    /* ===================================================================
+       方向別の位置指定
+       =================================================================== */
+
+    /* --- 上方向（デフォルト） --- */
+    .tooltip-top::after {
+      /* bottom: 100% → ボタンの上端を基準に、さらに上に配置。
+         100%はボタンの高さ分だけ上に移動する意味 */
+      bottom: 100%;
+
+      /* left: 50% + translateX(-50%) → 水平中央揃えのテクニック。
+         left: 50%で左端をボタンの中央に置き、
+         translateX(-50%)で自分の幅の半分だけ左にずらす＝中央に来る */
+      left: 50%;
+      transform: translateX(-50%);
+
+      /* margin-bottom → ボタンとツールチップの間に少し隙間を空ける */
+      margin-bottom: 8px;
+    }
+
+    .tooltip-top::before {
+      /* 矢印を下向きにする：border-topに色を付け、他は透明 */
+      border-top-color: var(--color-neutral-800);
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      /* margin-bottom → 矢印をボタンから少し浮かせる（ツールチップ本体とつなげる） */
+      margin-bottom: 2px;
+    }
+
+    /* --- 右方向 --- */
+    .tooltip-right::after {
+      /* left: 100% → ボタンの右端を基準に、さらに右に配置 */
+      left: 100%;
+      top: 50%;
+      /* translateY(-50%) → 垂直方向の中央揃え */
+      transform: translateY(-50%);
+      margin-left: 8px;
+    }
+
+    .tooltip-right::before {
+      /* 矢印を左向きにする：border-rightに色を付け、他は透明 */
+      border-right-color: var(--color-neutral-800);
+      left: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      margin-left: 2px;
+    }
+
+    /* --- 下方向 --- */
+    .tooltip-bottom::after {
+      /* top: 100% → ボタンの下端を基準に、さらに下に配置 */
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-top: 8px;
+    }
+
+    .tooltip-bottom::before {
+      /* 矢印を上向きにする：border-bottomに色を付け、他は透明 */
+      border-bottom-color: var(--color-neutral-800);
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-top: 2px;
+    }
+
+    /* --- 左方向 --- */
+    .tooltip-left::after {
+      /* right: 100% → ボタンの左端を基準に、さらに左に配置 */
+      right: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      margin-right: 8px;
+    }
+
+    .tooltip-left::before {
+      /* 矢印を右向きにする：border-leftに色を付け、他は透明 */
+      border-left-color: var(--color-neutral-800);
+      right: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      margin-right: 2px;
+    }
+
+    /* ===================================================================
+       複数行ツールチップ
+       =================================================================== */
+
+    .tooltip-multiline::after {
+      /* white-space: normal → nowrap（1行固定）を解除し、テキストの折り返しを許可する */
+      white-space: normal;
+
+      /* max-width → ツールチップの最大幅を制限する。
+         これがないとテキストが横に無限に伸びてしまう */
+      max-width: 240px;
+
+      /* text-align: left → 複数行の場合は左揃えが読みやすい */
+      text-align: left;
+    }
+
+    /* ===================================================================
+       アイコンボタン用（丸いボタン）
+       =================================================================== */
+
+    .tooltip-icon-trigger {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border-radius: var(--radius-full);
+      font-size: var(--text-base);
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">ツールチップ</span>
+      <h1 class="component-title">ツールチップ</h1>
+      <p class="component-description">
+        要素にマウスを乗せた時やキーボードフォーカス時に、補足情報を小さな吹き出しで表示するUIパターン。CSSの疑似要素（::before / ::after）だけで実装でき、JavaScriptは不要です。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー：4方向 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container" style="padding: 60px 40px; gap: 24px; flex-wrap: wrap; justify-content: center;">
+
+        <!-- role="tooltip"の説明：スクリーンリーダーに「これはツールチップである」と伝える。
+             aria-describedbyは本来ツールチップ要素のidを参照するが、
+             CSS疑似要素はDOMに存在しないため、data-tooltip属性で代用している -->
+
+        <!-- 上方向のツールチップ -->
+        <button
+          class="tooltip-trigger tooltip-top"
+          data-tooltip="上に表示されるツールチップ"
+          aria-label="上方向ツールチップのデモ"
+        >
+          上（Top）
+        </button>
+
+        <!-- 右方向のツールチップ -->
+        <button
+          class="tooltip-trigger tooltip-right"
+          data-tooltip="右に表示"
+          aria-label="右方向ツールチップのデモ"
+        >
+          右（Right）
+        </button>
+
+        <!-- 下方向のツールチップ -->
+        <button
+          class="tooltip-trigger tooltip-bottom"
+          data-tooltip="下に表示されるツールチップ"
+          aria-label="下方向ツールチップのデモ"
+        >
+          下（Bottom）
+        </button>
+
+        <!-- 左方向のツールチップ -->
+        <button
+          class="tooltip-trigger tooltip-left"
+          data-tooltip="左に表示"
+          aria-label="左方向ツールチップのデモ"
+        >
+          左（Left）
+        </button>
+      </div>
+    </section>
+
+    <!-- ========== 複数行ツールチップ ========== -->
+    <section class="component-section">
+      <h2 class="section-title">複数行ツールチップ</h2>
+      <div class="preview-container" style="padding: 60px 40px; justify-content: center;">
+        <button
+          class="tooltip-trigger tooltip-top tooltip-multiline"
+          data-tooltip="これは複数行のツールチップです。max-widthを設定し、white-space: normalで折り返しを許可しています。"
+          aria-label="複数行ツールチップのデモ"
+        >
+          複数行ツールチップ
+        </button>
+      </div>
+    </section>
+
+    <!-- ========== アイコンボタン + ツールチップ ========== -->
+    <section class="component-section">
+      <h2 class="section-title">アイコンボタンとの組み合わせ</h2>
+      <div class="preview-container" style="padding: 60px 40px; gap: 24px; justify-content: center;">
+        <button
+          class="tooltip-trigger tooltip-icon-trigger tooltip-top"
+          data-tooltip="設定"
+          aria-label="設定"
+        >
+          &#9881;
+        </button>
+        <button
+          class="tooltip-trigger tooltip-icon-trigger tooltip-top"
+          data-tooltip="お気に入りに追加"
+          aria-label="お気に入りに追加"
+        >
+          &#9829;
+        </button>
+        <button
+          class="tooltip-trigger tooltip-icon-trigger tooltip-bottom"
+          data-tooltip="削除する"
+          aria-label="削除する"
+        >
+          &#128465;
+        </button>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>ツールチップは補足情報のみに使う</strong><br>
+        ツールチップは「あると便利だが、なくても操作できる」情報に限定します。必須の情報をツールチップに隠すと、モバイルユーザーはアクセスできません（タッチデバイスにはhoverがない）。</p>
+        <p><strong>表示までの遅延（delay）を設ける理由</strong><br>
+        マウスが一瞬通過しただけでツールチップが出ると、画面がちらついて邪魔になります。150ms程度の遅延を入れることで、意図的にホバーした時だけ表示されるようになり、UXが向上します。</p>
+        <p><strong>テキストは短く保つ</strong><br>
+        ツールチップは数語〜1文程度に収めます。長い説明が必要な場合は、ツールチップではなくポップオーバーやヘルプテキストを検討してください。</p>
+        <p><strong>タッチデバイスでの制約</strong><br>
+        スマートフォンやタブレットではhoverイベントが存在しないため、CSSのみのツールチップは機能しません。モバイル対応が必要な場合は、タップで表示/非表示を切り替えるJavaScript実装や、最初から情報を表示しておくアプローチを検討します。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- data-tooltip属性 → CSSの attr() でこの値を読み取ってツールチップに表示する。
+     HTMLにテキストを持たせることで、CSSだけで内容を変えられる -->
+<!-- aria-label → スクリーンリーダー向けの説明。
+     疑似要素(::after)のテキストはスクリーンリーダーに読まれないため、
+     aria-labelで補足情報を直接指定する -->
+
+<!-- 上方向のツールチップ -->
+&lt;button
+  class="tooltip-trigger tooltip-top"
+  data-tooltip="保存しました"
+  aria-label="保存ボタン（保存しました）"
+&gt;
+  保存
+&lt;/button&gt;
+
+<!-- 右方向のツールチップ -->
+&lt;button
+  class="tooltip-trigger tooltip-right"
+  data-tooltip="右に表示"
+  aria-label="右方向ツールチップ"
+&gt;
+  右（Right）
+&lt;/button&gt;
+
+<!-- 下方向のツールチップ -->
+&lt;button
+  class="tooltip-trigger tooltip-bottom"
+  data-tooltip="下に表示"
+  aria-label="下方向ツールチップ"
+&gt;
+  下（Bottom）
+&lt;/button&gt;
+
+<!-- 左方向のツールチップ -->
+&lt;button
+  class="tooltip-trigger tooltip-left"
+  data-tooltip="左に表示"
+  aria-label="左方向ツールチップ"
+&gt;
+  左（Left）
+&lt;/button&gt;
+
+<!-- 複数行ツールチップ → tooltip-multiline クラスを追加 -->
+&lt;button
+  class="tooltip-trigger tooltip-top tooltip-multiline"
+  data-tooltip="長い説明文をここに書く。max-widthで幅を制限し、自動折り返しする。"
+  aria-label="複数行ツールチップのデモ"
+&gt;
+  複数行
+&lt;/button&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* === ツールチップのトリガー（親要素） === */
+.tooltip-trigger {
+  /* position: relative → 子要素（ツールチップ）のposition: absoluteの
+     基準点になる。これがないとツールチップが画面の端に飛んでいく */
+  position: relative;
+}
+
+/* === ツールチップ本体（::after疑似要素） === */
+.tooltip-trigger::after {
+  /* content: attr(data-tooltip) →
+     HTMLのdata-tooltip属性の値をそのまま表示する。
+     例：data-tooltip="保存しました" → "保存しました" と表示される。
+     JavaScriptを使わずにCSSだけでテキスト内容を動的に設定できる */
+  content: attr(data-tooltip);
+
+  /* position: absolute → 通常のレイアウトから切り離し、
+     親要素（relative）を基準に自由に配置できるようにする */
+  position: absolute;
+
+  padding: 6px 12px;
+  font-size: 12px;
+  color: white;
+  background-color: #1e293b;
+  border-radius: 4px;
+
+  /* white-space: nowrap → テキストを1行に保つ。
+     短いツールチップでは改行させない方が読みやすい */
+  white-space: nowrap;
+
+  /* pointer-events: none → ツールチップを「透明な壁」にする。
+     これがないと問題が起きる：
+     1. マウスがボタンからツールチップ上に移動
+     2. ボタンから離れたのでツールチップが消える
+     3. ボタンが見えるので再びホバー
+     4. ツールチップが出る → 1に戻る（ちらつきの無限ループ） */
+  pointer-events: none;
+
+  /* --- 非表示状態 ---
+     なぜ display: none を使わないのか？
+     → display プロパティは transition（アニメーション）が効かない。
+       display: none → display: block に変わると、瞬時に表示されてしまう。
+     → visibility + opacity なら transition で滑らかに変化させられる。
+       visibility: hidden → visible は「存在するが見えない→見える」
+       opacity: 0 → 1 は「透明→不透明」のフェード効果 */
+  visibility: hidden;
+  opacity: 0;
+
+  /* transition の第2引数（150ms）は遅延時間。
+     マウスが一瞬通り過ぎただけでは表示しない＝誤表示防止 */
+  transition: visibility 200ms 150ms,
+              opacity 200ms 150ms;
+}
+
+/* === 矢印（::before疑似要素） === */
+.tooltip-trigger::before {
+  content: "";
+  position: absolute;
+
+  /* --- CSSで三角形を作る「border trick」の仕組み ---
+     width: 0; height: 0 の要素にborderを付けると：
+     ┌───────┐
+     │＼   ／│  ← 4つの三角形が集まった形になる
+     │  ＼／  │
+     │  ／＼  │
+     │／   ＼│
+     └───────┘
+     全てのborderをtransparent（透明）にして、
+     1辺だけ色を付ければ三角形が見える。
+
+     例：上向き矢印 = border-bottomだけ色付き
+     　　下向き矢印 = border-topだけ色付き */
+  border: 6px solid transparent;
+
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  transition: visibility 200ms 150ms,
+              opacity 200ms 150ms;
+}
+
+/* === ホバー/フォーカス時に表示 === */
+.tooltip-trigger:hover::after,
+.tooltip-trigger:hover::before,
+.tooltip-trigger:focus-visible::after,
+.tooltip-trigger:focus-visible::before {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* === 上方向の配置 === */
+.tooltip-top::after {
+  /* bottom: 100% → 親要素の上端から、さらに上に配置。
+     「100%」は親要素の高さ分 */
+  bottom: 100%;
+
+  /* left: 50% + translateX(-50%) → 水平中央揃え。
+     left: 50% → 左端を親の中央に
+     translateX(-50%) → 自分の幅の50%だけ左にずらす
+     → 結果として要素の中心が親の中心に一致する */
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+}
+
+.tooltip-top::before {
+  border-top-color: #1e293b; /* 上辺だけ色をつける → 下向き三角 */
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 2px;
+}
+
+/* === 右方向の配置 === */
+.tooltip-right::after {
+  left: 100%;  /* 親の右端の外側に配置 */
+  top: 50%;
+  transform: translateY(-50%); /* 垂直方向の中央揃え */
+  margin-left: 8px;
+}
+
+.tooltip-right::before {
+  border-right-color: #1e293b; /* 右辺だけ色 → 左向き三角（矢印は内側を指す） */
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 2px;
+}
+
+/* === 下方向の配置 === */
+.tooltip-bottom::after {
+  top: 100%;  /* 親の下端の外側に配置 */
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+}
+
+.tooltip-bottom::before {
+  border-bottom-color: #1e293b; /* 下辺だけ色 → 上向き三角 */
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 2px;
+}
+
+/* === 左方向の配置 === */
+.tooltip-left::after {
+  right: 100%;  /* 親の左端の外側に配置 */
+  top: 50%;
+  transform: translateY(-50%);
+  margin-right: 8px;
+}
+
+.tooltip-left::before {
+  border-left-color: #1e293b; /* 左辺だけ色 → 右向き三角 */
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-right: 2px;
+}
+
+/* === 複数行ツールチップ === */
+.tooltip-multiline::after {
+  /* white-space: normal → nowrapを上書きして折り返しを許可 */
+  white-space: normal;
+
+  /* max-width → 無制限に横に広がるのを防ぐ。
+     この値を超えるとテキストが自動で改行される */
+  max-width: 240px;
+  text-align: left;
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">画面端での表示（はみ出しの可能性）</div>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <button
+              class="tooltip-trigger tooltip-left"
+              data-tooltip="左方向に出るが画面端だとはみ出す可能性あり"
+              aria-label="画面端のテスト（左方向）"
+            >
+              画面左端付近
+            </button>
+            <button
+              class="tooltip-trigger tooltip-right"
+              data-tooltip="右方向に出るが画面端だとはみ出す可能性あり"
+              aria-label="画面端のテスト（右方向）"
+              style="margin-left: auto;"
+            >
+              画面右端付近
+            </button>
+          </div>
+          <p style="margin-top: 8px; font-size: var(--text-xs); color: var(--color-neutral-500);">
+            ※ CSSのみの実装では画面端のはみ出し検知ができません。JavaScriptで要素の位置を計算し、方向を動的に切り替える必要があります。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">長いツールチップテキスト</div>
+          <button
+            class="tooltip-trigger tooltip-top tooltip-multiline"
+            data-tooltip="これは非常に長いツールチップテキストです。通常、ツールチップは短い補足情報に適しています。これだけ長い場合は、ポップオーバーやインラインヘルプの使用を検討してください。"
+            aria-label="長いテキストのツールチップデモ"
+          >
+            長いテキスト（非推奨）
+          </button>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">タッチデバイスでの挙動</div>
+          <p style="font-size: var(--text-sm); color: var(--color-neutral-600);">
+            スマートフォンやタブレットでは <code>:hover</code> が使えないため、CSSのみのツールチップは表示されません。モバイル対応が必要な場合は、以下の代替手段を検討してください：
+          </p>
+          <ul style="font-size: var(--text-sm); color: var(--color-neutral-600); margin-top: 8px; padding-left: 20px;">
+            <li>JavaScriptでタップ表示/非表示を実装</li>
+            <li>ツールチップの内容をインラインテキストとして常時表示</li>
+            <li><code>title</code> 属性を使う（ブラウザ標準のツールチップ、ただしスタイル変更不可）</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

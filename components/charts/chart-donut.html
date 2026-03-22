@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ドーナツチャート — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       ドーナツチャート — コンポーネントスタイル
+       =================================================================== */
+
+    .donut-chart-wrapper {
+      display: flex;
+      align-items: center;
+      gap: var(--space-8);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* ドーナツチャート本体 */
+    .donut-chart {
+      --segment-1: 35%;
+      --segment-2: 25%;
+      --segment-3: 22%;
+      --segment-4: 18%;
+      --color-1: #6366f1;
+      --color-2: #8b5cf6;
+      --color-3: #a855f7;
+      --color-4: #d946ef;
+
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      position: relative;
+
+      /* conic-gradient → 扇形のグラデーションで円グラフを作る */
+      background: conic-gradient(
+        var(--color-1) 0% var(--segment-1),
+        var(--color-2) var(--segment-1) calc(var(--segment-1) + var(--segment-2)),
+        var(--color-3) calc(var(--segment-1) + var(--segment-2)) calc(var(--segment-1) + var(--segment-2) + var(--segment-3)),
+        var(--color-4) calc(var(--segment-1) + var(--segment-2) + var(--segment-3)) 100%
+      );
+
+      animation: donutSpin 800ms ease-out;
+    }
+
+    @keyframes donutSpin {
+      from { transform: rotate(-90deg); opacity: 0; }
+      to { transform: rotate(0deg); opacity: 1; }
+    }
+
+    /* ::afterでドーナツの穴を作る */
+    .donut-chart::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60%;
+      height: 60%;
+      border-radius: 50%;
+      background: var(--color-bg-primary);
+    }
+
+    /* 中心テキスト */
+    .donut-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 1;
+    }
+
+    .donut-center-value {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      color: var(--color-text-primary);
+      line-height: 1;
+    }
+
+    .donut-center-label {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-top: 4px;
+    }
+
+    /* 凡例 */
+    .donut-legend {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .donut-legend-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-sm);
+      color: var(--color-text-primary);
+    }
+
+    .donut-legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+    }
+
+    .donut-legend-value {
+      margin-left: auto;
+      font-weight: var(--font-semibold);
+      color: var(--color-text-secondary);
+      min-width: 36px;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">チャート・データ可視化</span>
+      <h1 class="component-title">ドーナツチャート</h1>
+      <p class="component-description">
+        conic-gradient()を使ったCSSのみのドーナツチャート。4つのセグメント、中心テキスト、凡例を備え、データの構成比を視覚的に表現します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col" style="align-items: center;">
+        <div class="donut-chart-wrapper">
+          <div class="donut-chart">
+            <div class="donut-center">
+              <div class="donut-center-value">1,248</div>
+              <div class="donut-center-label">総タスク数</div>
+            </div>
+          </div>
+          <ul class="donut-legend">
+            <li class="donut-legend-item">
+              <span class="donut-legend-dot" style="background: #6366f1;"></span>
+              <span>完了済み</span>
+              <span class="donut-legend-value">35%</span>
+            </li>
+            <li class="donut-legend-item">
+              <span class="donut-legend-dot" style="background: #8b5cf6;"></span>
+              <span>進行中</span>
+              <span class="donut-legend-value">25%</span>
+            </li>
+            <li class="donut-legend-item">
+              <span class="donut-legend-dot" style="background: #a855f7;"></span>
+              <span>レビュー待ち</span>
+              <span class="donut-legend-value">22%</span>
+            </li>
+            <li class="donut-legend-item">
+              <span class="donut-legend-dot" style="background: #d946ef;"></span>
+              <span>未着手</span>
+              <span class="donut-legend-value">18%</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>conic-gradient()による円グラフの実現</strong><br>
+        conic-gradient()は中心から放射状に色を変化させるグラデーション関数です。角度ではなくパーセンテージで指定でき、各セグメントの開始と終了を直感的に制御できます。</p>
+        <p><strong>CSS変数でセグメントを管理する理由</strong><br>
+        セグメントの割合をCSS変数（カスタムプロパティ）で定義することで、JavaScriptからstyle.setProperty()で動的に値を変更できます。データの更新が容易で保守性が高い実装です。</p>
+        <p><strong>::afterでドーナツの穴を作る</strong><br>
+        円グラフ（パイチャート）の中央に白い円を重ねることで「ドーナツ」形状にします。中央の空間には合計値やラベルを配置でき、情報密度を高められます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;div class="donut-chart-wrapper"&gt;
+
+  &lt;!-- ドーナツチャート本体 → conic-gradientで描画 --&gt;
+  &lt;div class="donut-chart"&gt;
+    &lt;!-- 中心テキスト → z-indexでドーナツ穴の上に表示 --&gt;
+    &lt;div class="donut-center"&gt;
+      &lt;div class="donut-center-value"&gt;1,248&lt;/div&gt;
+      &lt;div class="donut-center-label"&gt;総タスク数&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 凡例 → チャートの各セグメントの説明 --&gt;
+  &lt;ul class="donut-legend"&gt;
+    &lt;li class="donut-legend-item"&gt;
+      &lt;span class="donut-legend-dot" style="background: #6366f1;"&gt;&lt;/span&gt;
+      &lt;span&gt;完了済み&lt;/span&gt;
+      &lt;span class="donut-legend-value"&gt;35%&lt;/span&gt;
+    &lt;/li&gt;
+    &lt;!-- 他のセグメントも同じ構造 --&gt;
+  &lt;/ul&gt;
+
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* ドーナツチャート → conic-gradientで各セグメントを描画 */
+.donut-chart {
+  /* CSS変数でセグメントの割合を定義 → 保守性が高い */
+  --segment-1: 35%;
+  --segment-2: 25%;
+  --segment-3: 22%;
+  --segment-4: 18%;
+  --color-1: #6366f1;
+  --color-2: #8b5cf6;
+  --color-3: #a855f7;
+  --color-4: #d946ef;
+
+  width: 200px;
+  height: 200px;
+  border-radius: 50%; /* 正方形を円に変換 */
+  position: relative;
+
+  /* conic-gradient() → 中心から放射状に色が変化するグラデーション
+     各色の開始%と終了%を指定してセグメントを作る */
+  background: conic-gradient(
+    var(--color-1) 0% var(--segment-1),
+    var(--color-2) var(--segment-1)
+      calc(var(--segment-1) + var(--segment-2)),
+    var(--color-3) calc(var(--segment-1) + var(--segment-2))
+      calc(var(--segment-1) + var(--segment-2) + var(--segment-3)),
+    var(--color-4) calc(var(--segment-1) + var(--segment-2) + var(--segment-3))
+      100%
+  );
+}
+
+/* ::after → 白い円を重ねてドーナツの穴を作る */
+.donut-chart::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* 60%のサイズ → 外側の40%がドーナツ部分になる */
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  background: var(--color-bg-primary); /* 背景色と同じ色 */
+}
+
+/* 中心テキスト → ドーナツ穴の中に表示 */
+.donut-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  /* z-index: 1 → ::afterの上に表示する */
+  z-index: 1;
+}
+
+/* 凡例のドット → チャートの色と一致させる */
+.donut-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-sm);
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">1つのセグメントが90%以上の場合</div>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div class="donut-chart" style="width:120px;height:120px;--segment-1:92%;--segment-2:5%;--segment-3:2%;--segment-4:1%;animation:none;">
+              <div class="donut-center" style="font-size: var(--text-sm);">
+                <div class="donut-center-value" style="font-size: var(--text-base);">92%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">均等分割（4×25%）</div>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div class="donut-chart" style="width:120px;height:120px;--segment-1:25%;--segment-2:25%;--segment-3:25%;--segment-4:25%;animation:none;">
+              <div class="donut-center" style="font-size: var(--text-sm);">
+                <div class="donut-center-value" style="font-size: var(--text-base);">均等</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

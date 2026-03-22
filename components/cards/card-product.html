@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>商品カード — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       商品カード — コンポーネントスタイル
+       =================================================================== */
+
+    /* カード全体のコンテナ */
+    .product-card {
+      position: relative;
+      width: 280px;
+      background: var(--color-surface, #fff);
+      border-radius: var(--radius-lg, 12px);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+      overflow: hidden;
+      transition: transform var(--duration-fast, 150ms),
+                  box-shadow var(--duration-fast, 150ms);
+    }
+
+    .product-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    /* 在庫切れ状態 — カード全体をグレーアウト */
+    .product-card--out-of-stock {
+      opacity: 0.65;
+      pointer-events: none;
+    }
+
+    .product-card--out-of-stock .product-card__image::after {
+      content: "在庫切れ";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.45);
+      color: white;
+      font-size: var(--text-lg, 18px);
+      font-weight: var(--font-bold, 700);
+      letter-spacing: 0.1em;
+    }
+
+    /* 画像エリア — CSSグラデーションでプレースホルダー */
+    .product-card__image {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    /* セールバッジ — 左上に重ねる */
+    .product-card__badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      padding: 4px 10px;
+      font-size: var(--text-xs, 12px);
+      font-weight: var(--font-bold, 700);
+      color: white;
+      background-color: #ef4444;
+      border-radius: var(--radius-full, 9999px);
+      z-index: 1;
+    }
+
+    /* カードの本文エリア */
+    .product-card__body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* 商品名 */
+    .product-card__name {
+      font-size: var(--text-base, 16px);
+      font-weight: var(--font-semibold, 600);
+      color: var(--color-text-primary, #1a1a2e);
+      line-height: 1.4;
+    }
+
+    /* 星評価 — CSS-onlyの5つ星 */
+    .product-card__rating {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .stars {
+      display: inline-flex;
+      gap: 2px;
+      font-size: 14px;
+      color: #d1d5db;
+    }
+
+    .stars::before {
+      content: "★★★★★";
+      letter-spacing: 2px;
+    }
+
+    /* 塗りつぶされた星を上に重ねる */
+    .stars--filled {
+      position: absolute;
+      color: #f59e0b;
+      overflow: hidden;
+    }
+
+    .stars-wrapper {
+      position: relative;
+      display: inline-flex;
+    }
+
+    .stars-wrapper .stars--filled {
+      width: var(--rating-percent, 80%);
+    }
+
+    .rating-count {
+      font-size: var(--text-xs, 12px);
+      color: var(--color-text-secondary, #6b7280);
+    }
+
+    /* 価格エリア */
+    .product-card__price {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .price-current {
+      font-size: var(--text-lg, 18px);
+      font-weight: var(--font-bold, 700);
+      color: var(--color-text-primary, #1a1a2e);
+    }
+
+    .price-original {
+      font-size: var(--text-sm, 14px);
+      color: var(--color-text-secondary, #6b7280);
+      text-decoration: line-through;
+    }
+
+    /* セール時の価格を赤に */
+    .product-card--sale .price-current {
+      color: #ef4444;
+    }
+
+    /* カートに追加ボタン */
+    .product-card__btn {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      font-size: var(--text-sm, 14px);
+      font-weight: var(--font-semibold, 600);
+      color: white;
+      background-color: var(--color-brand-500, #4f6ef7);
+      border: none;
+      border-radius: var(--radius-md, 8px);
+      cursor: pointer;
+      transition: background-color var(--duration-fast, 150ms);
+      text-align: center;
+    }
+
+    .product-card__btn:hover {
+      background-color: var(--color-brand-600, #3b5de7);
+    }
+
+    .product-card__btn:active {
+      background-color: var(--color-brand-700, #2a4ad4);
+    }
+
+    .product-card__btn:disabled {
+      background-color: var(--color-action-disabled, #d1d5db);
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">カード</span>
+      <h1 class="component-title">商品カード</h1>
+      <p class="component-description">
+        ECサイトでよく使われる商品カード。画像・商品名・価格・評価・カートボタンを1つのカードにまとめ、ユーザーが商品を比較・選択しやすくします。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container" style="flex-wrap: wrap; gap: 24px; justify-content: center;">
+
+        <!-- 通常カード -->
+        <div class="product-card">
+          <div class="product-card__image" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+          <div class="product-card__body">
+            <h3 class="product-card__name">ワイヤレスイヤホン Pro</h3>
+            <div class="product-card__rating">
+              <div class="stars-wrapper">
+                <span class="stars"></span>
+                <span class="stars stars--filled" style="--rating-percent: 80%;"></span>
+              </div>
+              <span class="rating-count">(128)</span>
+            </div>
+            <div class="product-card__price">
+              <span class="price-current">¥2,980</span>
+            </div>
+            <button type="button" class="product-card__btn">カートに追加</button>
+          </div>
+        </div>
+
+        <!-- セール中カード -->
+        <div class="product-card product-card--sale">
+          <div class="product-card__image" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <span class="product-card__badge">SALE</span>
+          </div>
+          <div class="product-card__body">
+            <h3 class="product-card__name">Bluetoothスピーカー</h3>
+            <div class="product-card__rating">
+              <div class="stars-wrapper">
+                <span class="stars"></span>
+                <span class="stars stars--filled" style="--rating-percent: 90%;"></span>
+              </div>
+              <span class="rating-count">(256)</span>
+            </div>
+            <div class="product-card__price">
+              <span class="price-current">¥2,980</span>
+              <span class="price-original">¥4,980</span>
+            </div>
+            <button type="button" class="product-card__btn">カートに追加</button>
+          </div>
+        </div>
+
+        <!-- 在庫切れカード -->
+        <div class="product-card product-card--out-of-stock">
+          <div class="product-card__image" style="background: linear-gradient(135deg, #a8b8d8 0%, #c4c4c4 100%);"></div>
+          <div class="product-card__body">
+            <h3 class="product-card__name">USBマイク スタジオ</h3>
+            <div class="product-card__rating">
+              <div class="stars-wrapper">
+                <span class="stars"></span>
+                <span class="stars stars--filled" style="--rating-percent: 70%;"></span>
+              </div>
+              <span class="rating-count">(64)</span>
+            </div>
+            <div class="product-card__price">
+              <span class="price-current">¥2,980</span>
+            </div>
+            <button type="button" class="product-card__btn" disabled>カートに追加</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜカード型UIが商品一覧に適しているのか？</strong><br>
+        カードは「1つの情報の塊」を視覚的に囲むことで、ユーザーが複数の商品を比較しやすくなります。画像・名前・価格が一定のレイアウトで並ぶため、視線移動の負荷が少なくなります。</p>
+        <p><strong>セールバッジの位置と色</strong><br>
+        左上に赤いバッジを置くのは、Fパターン（左上から読み始める）に従い、最も早く目に入る位置だからです。赤は「緊急性」を伝え、購買意欲を高めます。</p>
+        <p><strong>取り消し線の元価格</strong><br>
+        元の価格を打ち消し線で残すことで、「アンカリング効果」が働きます。高い元値を基準にすることで、現在の価格がお得に感じられます。</p>
+        <p><strong>在庫切れ状態の表現</strong><br>
+        opacityを下げてpointer-eventsを無効にすることで、「見えるが操作できない」状態を明確に伝えます。完全に隠すと「この商品は存在しない」と誤解されるため、あえて表示し続けます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- 商品カードのコンテナ --&gt;
+&lt;div class="product-card"&gt;
+
+  &lt;!-- 画像エリア — aspect-ratioで比率を固定 --&gt;
+  &lt;div class="product-card__image"&gt;
+    &lt;!-- セールバッジ — position: absoluteで画像の上に重ねる --&gt;
+    &lt;span class="product-card__badge"&gt;SALE&lt;/span&gt;
+  &lt;/div&gt;
+
+  &lt;div class="product-card__body"&gt;
+    &lt;!-- 商品名 --&gt;
+    &lt;h3 class="product-card__name"&gt;商品名&lt;/h3&gt;
+
+    &lt;!-- 星評価 — CSS-onlyで実装。JavaScriptは不要 --&gt;
+    &lt;div class="product-card__rating"&gt;
+      &lt;div class="stars-wrapper"&gt;
+        &lt;!-- グレーの星5つ（背景） --&gt;
+        &lt;span class="stars"&gt;&lt;/span&gt;
+        &lt;!-- 黄色の星（前面） — widthで評価を表現 --&gt;
+        &lt;span class="stars stars--filled"
+              style="--rating-percent: 80%;"&gt;&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;span class="rating-count"&gt;(128)&lt;/span&gt;
+    &lt;/div&gt;
+
+    &lt;!-- 価格 --&gt;
+    &lt;div class="product-card__price"&gt;
+      &lt;span class="price-current"&gt;¥2,980&lt;/span&gt;
+      &lt;!-- 元の価格（取り消し線） --&gt;
+      &lt;span class="price-original"&gt;¥4,980&lt;/span&gt;
+    &lt;/div&gt;
+
+    &lt;!-- カートに追加ボタン --&gt;
+    &lt;button type="button" class="product-card__btn"&gt;
+      カートに追加
+    &lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- 在庫切れ状態 — モディファイアクラスを追加 --&gt;
+&lt;div class="product-card product-card--out-of-stock"&gt;
+  &lt;!-- ...同じ構造... --&gt;
+  &lt;button class="product-card__btn" disabled&gt;カートに追加&lt;/button&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* カード全体 */
+.product-card {
+  /* position: relative → バッジやオーバーレイの基準位置にする */
+  position: relative;
+  width: 280px;
+  background: var(--color-surface, #fff);
+
+  /* border-radius → 角丸で柔らかい印象に */
+  border-radius: var(--radius-lg, 12px);
+
+  /* box-shadow → 微妙な影でカードが「浮いている」ように見せる */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08),
+              0 1px 2px rgba(0,0,0,0.06);
+
+  /* overflow: hidden → 画像の角を親の角丸に合わせて切り取る */
+  overflow: hidden;
+
+  /* transition → ホバー時のアニメーションをなめらかに */
+  transition: transform 150ms, box-shadow 150ms;
+}
+
+.product-card:hover {
+  /* translateY(-2px) → 上に2px浮かせて「選択できる」感覚を出す */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+/* 画像エリア */
+.product-card__image {
+  position: relative;
+  width: 100%;
+  /* aspect-ratio → 画像の縦横比を4:3に固定。
+     画像サイズに関係なく一定のレイアウトを保つ */
+  aspect-ratio: 4 / 3;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+/* セールバッジ */
+.product-card__badge {
+  /* position: absolute → 画像の上に浮かせて配置 */
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+  background-color: #ef4444;
+  /* border-radius: 9999px → 完全な角丸（ピル型） */
+  border-radius: 9999px;
+}
+
+/* CSS-only星評価 */
+.stars-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.stars::before {
+  /* content: "★★★★★" → CSSだけで星5つを表示 */
+  content: "★★★★★";
+  letter-spacing: 2px;
+}
+
+.stars--filled {
+  /* position: absolute → グレーの星の上に重ねる */
+  position: absolute;
+  color: #f59e0b;
+  /* overflow: hidden + width → 評価に応じて黄色い星を切り取る */
+  overflow: hidden;
+  /* --rating-percent → カスタムプロパティで評価値を制御 */
+  width: var(--rating-percent, 80%);
+}
+
+/* 在庫切れ状態 */
+.product-card--out-of-stock {
+  /* opacity: 0.65 → 半透明にして「利用不可」を伝える */
+  opacity: 0.65;
+  /* pointer-events: none → クリックを無効化 */
+  pointer-events: none;
+}
+
+.product-card--out-of-stock .product-card__image::after {
+  /* content: "在庫切れ" → 疑似要素でオーバーレイテキストを表示 */
+  content: "在庫切れ";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.45);
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">長い商品名（2行以上）</div>
+          <div class="product-card" style="width: 280px;">
+            <div class="product-card__image" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); aspect-ratio: 4/3;"></div>
+            <div class="product-card__body">
+              <h3 class="product-card__name">【期間限定】ワイヤレスノイズキャンセリングヘッドホン 最新モデル ブラック</h3>
+              <div class="product-card__price">
+                <span class="price-current">¥2,980</span>
+              </div>
+              <button type="button" class="product-card__btn">カートに追加</button>
+            </div>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">高額な価格表示</div>
+          <div class="product-card" style="width: 280px;">
+            <div class="product-card__image" style="background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%); aspect-ratio: 4/3;"></div>
+            <div class="product-card__body">
+              <h3 class="product-card__name">プレミアムカメラ</h3>
+              <div class="product-card__price">
+                <span class="price-current">¥1,299,800</span>
+                <span class="price-original">¥1,499,800</span>
+              </div>
+              <button type="button" class="product-card__btn">カートに追加</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

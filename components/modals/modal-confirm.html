@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>確認ダイアログ — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       確認ダイアログ — コンポーネントスタイル
+       =================================================================== */
+
+    /* ダイアログ本体 */
+    .confirm-dialog {
+      border: none;
+      border-radius: var(--radius-lg, 12px);
+      padding: 0;
+      max-width: 420px;
+      width: 90%;
+      background: var(--color-surface, #fff);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: dialog-enter 200ms ease-out;
+    }
+
+    /* 開くときのアニメーション — フェード＋スケール */
+    @keyframes dialog-enter {
+      from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    /* ::backdrop — ダイアログの背景オーバーレイ */
+    .confirm-dialog::backdrop {
+      background: rgba(0, 0, 0, 0.5);
+      animation: backdrop-fade 200ms ease-out;
+    }
+
+    @keyframes backdrop-fade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* ダイアログの中身 */
+    .confirm-dialog__content {
+      padding: 24px;
+    }
+
+    /* アイコン（警告マーク） */
+    .confirm-dialog__icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-full, 9999px);
+      background: #fef2f2;
+      color: #ef4444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+
+    .confirm-dialog__title {
+      font-size: var(--text-lg, 18px);
+      font-weight: var(--font-semibold, 600);
+      color: var(--color-text-primary, #1a1a2e);
+      margin-bottom: 8px;
+    }
+
+    .confirm-dialog__message {
+      font-size: var(--text-sm, 14px);
+      color: var(--color-text-secondary, #6b7280);
+      line-height: 1.6;
+    }
+
+    /* ボタンエリア */
+    .confirm-dialog__actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 16px 24px;
+      border-top: 1px solid var(--color-border, #e5e7eb);
+      background: var(--color-surface-alt, #f9fafb);
+      border-radius: 0 0 var(--radius-lg, 12px) var(--radius-lg, 12px);
+    }
+
+    /* キャンセルボタン */
+    .confirm-dialog__btn {
+      padding: 8px 20px;
+      font-size: var(--text-sm, 14px);
+      font-weight: var(--font-semibold, 600);
+      border-radius: var(--radius-md, 8px);
+      cursor: pointer;
+      transition: background-color var(--duration-fast, 150ms),
+                  box-shadow var(--duration-fast, 150ms);
+      border: 1px solid var(--color-border, #e5e7eb);
+      background: white;
+      color: var(--color-text-primary, #1a1a2e);
+    }
+
+    .confirm-dialog__btn:hover {
+      background: var(--color-surface-alt, #f9fafb);
+    }
+
+    /* 削除ボタン（危険操作） */
+    .confirm-dialog__btn--danger {
+      background: #ef4444;
+      color: white;
+      border-color: #ef4444;
+    }
+
+    .confirm-dialog__btn--danger:hover {
+      background: #dc2626;
+      border-color: #dc2626;
+    }
+
+    .confirm-dialog__btn--danger:active {
+      background: #b91c1c;
+    }
+
+    .confirm-dialog__btn--danger:focus-visible {
+      outline: 2px solid #ef4444;
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">モーダル</span>
+      <h1 class="component-title">確認ダイアログ</h1>
+      <p class="component-description">
+        削除やキャンセルなど、取り消せない操作の前にユーザーに確認を求めるダイアログ。HTML標準の&lt;dialog&gt;要素とshowModal()を使い、アクセシブルかつ堅牢に実装します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container">
+        <button type="button" class="btn" style="
+          padding: 10px 20px;
+          font-size: 14px;
+          font-weight: 600;
+          color: white;
+          background: #ef4444;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+        " onclick="document.getElementById('confirmDialog').showModal()">
+          項目を削除する
+        </button>
+      </div>
+
+      <!-- dialog要素 -->
+      <dialog id="confirmDialog" class="confirm-dialog">
+        <div class="confirm-dialog__content">
+          <div class="confirm-dialog__icon">⚠</div>
+          <h3 class="confirm-dialog__title">この項目を削除しますか？</h3>
+          <p class="confirm-dialog__message">
+            この操作は取り消せません。削除された項目は復元できなくなります。
+          </p>
+        </div>
+        <div class="confirm-dialog__actions">
+          <button type="button" class="confirm-dialog__btn" onclick="document.getElementById('confirmDialog').close()">キャンセル</button>
+          <button type="button" class="confirm-dialog__btn confirm-dialog__btn--danger" onclick="document.getElementById('confirmDialog').close()">削除する</button>
+        </div>
+      </dialog>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜ&lt;dialog&gt;要素を使うのか？</strong><br>
+        HTML標準の&lt;dialog&gt;要素は、showModal()でモーダル表示すると自動的にフォーカストラップ（Tab移動がダイアログ内に限定される）と、Escapeキーでの閉じる機能を提供します。これをdivで自前実装すると大量のJavaScriptが必要になり、アクセシビリティの漏れが起きやすくなります。</p>
+        <p><strong>::backdropの役割</strong><br>
+        ::backdrop疑似要素は、showModal()で開いた時にブラウザが自動生成する背景レイヤーです。これにより、ダイアログの背後のコンテンツが操作できなくなり、ユーザーの注意をダイアログに集中させます。</p>
+        <p><strong>フェード＋スケールのアニメーション</strong><br>
+        scale(0.95)から1への変化は「ダイアログが手前に飛び出す」感覚を与えます。突然の出現よりも自然で、ユーザーが「何かが起きた」ことを認識しやすくなります。</p>
+        <p><strong>危険な操作は右側に赤いボタン</strong><br>
+        「削除する」ボタンを赤くすることで、ユーザーに「これは慎重に判断すべき操作だ」と警告します。キャンセルを左に置くことで、手が滑って削除を押すリスクを下げます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- dialog要素 → HTML標準のモーダルダイアログ --&gt;
+&lt;!-- open属性は使わず、JavaScriptのshowModal()で開く --&gt;
+&lt;dialog id="confirmDialog" class="confirm-dialog"&gt;
+
+  &lt;div class="confirm-dialog__content"&gt;
+    &lt;!-- 警告アイコン → 視覚的に「注意が必要」と伝える --&gt;
+    &lt;div class="confirm-dialog__icon"&gt;⚠&lt;/div&gt;
+
+    &lt;!-- タイトル → 何が起きるかを簡潔に伝える --&gt;
+    &lt;h3 class="confirm-dialog__title"&gt;
+      この項目を削除しますか？
+    &lt;/h3&gt;
+
+    &lt;!-- 補足メッセージ → 操作の影響を説明 --&gt;
+    &lt;p class="confirm-dialog__message"&gt;
+      この操作は取り消せません。
+    &lt;/p&gt;
+  &lt;/div&gt;
+
+  &lt;!-- ボタンエリア --&gt;
+  &lt;div class="confirm-dialog__actions"&gt;
+    &lt;!-- キャンセル → close()でダイアログを閉じる --&gt;
+    &lt;button type="button" class="confirm-dialog__btn"&gt;
+      キャンセル
+    &lt;/button&gt;
+    &lt;!-- 削除 → 危険操作なので赤いボタン --&gt;
+    &lt;button type="button"
+            class="confirm-dialog__btn confirm-dialog__btn--danger"&gt;
+      削除する
+    &lt;/button&gt;
+  &lt;/div&gt;
+&lt;/dialog&gt;
+
+&lt;!-- ダイアログを開くトリガーボタン --&gt;
+&lt;button type="button" onclick="dialog.showModal()"&gt;
+  項目を削除する
+&lt;/button&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* dialog要素のデフォルトスタイルをリセット */
+.confirm-dialog {
+  /* border: none → ブラウザデフォルトの枠線を消す */
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  max-width: 420px;
+  width: 90%;
+  background: #fff;
+
+  /* box-shadow → 強めの影でダイアログを「浮かせる」 */
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+  /* animation → 開くときにフェード+スケールで登場 */
+  animation: dialog-enter 200ms ease-out;
+}
+
+/* 登場アニメーション */
+@keyframes dialog-enter {
+  from {
+    opacity: 0;
+    /* scale(0.95) → 少し小さい状態からスタート */
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ::backdrop → showModal()で自動生成される背景 */
+.confirm-dialog::backdrop {
+  /* 半透明の黒で背景を暗くする */
+  background: rgba(0, 0, 0, 0.5);
+  animation: backdrop-fade 200ms ease-out;
+}
+
+/* 危険操作ボタン */
+.confirm-dialog__btn--danger {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+}
+
+.confirm-dialog__btn--danger:hover {
+  /* より濃い赤で「押そうとしている」ことを強調 */
+  background: #dc2626;
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="javascript">// dialog要素を取得
+const dialog = document.getElementById('confirmDialog');
+
+// showModal() → モーダルとして開く
+// show()との違い：showModal()はbackdropを表示し、
+// 背景の操作をブロックし、Escapeキーで閉じられる
+dialog.showModal();
+
+// close() → ダイアログを閉じる
+dialog.close();
+
+// 背景クリックで閉じる処理
+dialog.addEventListener('click', (e) =&gt; {
+  // e.target === dialog → ダイアログ自体がクリックされた
+  // （中身ではなく背景部分がクリックされた場合）
+  if (e.target === dialog) {
+    dialog.close();
+  }
+});
+
+// closeイベント → ダイアログが閉じた後の処理
+dialog.addEventListener('close', () =&gt; {
+  // dialog.returnValue → どのボタンで閉じたかを取得
+  console.log('ダイアログが閉じました');
+});</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">長いメッセージテキスト</div>
+          <p style="font-size: 14px; color: var(--color-text-secondary, #6b7280);">
+            メッセージが長くなる場合、ダイアログの高さが自動的に伸びます。max-heightとoverflow-y: autoを設定してスクロール可能にすることも検討してください。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">キーボード操作</div>
+          <p style="font-size: 14px; color: var(--color-text-secondary, #6b7280);">
+            showModal()を使うと、Escapeキーで自動的に閉じます。また、フォーカスがダイアログ内に閉じ込められるため、Tabキーでダイアログ外の要素に移動できません。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">複数ダイアログの重なり</div>
+          <p style="font-size: 14px; color: var(--color-text-secondary, #6b7280);">
+            showModal()で開いたダイアログの上にさらにshowModal()で別のダイアログを開くと、新しいダイアログが最前面に表示されます。ただし、UXの観点からダイアログの2重表示は避けるべきです。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script>
+    // 背景クリックでダイアログを閉じる
+    const confirmDialog = document.getElementById('confirmDialog');
+    confirmDialog.addEventListener('click', (e) => {
+      if (e.target === confirmDialog) {
+        confirmDialog.close();
+      }
+    });
+  </script>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

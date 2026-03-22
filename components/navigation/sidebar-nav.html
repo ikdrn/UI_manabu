@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>サイドバーナビゲーション — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       サイドバーナビゲーション — コンポーネントスタイル
+       =================================================================== */
+
+    .sidebar {
+      width: 260px;
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4) 0;
+      font-size: var(--text-sm);
+    }
+
+    /* --- セクション（details/summary） --- */
+    .sidebar__section {
+      border: none;
+    }
+
+    .sidebar__section + .sidebar__section {
+      border-top: 1px solid var(--color-neutral-100);
+      margin-top: var(--space-1);
+      padding-top: var(--space-1);
+    }
+
+    .sidebar__heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-2) var(--space-4);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      color: var(--color-neutral-500);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+      transition: color var(--duration-fast);
+    }
+
+    .sidebar__heading::-webkit-details-marker { display: none; }
+
+    .sidebar__heading::after {
+      content: '';
+      width: 16px;
+      height: 16px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 4l4 4-4 4'/%3E%3C/svg%3E");
+      transition: transform var(--duration-fast);
+      flex-shrink: 0;
+    }
+
+    .sidebar__section[open] > .sidebar__heading::after {
+      transform: rotate(90deg);
+    }
+
+    .sidebar__heading:hover {
+      color: var(--color-neutral-800);
+    }
+
+    /* --- リンクリスト --- */
+    .sidebar__list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .sidebar__link {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4) var(--space-2) var(--space-6);
+      color: var(--color-neutral-600);
+      text-decoration: none;
+      font-weight: var(--font-normal);
+      border-left: 3px solid transparent;
+      transition: background var(--duration-fast), color var(--duration-fast), border-color var(--duration-fast);
+    }
+
+    .sidebar__link:hover {
+      background: var(--color-neutral-50);
+      color: var(--color-neutral-800);
+      text-decoration: none;
+    }
+
+    /* アクティブ状態インジケーター */
+    .sidebar__link[aria-current="page"] {
+      color: var(--color-brand-600);
+      font-weight: var(--font-semibold);
+      background: var(--color-brand-50);
+      border-left-color: var(--color-brand-500);
+    }
+
+    /* --- アニメーション：開閉時の高さ遷移 --- */
+    .sidebar__section .sidebar__list {
+      overflow: hidden;
+      animation: sidebar-collapse var(--duration-normal) var(--ease-out);
+    }
+
+    .sidebar__section[open] .sidebar__list {
+      animation: sidebar-expand var(--duration-normal) var(--ease-out);
+    }
+
+    @keyframes sidebar-expand {
+      from { max-height: 0; opacity: 0; }
+      to   { max-height: 500px; opacity: 1; }
+    }
+
+    @keyframes sidebar-collapse {
+      from { max-height: 500px; opacity: 1; }
+      to   { max-height: 0; opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">ナビゲーション</span>
+      <h1 class="component-title">サイドバーナビゲーション</h1>
+      <p class="component-description">
+        折りたたみ可能なセクションを持つサイドバーメニュー。details/summary要素を使い、JavaScript無しで開閉を実現します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--start" style="align-items:flex-start;">
+        <nav class="sidebar" aria-label="サイドメニュー">
+          <details class="sidebar__section" open>
+            <summary class="sidebar__heading">はじめに</summary>
+            <ul class="sidebar__list">
+              <li><a href="#" class="sidebar__link" aria-current="page">概要</a></li>
+              <li><a href="#" class="sidebar__link">インストール</a></li>
+              <li><a href="#" class="sidebar__link">クイックスタート</a></li>
+            </ul>
+          </details>
+          <details class="sidebar__section" open>
+            <summary class="sidebar__heading">コンポーネント</summary>
+            <ul class="sidebar__list">
+              <li><a href="#" class="sidebar__link">ボタン</a></li>
+              <li><a href="#" class="sidebar__link">フォーム</a></li>
+              <li><a href="#" class="sidebar__link">カード</a></li>
+              <li><a href="#" class="sidebar__link">モーダル</a></li>
+            </ul>
+          </details>
+          <details class="sidebar__section">
+            <summary class="sidebar__heading">上級者向け</summary>
+            <ul class="sidebar__list">
+              <li><a href="#" class="sidebar__link">テーマカスタマイズ</a></li>
+              <li><a href="#" class="sidebar__link">アクセシビリティ</a></li>
+              <li><a href="#" class="sidebar__link">パフォーマンス</a></li>
+            </ul>
+          </details>
+        </nav>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>details/summary を使う理由</strong><br>
+        HTML標準の折りたたみ要素を使えば、JavaScriptなしで開閉が動作します。アクセシビリティも最初から組み込まれており、スクリーンリーダーが「展開済み」「折りたたみ済み」を自動で読み上げます。</p>
+        <p><strong>aria-current="page" でアクティブ表示</strong><br>
+        現在のページを示すには aria-current="page" を使います。視覚的には左ボーダーと色の変化で、スクリーンリーダーには「現在のページ」として伝わります。</p>
+        <p><strong>左ボーダーのインジケーター</strong><br>
+        アクティブなリンクの左に色付きボーダーを表示することで、どこにいるかが一目でわかります。色だけでなく太さと位置で判別できるため、色覚多様性にも配慮しています。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- nav要素でサイドバー全体を囲む --&gt;
+&lt;nav class="sidebar" aria-label="サイドメニュー"&gt;
+
+  &lt;!-- details → 折りたたみ可能なセクション。open属性で初期展開 --&gt;
+  &lt;details class="sidebar__section" open&gt;
+
+    &lt;!-- summary → クリックで開閉するヘッダー部分 --&gt;
+    &lt;summary class="sidebar__heading"&gt;はじめに&lt;/summary&gt;
+
+    &lt;ul class="sidebar__list"&gt;
+      &lt;!-- aria-current="page" → 現在表示中のページ。
+           スクリーンリーダーが「現在のページ」と読み上げる --&gt;
+      &lt;li&gt;&lt;a href="/overview" class="sidebar__link"
+             aria-current="page"&gt;概要&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href="/install" class="sidebar__link"&gt;インストール&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/details&gt;
+
+  &lt;!-- open属性なし → 初期状態で折りたたまれている --&gt;
+  &lt;details class="sidebar__section"&gt;
+    &lt;summary class="sidebar__heading"&gt;上級者向け&lt;/summary&gt;
+    &lt;ul class="sidebar__list"&gt;
+      &lt;li&gt;&lt;a href="/theme" class="sidebar__link"&gt;テーマカスタマイズ&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/details&gt;
+&lt;/nav&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- details/summaryのデフォルトスタイルを消す --- */
+.sidebar__heading {
+  list-style: none; /* ▶マーカーを消す */
+  cursor: pointer;
+  user-select: none;
+}
+/* Safariでは::-webkit-details-markerで消す */
+.sidebar__heading::-webkit-details-marker { display: none; }
+
+/* カスタム矢印アイコン → ::afterで追加 */
+.sidebar__heading::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  /* SVGをインラインで埋め込み → 画像ファイル不要 */
+  background-image: url("data:image/svg+xml,...");
+  transition: transform var(--duration-fast);
+}
+
+/* 開いた時に矢印を90度回転 */
+.sidebar__section[open] > .sidebar__heading::after {
+  transform: rotate(90deg);
+}
+
+/* --- アクティブリンクの左ボーダーインジケーター --- */
+.sidebar__link[aria-current="page"] {
+  color: var(--color-brand-600);
+  font-weight: var(--font-semibold);
+  background: var(--color-brand-50);
+  /* 左に3pxのブランドカラーボーダーで「ここにいる」を示す */
+  border-left: 3px solid var(--color-brand-500);
+}
+
+/* --- 開閉アニメーション --- */
+@keyframes sidebar-expand {
+  from { max-height: 0; opacity: 0; }
+  to   { max-height: 500px; opacity: 1; }
+}
+
+.sidebar__section[open] .sidebar__list {
+  animation: sidebar-expand 250ms ease-out;
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">長いリンクテキスト</div>
+          <nav class="sidebar" style="width:200px;" aria-label="長いテキストデモ">
+            <details class="sidebar__section" open>
+              <summary class="sidebar__heading">設定</summary>
+              <ul class="sidebar__list">
+                <li><a href="#" class="sidebar__link" aria-current="page">アカウントのセキュリティ設定と二段階認証</a></li>
+                <li><a href="#" class="sidebar__link">通知</a></li>
+              </ul>
+            </details>
+          </nav>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">深いネスト（3階層）</div>
+          <nav class="sidebar" aria-label="ネストデモ">
+            <details class="sidebar__section" open>
+              <summary class="sidebar__heading">親カテゴリ</summary>
+              <ul class="sidebar__list">
+                <li>
+                  <details class="sidebar__section">
+                    <summary class="sidebar__heading" style="padding-left:var(--space-6); font-size:inherit; text-transform:none;">子カテゴリ</summary>
+                    <ul class="sidebar__list">
+                      <li><a href="#" class="sidebar__link" style="padding-left:var(--space-10);">孫リンク A</a></li>
+                      <li><a href="#" class="sidebar__link" style="padding-left:var(--space-10);">孫リンク B</a></li>
+                    </ul>
+                  </details>
+                </li>
+              </ul>
+            </details>
+          </nav>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

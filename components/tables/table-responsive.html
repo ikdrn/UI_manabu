@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>レスポンシブテーブル — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       レスポンシブテーブル — 3つの戦略
+       =================================================================== */
+
+    /* --- 共通テーブルスタイル --- */
+    .resp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-md);
+    }
+
+    .resp-table th,
+    .resp-table td {
+      padding: var(--space-3) var(--space-4);
+      text-align: left;
+      border-bottom: 1px solid var(--color-neutral-100);
+    }
+
+    .resp-table th {
+      background: var(--color-neutral-50);
+      font-weight: var(--font-semibold);
+      color: var(--color-neutral-700);
+      white-space: nowrap;
+    }
+
+    .resp-table td {
+      color: var(--color-neutral-600);
+    }
+
+    .resp-table tbody tr:hover {
+      background: var(--color-brand-50);
+    }
+
+    .strategy-label {
+      display: inline-block;
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      color: white;
+      background: var(--color-brand-500);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      margin-bottom: var(--space-2);
+    }
+
+    /* ===========================================
+       戦略1: 横スクロール
+       =========================================== */
+    .table-scroll-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-md);
+    }
+
+    .table-scroll-wrapper .resp-table {
+      border: none;
+      min-width: 600px;
+    }
+
+    /* ===========================================
+       戦略2: カードリフロー
+       =========================================== */
+    @media (max-width: 640px) {
+      .table-card thead {
+        /* ヘッダーを視覚的に隠すが、スクリーンリーダーには読ませる */
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+      }
+
+      .table-card tbody tr {
+        display: block;
+        border: 1px solid var(--color-neutral-200);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-3);
+        padding: var(--space-3);
+        background: var(--color-surface-raised);
+      }
+
+      .table-card tbody td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-2) var(--space-1);
+        border-bottom: 1px solid var(--color-neutral-50);
+      }
+
+      .table-card tbody td:last-child {
+        border-bottom: none;
+      }
+
+      /* data-label属性でヘッダー名をカード内に表示 */
+      .table-card tbody td::before {
+        content: attr(data-label);
+        font-weight: var(--font-semibold);
+        color: var(--color-neutral-700);
+        margin-right: var(--space-4);
+        flex-shrink: 0;
+      }
+    }
+
+    /* ===========================================
+       戦略3: 優先カラム
+       =========================================== */
+    .table-priority th[data-priority="low"],
+    .table-priority td[data-priority="low"] {
+      transition: opacity var(--duration-fast);
+    }
+
+    @media (max-width: 768px) {
+      .table-priority th[data-priority="low"],
+      .table-priority td[data-priority="low"] {
+        display: none;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .table-priority th[data-priority="medium"],
+      .table-priority td[data-priority="medium"] {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">テーブル</span>
+      <h1 class="component-title">レスポンシブテーブル</h1>
+      <p class="component-description">
+        画面幅が狭い時にテーブルを見やすくする3つの戦略。データの性質に応じて使い分けます。
+      </p>
+    </header>
+
+    <!-- ========== 戦略1: 横スクロール ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+
+      <div style="margin-bottom:var(--space-8);">
+        <span class="strategy-label">戦略1</span>
+        <h3 style="font-size:var(--text-base); font-weight:var(--font-semibold); margin-bottom:var(--space-2);">横スクロール</h3>
+        <p style="font-size:var(--text-sm); color:var(--color-neutral-500); margin-bottom:var(--space-3);">テーブル全体をスクロール可能なコンテナで囲む。最もシンプルな手法。</p>
+        <div class="preview-container preview-container--col" style="padding:var(--space-4);">
+          <div class="table-scroll-wrapper">
+            <table class="resp-table">
+              <thead>
+                <tr><th>注文ID</th><th>顧客名</th><th>商品</th><th>数量</th><th>金額</th><th>ステータス</th><th>日時</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>#1001</td><td>田中太郎</td><td>ノートPC Pro</td><td>1</td><td>¥198,000</td><td>発送済み</td><td>2024-01-15</td></tr>
+                <tr><td>#1002</td><td>鈴木花子</td><td>ワイヤレスマウス</td><td>3</td><td>¥8,940</td><td>準備中</td><td>2024-01-16</td></tr>
+                <tr><td>#1003</td><td>佐藤健</td><td>USBハブ 7ポート</td><td>2</td><td>¥5,980</td><td>配送中</td><td>2024-01-16</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== 戦略2: カードリフロー ========== -->
+      <div style="margin-bottom:var(--space-8);">
+        <span class="strategy-label">戦略2</span>
+        <h3 style="font-size:var(--text-base); font-weight:var(--font-semibold); margin-bottom:var(--space-2);">カードリフロー</h3>
+        <p style="font-size:var(--text-sm); color:var(--color-neutral-500); margin-bottom:var(--space-3);">モバイルで各行をカード型に変換。data-label属性で列名を表示。640px以下で変化します。</p>
+        <div class="preview-container preview-container--col" style="padding:var(--space-4);">
+          <table class="resp-table table-card">
+            <thead>
+              <tr><th>名前</th><th>役職</th><th>部署</th><th>メール</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-label="名前">田中太郎</td>
+                <td data-label="役職">マネージャー</td>
+                <td data-label="部署">営業部</td>
+                <td data-label="メール">tanaka@example.com</td>
+              </tr>
+              <tr>
+                <td data-label="名前">鈴木花子</td>
+                <td data-label="役職">エンジニア</td>
+                <td data-label="部署">開発部</td>
+                <td data-label="メール">suzuki@example.com</td>
+              </tr>
+              <tr>
+                <td data-label="名前">佐藤一郎</td>
+                <td data-label="役職">デザイナー</td>
+                <td data-label="部署">デザイン部</td>
+                <td data-label="メール">sato@example.com</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ========== 戦略3: 優先カラム ========== -->
+      <div>
+        <span class="strategy-label">戦略3</span>
+        <h3 style="font-size:var(--text-base); font-weight:var(--font-semibold); margin-bottom:var(--space-2);">優先カラム</h3>
+        <p style="font-size:var(--text-sm); color:var(--color-neutral-500); margin-bottom:var(--space-3);">画面幅に応じて優先度の低い列を非表示にする。768px以下で「low」、480px以下で「medium」が消えます。</p>
+        <div class="preview-container preview-container--col" style="padding:var(--space-4); overflow-x:auto;">
+          <table class="resp-table table-priority">
+            <thead>
+              <tr>
+                <th>名前</th>
+                <th>メール</th>
+                <th data-priority="medium">電話番号</th>
+                <th data-priority="low">住所</th>
+                <th data-priority="low">登録日</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>田中太郎</td>
+                <td>tanaka@example.com</td>
+                <td data-priority="medium">090-1234-5678</td>
+                <td data-priority="low">東京都渋谷区</td>
+                <td data-priority="low">2024-01-10</td>
+              </tr>
+              <tr>
+                <td>鈴木花子</td>
+                <td>suzuki@example.com</td>
+                <td data-priority="medium">080-9876-5432</td>
+                <td data-priority="low">大阪府大阪市</td>
+                <td data-priority="low">2024-01-12</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>横スクロール — 最もシンプルで安全</strong><br>
+        テーブルの構造を壊さないため、比較が必要なデータ（数値の比較など）に適しています。ユーザーが横スクロールできることに気づくよう、影やスクロールバーで示唆するとより親切です。</p>
+        <p><strong>カードリフロー — 詳細表示に最適</strong><br>
+        各行が独立したエンティティ（人、注文、製品など）の場合に有効です。data-label属性でCSSの content: attr(data-label) を使い、各セルの前にヘッダー名を表示します。</p>
+        <p><strong>優先カラム — 段階的な情報開示</strong><br>
+        全列が同じ重要度ではない場合、優先度を付けて画面幅に応じて非表示にします。「詳細を表示」ボタンと組み合わせると、非表示の列を展開できます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- 戦略1: 横スクロール → ラッパーでoverflow-x:auto --&gt;
+&lt;div class="table-scroll-wrapper"&gt;
+  &lt;table class="resp-table"&gt;...&lt;/table&gt;
+&lt;/div&gt;
+
+&lt;!-- 戦略2: カードリフロー → data-labelでヘッダー名を指定 --&gt;
+&lt;table class="resp-table table-card"&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;&lt;th&gt;名前&lt;/th&gt;&lt;th&gt;役職&lt;/th&gt;&lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;!-- data-label → モバイル時にCSSで列名として表示 --&gt;
+      &lt;td data-label="名前"&gt;田中太郎&lt;/td&gt;
+      &lt;td data-label="役職"&gt;マネージャー&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;!-- 戦略3: 優先カラム → data-priorityで重要度を指定 --&gt;
+&lt;table class="resp-table table-priority"&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;名前&lt;/th&gt;
+      &lt;!-- data-priority="low" → 768px以下で非表示 --&gt;
+      &lt;th data-priority="low"&gt;住所&lt;/th&gt;
+      &lt;!-- data-priority="medium" → 480px以下で非表示 --&gt;
+      &lt;th data-priority="medium"&gt;電話&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;田中太郎&lt;/td&gt;
+      &lt;td data-priority="low"&gt;東京都&lt;/td&gt;
+      &lt;td data-priority="medium"&gt;090-xxxx&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* === 戦略1: 横スクロール === */
+.table-scroll-wrapper {
+  overflow-x: auto;                 /* 横にはみ出したらスクロール */
+  -webkit-overflow-scrolling: touch; /* iOSで慣性スクロール有効化 */
+}
+
+/* === 戦略2: カードリフロー === */
+@media (max-width: 640px) {
+  .table-card thead {
+    /* ヘッダーを視覚的に隠す（display:noneだとスクリーンリーダーも読めなくなる） */
+    position: absolute;
+    width: 1px; height: 1px;
+    clip: rect(0, 0, 0, 0);
+    overflow: hidden;
+  }
+
+  .table-card tbody tr {
+    /* 各行をブロック要素（カード）に変換 */
+    display: block;
+    border: 1px solid var(--color-neutral-200);
+    border-radius: 8px;
+    margin-bottom: 12px;
+  }
+
+  .table-card tbody td {
+    /* 各セルをflexで横並び：ラベル | 値 */
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* data-label の値を::beforeで表示 */
+  .table-card tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+  }
+}
+
+/* === 戦略3: 優先カラム === */
+@media (max-width: 768px) {
+  /* 優先度「低」の列を隠す */
+  .table-priority [data-priority="low"] {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  /* 優先度「中」の列も隠す */
+  .table-priority [data-priority="medium"] {
+    display: none;
+  }
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">戦略の選び方</div>
+          <div style="font-size:var(--text-sm); color:var(--color-neutral-600); line-height:var(--leading-relaxed);">
+            <p><strong>横スクロール：</strong>列間の比較が重要なデータ（売上表、スプレッドシート風）</p>
+            <p><strong>カードリフロー：</strong>各行が独立した情報（ユーザー一覧、注文履歴）</p>
+            <p><strong>優先カラム：</strong>列に明確な優先順位がある場合（主要情報 + 補助情報）</p>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">セルの内容が長い場合</div>
+          <div class="table-scroll-wrapper">
+            <table class="resp-table">
+              <thead><tr><th>ID</th><th>タイトル</th><th>説明</th></tr></thead>
+              <tbody>
+                <tr><td>#1</td><td>非常に長い商品名がここに入ります</td><td>この商品の説明文がとても長い場合のレイアウト確認用テキストです。テーブルセル内でのテキストの折り返しを確認します。</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

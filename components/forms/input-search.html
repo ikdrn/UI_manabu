@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>検索入力 — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       検索入力 — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- 検索フィールド全体のラッパー --- */
+    .search-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    /* --- 検索アイコン（SVG） --- */
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      color: var(--color-neutral-400);
+      pointer-events: none;
+    }
+
+    /* --- 検索入力フィールド --- */
+    .search-input {
+      width: 100%;
+      padding: 10px 40px 10px 38px;
+      font-size: var(--text-sm);
+      font-family: inherit;
+      color: var(--color-neutral-800);
+      background-color: var(--color-surface-raised);
+      border: 1px solid var(--color-neutral-300);
+      border-radius: var(--radius-full);
+      outline: none;
+      transition: border-color var(--duration-fast),
+                  box-shadow var(--duration-fast);
+    }
+
+    .search-input::placeholder {
+      color: var(--color-neutral-400);
+    }
+
+    .search-input:focus {
+      border-color: var(--color-brand-500);
+      box-shadow: 0 0 0 3px hsla(222, 80%, 50%, 0.15);
+    }
+
+    /* --- クリアボタン --- */
+    .search-clear {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 24px;
+      height: 24px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      color: var(--color-neutral-400);
+      transition: color var(--duration-fast),
+                  background-color var(--duration-fast);
+    }
+
+    .search-clear:hover {
+      color: var(--color-neutral-700);
+      background-color: var(--color-neutral-100);
+    }
+
+    /* 入力がある時だけクリアボタンを表示 */
+    .search-clear.visible {
+      display: inline-flex;
+    }
+
+    /* --- 検索結果ドロップダウン --- */
+    .search-results {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      max-height: 240px;
+      overflow-y: auto;
+      z-index: var(--z-dropdown);
+      display: none;
+    }
+
+    .search-results.open {
+      display: block;
+    }
+
+    .search-result-item {
+      padding: 10px 14px;
+      font-size: var(--text-sm);
+      color: var(--color-neutral-700);
+      cursor: pointer;
+      transition: background-color var(--duration-fast);
+    }
+
+    .search-result-item:hover,
+    .search-result-item.active {
+      background-color: var(--color-brand-50);
+    }
+
+    .search-result-item + .search-result-item {
+      border-top: 1px solid var(--color-neutral-100);
+    }
+
+    /* --- マッチ箇所のハイライト --- */
+    .search-result-item mark {
+      background-color: hsl(48, 100%, 75%);
+      color: inherit;
+      border-radius: 2px;
+      padding: 0 1px;
+    }
+
+    .search-no-result {
+      padding: 14px;
+      font-size: var(--text-sm);
+      color: var(--color-neutral-400);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">フォーム</span>
+      <h1 class="component-title">検索入力</h1>
+      <p class="component-description">
+        検索入力は、ユーザーがキーワードを入力してリストやデータを絞り込むためのUIです。SVGアイコン、クリアボタン、ドロップダウン候補表示を組み合わせた実践的なパターンを学びます。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col" style="gap: 24px; align-items: flex-start; min-height: 340px;">
+
+        <div class="search-wrapper" role="combobox" aria-expanded="false" aria-haspopup="listbox">
+          <!-- 虫眼鏡SVGアイコン -->
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+
+          <input
+            class="search-input"
+            type="search"
+            id="search-demo"
+            placeholder="食べ物を検索..."
+            autocomplete="off"
+            aria-label="食べ物を検索"
+            aria-controls="search-results-list"
+          >
+
+          <!-- クリアボタン -->
+          <button class="search-clear" type="button" aria-label="検索をクリア">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+
+          <!-- 検索結果ドロップダウン -->
+          <div class="search-results" id="search-results-list" role="listbox"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜ虫眼鏡アイコンを左に置くのか？</strong><br>
+        虫眼鏡は「検索」の世界共通アイコンです。入力欄の左端に配置することで、ユーザーはフィールドの用途を一目で理解できます。<code>position: absolute</code>でアイコンを重ね、<code>padding-left</code>でテキストと被らないようにします。</p>
+
+        <p><strong>debounce（遅延実行）パターンの重要性</strong><br>
+        キー入力のたびにAPIリクエストを送ると、サーバーに過剰な負荷がかかります。debounceは「最後の入力から一定時間（例: 300ms）経ってから処理を実行する」パターンです。<code>setTimeout</code>と<code>clearTimeout</code>で実装します。</p>
+
+        <p><strong><code>&lt;mark&gt;</code>タグでマッチ箇所を強調する</strong><br>
+        検索結果の中で入力したキーワードに一致する部分をハイライトすると、ユーザーは結果の関連性をすばやく判断できます。HTMLの<code>&lt;mark&gt;</code>タグはセマンティックにも正しいマークアップです。</p>
+
+        <p><strong>クリアボタンは入力がある時だけ表示する</strong><br>
+        空の状態でクリアボタンを見せても意味がありません。JavaScriptで入力の有無を監視し、<code>display: none</code>と<code>display: inline-flex</code>を切り替えます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- role="combobox" → 入力欄とドロップダウンの組み合わせであることを
+     スクリーンリーダーに伝えるARIAロール -->
+&lt;div class="search-wrapper" role="combobox"
+     aria-expanded="false" aria-haspopup="listbox"&gt;
+
+  <!-- SVGアイコン → aria-hidden="true"で読み上げを防ぐ。
+       装飾目的の画像はスクリーンリーダーに無視させる -->
+  &lt;svg class="search-icon" aria-hidden="true"
+       viewBox="0 0 24 24" fill="none" stroke="currentColor"
+       stroke-width="2"&gt;
+    &lt;circle cx="11" cy="11" r="8"/&gt;
+    &lt;line x1="21" y1="21" x2="16.65" y2="16.65"/&gt;
+  &lt;/svg&gt;
+
+  <!-- type="search" → ブラウザが検索フィールドとして認識する。
+       モバイルでは検索用キーボードが表示される -->
+  &lt;input class="search-input" type="search"
+         placeholder="食べ物を検索..."
+         autocomplete="off"
+         aria-label="食べ物を検索"
+         aria-controls="search-results-list"&gt;
+
+  <!-- クリアボタン → aria-label="検索をクリア"でボタンの用途を伝える -->
+  &lt;button class="search-clear" type="button"
+          aria-label="検索をクリア"&gt;
+    &lt;svg width="16" height="16" ...&gt;...&lt;/svg&gt;
+  &lt;/button&gt;
+
+  <!-- role="listbox" → 候補リストであることをARIAで示す -->
+  &lt;div class="search-results" id="search-results-list"
+       role="listbox"&gt;&lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- 検索ラッパー --- */
+.search-wrapper {
+  /* position: relative → 子要素のabsolute配置の基準点にする。
+     アイコン・クリアボタン・ドロップダウンの位置がここを基準に決まる */
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+}
+
+/* --- 虫眼鏡アイコン --- */
+.search-icon {
+  /* position: absolute → 入力欄の上に重ねて配置する */
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  /* translateY(-50%) → 垂直方向の中央揃え。
+     top: 50%だけだとアイコン上端が中央になるため、
+     自身の高さの半分だけ上にずらす */
+  transform: translateY(-50%);
+  /* pointer-events: none → アイコンのクリックを貫通させて、
+     下のinputにフォーカスが届くようにする */
+  pointer-events: none;
+}
+
+/* --- 検索入力 --- */
+.search-input {
+  /* padding: 10px 40px 10px 38px →
+     左に38px → アイコン分の余白
+     右に40px → クリアボタン分の余白 */
+  padding: 10px 40px 10px 38px;
+  /* border-radius: 9999px → ピル型（完全な丸角）にすると
+     「検索フィールドらしさ」が出る */
+  border-radius: 9999px;
+}
+
+/* --- ドロップダウン --- */
+.search-results {
+  /* position: absolute → 入力欄の真下に浮かせて表示する */
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  /* box-shadow → 浮いている感覚を出す影 */
+  box-shadow: 0 8px 24px hsla(220, 15%, 10%, 0.12);
+  max-height: 240px;
+  /* overflow-y: auto → 候補が多い時にスクロール可能にする */
+  overflow-y: auto;
+  /* z-index → 他の要素より手前に表示する */
+  z-index: 100;
+  display: none;
+}
+
+.search-results.open {
+  display: block;
+}
+
+/* --- マッチ箇所ハイライト --- */
+.search-result-item mark {
+  /* &lt;mark&gt;タグ → HTMLが持つ「強調表示」専用のタグ。
+     デフォルトは黄色背景だが、カスタマイズして使う */
+  background-color: hsl(48, 100%, 75%);
+  border-radius: 2px;
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// --- 検索データ（実際にはAPIから取得することが多い） ---
+const items = [
+  '寿司', 'ラーメン', '天ぷら', 'うどん', 'そば',
+  'カレーライス', 'とんかつ', '焼き鳥', 'お好み焼き',
+  'たこ焼き', '刺身', '味噌汁', '餃子', '唐揚げ', '肉じゃが'
+];
+
+const input = document.getElementById('search-demo');
+const results = document.getElementById('search-results-list');
+const clearBtn = document.querySelector('.search-clear');
+let debounceTimer;
+
+// --- debounce（遅延実行）パターン ---
+// キー入力のたびにタイマーをリセットし、
+// 300ms入力が止まったら検索を実行する
+input.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    filterItems(input.value.trim());
+  }, 300);
+
+  // クリアボタンの表示切り替え
+  clearBtn.classList.toggle('visible', input.value.length > 0);
+});
+
+// --- フィルタリング＆ハイライト ---
+function filterItems(query) {
+  if (!query) {
+    results.classList.remove('open');
+    return;
+  }
+
+  // filter() → 配列から条件に合う要素だけを抽出する
+  const matched = items.filter(item =>
+    item.includes(query)
+  );
+
+  if (matched.length === 0) {
+    results.innerHTML =
+      '&lt;div class="search-no-result"&gt;一致する結果がありません&lt;/div&gt;';
+  } else {
+    results.innerHTML = matched.map(item => {
+      // マッチ箇所を&lt;mark&gt;で囲んでハイライトする
+      const highlighted = item.replace(
+        new RegExp(`(${escapeRegex(query)})`, 'g'),
+        '&lt;mark&gt;$1&lt;/mark&gt;'
+      );
+      return `&lt;div class="search-result-item"
+                   role="option"&gt;${highlighted}&lt;/div&gt;`;
+    }).join('');
+  }
+
+  results.classList.add('open');
+}
+
+// --- 正規表現の特殊文字をエスケープする関数 ---
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// --- クリアボタン ---
+clearBtn.addEventListener('click', () => {
+  input.value = '';
+  results.classList.remove('open');
+  clearBtn.classList.remove('visible');
+  input.focus();
+});
+
+// --- 外側クリックで閉じる ---
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-wrapper')) {
+    results.classList.remove('open');
+  }
+});</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">長いキーワード入力</div>
+          <div class="search-wrapper" style="pointer-events: none;">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input class="search-input" type="search" value="東京都渋谷区神宮前のカフェでランチができるお店を探しています" tabindex="-1">
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">結果なしの状態</div>
+          <div class="search-wrapper" style="pointer-events: none;">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input class="search-input" type="search" value="ピザ" tabindex="-1">
+            <div class="search-results" style="display: block; position: relative; top: 4px;">
+              <div class="search-no-result">一致する結果がありません</div>
+            </div>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">特殊文字の入力（正規表現エスケープが必要）</div>
+          <div class="search-wrapper" style="pointer-events: none;">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input class="search-input" type="search" value="C++ (言語)" tabindex="-1">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    // 検索データ
+    const items = [
+      '寿司', 'ラーメン', '天ぷら', 'うどん', 'そば',
+      'カレーライス', 'とんかつ', '焼き鳥', 'お好み焼き',
+      'たこ焼き', '刺身', '味噌汁', '餃子', '唐揚げ', '肉じゃが'
+    ];
+
+    const input = document.getElementById('search-demo');
+    const results = document.getElementById('search-results-list');
+    const clearBtn = document.querySelector('.search-wrapper .search-clear');
+    const wrapper = document.querySelector('.search-wrapper[role="combobox"]');
+    let debounceTimer;
+
+    // debounceパターン：最後の入力から300ms後に検索を実行
+    input.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        filterItems(input.value.trim());
+      }, 300);
+      clearBtn.classList.toggle('visible', input.value.length > 0);
+    });
+
+    function filterItems(query) {
+      if (!query) {
+        results.classList.remove('open');
+        wrapper.setAttribute('aria-expanded', 'false');
+        return;
+      }
+
+      const matched = items.filter(item => item.includes(query));
+
+      if (matched.length === 0) {
+        results.innerHTML = '<div class="search-no-result">一致する結果がありません</div>';
+      } else {
+        results.innerHTML = matched.map(item => {
+          const highlighted = item.replace(
+            new RegExp(`(${escapeRegex(query)})`, 'g'),
+            '<mark>$1</mark>'
+          );
+          return `<div class="search-result-item" role="option">${highlighted}</div>`;
+        }).join('');
+      }
+
+      results.classList.add('open');
+      wrapper.setAttribute('aria-expanded', 'true');
+    }
+
+    function escapeRegex(str) {
+      return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    // クリアボタン
+    clearBtn.addEventListener('click', () => {
+      input.value = '';
+      results.classList.remove('open');
+      clearBtn.classList.remove('visible');
+      wrapper.setAttribute('aria-expanded', 'false');
+      input.focus();
+    });
+
+    // 結果クリックで選択
+    results.addEventListener('click', (e) => {
+      const item = e.target.closest('.search-result-item');
+      if (item) {
+        input.value = item.textContent;
+        results.classList.remove('open');
+        wrapper.setAttribute('aria-expanded', 'false');
+        clearBtn.classList.add('visible');
+      }
+    });
+
+    // 外側クリックで閉じる
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.search-wrapper[role="combobox"]')) {
+        results.classList.remove('open');
+        wrapper.setAttribute('aria-expanded', 'false');
+      }
+    });
+  </script>
+</body>
+</html>

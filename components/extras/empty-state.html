@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>空状態 — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       空状態 — コンポーネントスタイル
+       =================================================================== */
+
+    /* 空状態カード */
+    .empty-state {
+      text-align: center;
+      padding: var(--space-8) var(--space-6);
+      background: var(--color-bg-primary);
+      border: 1px solid var(--color-border-secondary);
+      border-radius: var(--radius-lg);
+      max-width: 400px;
+      width: 100%;
+    }
+
+    /* CSS-onlyイラスト共通スタイル */
+    .empty-illustration {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto var(--space-4);
+      position: relative;
+    }
+
+    /* === データなしイラスト（空のフォルダ） === */
+    .illust-no-data {
+      position: relative;
+    }
+
+    .illust-no-data::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 44px;
+      background: var(--color-bg-tertiary);
+      border-radius: 0 0 var(--radius-md) var(--radius-md);
+      border: 2px solid var(--color-border-secondary);
+      border-top: none;
+    }
+
+    .illust-no-data::after {
+      content: '';
+      position: absolute;
+      bottom: 42px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 36px;
+      height: 12px;
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      border: 2px solid var(--color-border-secondary);
+      border-bottom: none;
+    }
+
+    /* === 検索結果なしイラスト（虫眼鏡） === */
+    .illust-no-results {
+      position: relative;
+    }
+
+    .illust-no-results::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-60%);
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--color-border-secondary);
+      border-radius: 50%;
+      background: var(--color-bg-secondary);
+    }
+
+    .illust-no-results::after {
+      content: '';
+      position: absolute;
+      top: 44px;
+      left: 57%;
+      width: 4px;
+      height: 24px;
+      background: var(--color-border-secondary);
+      border-radius: 2px;
+      transform: rotate(-45deg);
+    }
+
+    /* 虫眼鏡内の「×」マーク */
+    .illust-no-results .cross {
+      position: absolute;
+      top: 22px;
+      left: 50%;
+      transform: translateX(-75%);
+      width: 16px;
+      height: 16px;
+      z-index: 1;
+    }
+
+    .illust-no-results .cross::before,
+    .illust-no-results .cross::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 14px;
+      height: 2px;
+      background: var(--color-text-tertiary);
+      border-radius: 1px;
+    }
+
+    .illust-no-results .cross::before {
+      transform: translate(-50%, -50%) rotate(45deg);
+    }
+
+    .illust-no-results .cross::after {
+      transform: translate(-50%, -50%) rotate(-45deg);
+    }
+
+    /* === エラー状態イラスト（警告三角形） === */
+    .illust-error {
+      position: relative;
+    }
+
+    .illust-error::before {
+      content: '';
+      position: absolute;
+      bottom: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 36px solid transparent;
+      border-right: 36px solid transparent;
+      border-bottom: 60px solid #fef3c7;
+    }
+
+    .illust-error::after {
+      content: '!';
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 28px;
+      font-weight: var(--font-bold);
+      color: #d97706;
+      line-height: 1;
+    }
+
+    /* メッセージ階層 */
+    .empty-title {
+      font-size: var(--text-base);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-2);
+    }
+
+    .empty-description {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-5);
+      line-height: 1.6;
+    }
+
+    /* CTAボタン */
+    .empty-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: 10px 20px;
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: white;
+      background: var(--color-brand-500);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background-color var(--duration-fast);
+    }
+
+    .empty-cta:hover {
+      background: var(--color-brand-600);
+    }
+
+    /* セカンダリCTA */
+    .empty-cta--secondary {
+      background: transparent;
+      color: var(--color-brand-500);
+      border: 1px solid var(--color-brand-300);
+    }
+
+    .empty-cta--secondary:hover {
+      background: var(--color-brand-50);
+    }
+
+    /* エラー用CTA */
+    .empty-cta--error {
+      background: #dc2626;
+    }
+
+    .empty-cta--error:hover {
+      background: #b91c1c;
+    }
+
+    /* 複数CTAの配置 */
+    .empty-actions {
+      display: flex;
+      gap: var(--space-2);
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* 3つの空状態を並べるグリッド */
+    .empty-states-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: var(--space-4);
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">その他</span>
+      <h1 class="component-title">空状態</h1>
+      <p class="component-description">
+        コンテンツが存在しない場合に表示する空状態画面。「データなし」「検索結果なし」「エラー」の3パターンを、CSSイラストとメッセージ階層、CTAボタンで構成します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col">
+        <div class="empty-states-grid">
+          <!-- データなし -->
+          <div class="empty-state">
+            <div class="empty-illustration illust-no-data"></div>
+            <h3 class="empty-title">まだデータがありません</h3>
+            <p class="empty-description">
+              最初のプロジェクトを作成して、タスク管理を始めましょう。
+            </p>
+            <button class="empty-cta">プロジェクトを作成</button>
+          </div>
+
+          <!-- 検索結果なし -->
+          <div class="empty-state">
+            <div class="empty-illustration illust-no-results">
+              <span class="cross"></span>
+            </div>
+            <h3 class="empty-title">検索結果が見つかりません</h3>
+            <p class="empty-description">
+              「デザインシステム」に一致する結果がありませんでした。キーワードを変えてお試しください。
+            </p>
+            <div class="empty-actions">
+              <button class="empty-cta empty-cta--secondary">フィルターをクリア</button>
+            </div>
+          </div>
+
+          <!-- エラー状態 -->
+          <div class="empty-state">
+            <div class="empty-illustration illust-error"></div>
+            <h3 class="empty-title">データの読み込みに失敗しました</h3>
+            <p class="empty-description">
+              サーバーとの通信中にエラーが発生しました。しばらくしてから再度お試しください。
+            </p>
+            <div class="empty-actions">
+              <button class="empty-cta empty-cta--error">再読み込み</button>
+              <button class="empty-cta empty-cta--secondary">サポートに連絡</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>空状態がなぜ重要なのか</strong><br>
+        「データがありません」とだけ表示されると、ユーザーは不安を感じたり、何をすべきか分からなくなります。イラスト、説明文、CTAボタンの3層構成で「状況の説明」と「次のアクション」を明確に伝えます。</p>
+        <p><strong>CSSのみのイラスト</strong><br>
+        シンプルなイラストは::beforeと::afterの疑似要素、border、transformを組み合わせてCSSだけで描画できます。画像ファイルが不要なため読み込みが速く、色やサイズの変更も容易です。</p>
+        <p><strong>メッセージ階層（タイトル → 説明 → CTA）</strong><br>
+        情報の重要度に応じてフォントサイズ、太さ、色を変えることで、ユーザーの視線を上から下に自然に誘導します。最後のCTAボタンが「次にすべきこと」を具体的に示します。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- 空状態カード → text-alignで中央揃え --&gt;
+&lt;div class="empty-state"&gt;
+
+  &lt;!-- CSSイラスト → 疑似要素で描画 --&gt;
+  &lt;div class="empty-illustration illust-no-data"&gt;&lt;/div&gt;
+
+  &lt;!-- メッセージ階層: タイトル → 説明 → CTA --&gt;
+  &lt;h3 class="empty-title"&gt;まだデータがありません&lt;/h3&gt;
+  &lt;p class="empty-description"&gt;
+    最初のプロジェクトを作成して、タスク管理を始めましょう。
+  &lt;/p&gt;
+
+  &lt;!-- CTAボタン → ユーザーの次のアクションを提示 --&gt;
+  &lt;button class="empty-cta"&gt;プロジェクトを作成&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;!-- 検索結果なし --&gt;
+&lt;div class="empty-state"&gt;
+  &lt;div class="empty-illustration illust-no-results"&gt;
+    &lt;span class="cross"&gt;&lt;/span&gt; &lt;!-- 虫眼鏡内の×マーク --&gt;
+  &lt;/div&gt;
+  &lt;h3 class="empty-title"&gt;検索結果が見つかりません&lt;/h3&gt;
+  &lt;p class="empty-description"&gt;キーワードを変えてお試しください。&lt;/p&gt;
+  &lt;button class="empty-cta empty-cta--secondary"&gt;
+    フィルターをクリア
+  &lt;/button&gt;
+&lt;/div&gt;
+
+&lt;!-- エラー状態 → 複数のCTAを提供 --&gt;
+&lt;div class="empty-state"&gt;
+  &lt;div class="empty-illustration illust-error"&gt;&lt;/div&gt;
+  &lt;h3 class="empty-title"&gt;読み込みに失敗しました&lt;/h3&gt;
+  &lt;p class="empty-description"&gt;...&lt;/p&gt;
+  &lt;div class="empty-actions"&gt;
+    &lt;button class="empty-cta empty-cta--error"&gt;再読み込み&lt;/button&gt;
+    &lt;button class="empty-cta empty-cta--secondary"&gt;サポートに連絡&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* 空状態カード → 中央揃えのカードレイアウト */
+.empty-state {
+  text-align: center; /* すべてのコンテンツを中央揃え */
+  padding: var(--space-8) var(--space-6);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-lg);
+}
+
+/* CSSイラスト: フォルダ → ::beforeで本体、::afterでタブを描画 */
+.illust-no-data::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 44px;
+  background: var(--color-bg-tertiary);
+  /* border-radius → 下だけ角丸にしてフォルダ形状に */
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  border: 2px solid var(--color-border-secondary);
+  border-top: none;
+}
+
+.illust-no-data::after {
+  content: '';
+  /* フォルダのタブ部分 → 上だけ角丸 */
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+/* CSSイラスト: 虫眼鏡 → ::beforeで円、::afterで柄 */
+.illust-no-results::before {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-border-secondary);
+  border-radius: 50%; /* 円形のレンズ部分 */
+}
+
+.illust-no-results::after {
+  width: 4px;
+  height: 24px;
+  /* rotate(-45deg) → 斜めに傾けて持ち手を表現 */
+  transform: rotate(-45deg);
+}
+
+/* CSSイラスト: 警告三角形 → borderで三角形を描画 */
+.illust-error::before {
+  /* border-left/right → 透明にして三角形の斜辺を作る
+     border-bottom → 色付きにして三角形の底辺を作る */
+  border-left: 36px solid transparent;
+  border-right: 36px solid transparent;
+  border-bottom: 60px solid #fef3c7; /* 黄色い三角形 */
+}
+
+.illust-error::after {
+  content: '!'; /* 感嘆符で警告を表現 */
+  font-size: 28px;
+  font-weight: bold;
+  color: #d97706;
+}
+
+/* メッセージ階層 — フォントサイズと色で重要度を区別 */
+.empty-title {
+  font-size: var(--text-base);    /* 最も大きく */
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary); /* 最も濃い色 */
+}
+
+.empty-description {
+  font-size: var(--text-sm);       /* やや小さく */
+  color: var(--color-text-secondary); /* やや薄い色 */
+}
+
+/* CTAボタン — 状態に応じたバリエーション */
+.empty-cta {
+  background: var(--color-brand-500); /* プライマリ */
+}
+
+.empty-cta--secondary {
+  background: transparent;
+  color: var(--color-brand-500);
+  border: 1px solid var(--color-brand-300); /* アウトライン */
+}
+
+.empty-cta--error {
+  background: #dc2626; /* 赤 → エラー時の再試行 */
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">狭い幅での表示</div>
+          <div style="max-width: 240px;">
+            <div class="empty-state" style="padding: var(--space-4);">
+              <div class="empty-illustration illust-no-data" style="width: 48px; height: 48px; margin-bottom: 8px;">
+              </div>
+              <h3 class="empty-title" style="font-size: var(--text-sm);">データがありません</h3>
+              <p class="empty-description" style="font-size: var(--text-xs);">プロジェクトを作成してください。</p>
+              <button class="empty-cta" style="font-size: var(--text-xs); padding: 8px 16px;">作成する</button>
+            </div>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">長い説明文</div>
+          <div style="max-width: 320px;">
+            <div class="empty-state">
+              <div class="empty-illustration illust-no-results">
+                <span class="cross"></span>
+              </div>
+              <h3 class="empty-title">検索結果が見つかりません</h3>
+              <p class="empty-description">「フロントエンドデザインシステムコンポーネント」に一致する結果がありませんでした。検索キーワードを短くするか、フィルター条件を変更してお試しください。スペルミスがないかもご確認ください。</p>
+              <button class="empty-cta empty-cta--secondary">フィルターをクリア</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

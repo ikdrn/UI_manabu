@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プログレスバー — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       プログレスバー — コンポーネントスタイル
+       =================================================================== */
+
+    /* ===========================================
+       1. 線形プログレスバー（determinate）
+       =========================================== */
+    .progress {
+      width: 100%;
+      height: 8px;
+      background: var(--color-neutral-200);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+    }
+
+    .progress__bar {
+      height: 100%;
+      background: var(--color-brand-500);
+      border-radius: var(--radius-full);
+      transition: width var(--duration-normal) var(--ease-out);
+    }
+
+    /* カラーバリエーション */
+    .progress__bar--success { background: var(--color-state-success); }
+    .progress__bar--warning { background: var(--color-state-warning); }
+    .progress__bar--error   { background: var(--color-state-error); }
+
+    /* ラベル付き */
+    .progress-labeled {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .progress-labeled .progress {
+      flex: 1;
+    }
+
+    .progress-labeled__text {
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--color-neutral-700);
+      white-space: nowrap;
+      min-width: 40px;
+      text-align: right;
+    }
+
+    /* ===========================================
+       2. 不定形プログレスバー（indeterminate）
+       =========================================== */
+    .progress--indeterminate .progress__bar {
+      width: 40%;
+      animation: indeterminate-slide 1.5s ease-in-out infinite;
+    }
+
+    @keyframes indeterminate-slide {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(350%); }
+    }
+
+    /* ===========================================
+       3. 円形プログレス（conic-gradient）
+       =========================================== */
+    .progress-circular {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      /* conic-gradient で扇形に塗りつぶす */
+      background: conic-gradient(
+        var(--color-brand-500) calc(var(--progress) * 1%),
+        var(--color-neutral-200) 0
+      );
+    }
+
+    /* 中央の白い円で「ドーナツ」にする */
+    .progress-circular::after {
+      content: attr(data-value) '%';
+      width: 62px;
+      height: 62px;
+      background: var(--color-surface-raised);
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-sm);
+      font-weight: var(--font-bold);
+      color: var(--color-neutral-700);
+    }
+
+    /* ===========================================
+       4. ステップインジケーター
+       =========================================== */
+    .steps {
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+      flex: 1;
+      position: relative;
+    }
+
+    .step__circle {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-xs);
+      font-weight: var(--font-bold);
+      background: var(--color-neutral-200);
+      color: var(--color-neutral-500);
+      position: relative;
+      z-index: 1;
+      transition: all var(--duration-normal);
+    }
+
+    .step__label {
+      font-size: var(--text-xs);
+      color: var(--color-neutral-500);
+      text-align: center;
+      font-weight: var(--font-medium);
+    }
+
+    /* ステップ間の線 */
+    .step + .step::before {
+      content: '';
+      position: absolute;
+      top: 16px;
+      right: 50%;
+      width: 100%;
+      height: 2px;
+      background: var(--color-neutral-200);
+      z-index: 0;
+    }
+
+    /* 完了状態 */
+    .step--completed .step__circle {
+      background: var(--color-state-success);
+      color: white;
+    }
+
+    .step--completed + .step::before {
+      background: var(--color-state-success);
+    }
+
+    /* 現在のステップ */
+    .step--current .step__circle {
+      background: var(--color-brand-500);
+      color: white;
+      box-shadow: 0 0 0 4px var(--color-brand-100);
+    }
+
+    .step--current .step__label {
+      color: var(--color-brand-600);
+      font-weight: var(--font-semibold);
+    }
+
+    /* --- デモ用コントローラー --- */
+    .demo-controls {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-top: var(--space-4);
+    }
+
+    .demo-slider {
+      flex: 1;
+      accent-color: var(--color-brand-500);
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">フィードバック</span>
+      <h1 class="component-title">プログレスバー</h1>
+      <p class="component-description">
+        処理の進捗状況をユーザーに伝えるUI。線形バー、不定形バー、円形インジケーター、ステップインジケーターの4種類を学びます。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+
+      <!-- 線形 determinate -->
+      <div style="margin-bottom:var(--space-6);">
+        <h3 style="font-size:var(--text-sm); font-weight:var(--font-semibold); color:var(--color-neutral-600); margin-bottom:var(--space-3);">線形プログレスバー（確定型）</h3>
+        <div class="preview-container preview-container--col" style="gap:var(--space-4);">
+          <div class="progress-labeled">
+            <div class="progress" role="progressbar" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100" aria-label="アップロード進捗">
+              <div class="progress__bar" id="demo-bar" style="width:65%"></div>
+            </div>
+            <span class="progress-labeled__text" id="demo-label">65%</span>
+          </div>
+          <div class="demo-controls">
+            <span style="font-size:var(--text-xs); color:var(--color-neutral-500);">値を変更:</span>
+            <input type="range" class="demo-slider" id="demo-slider" min="0" max="100" value="65">
+          </div>
+
+          <!-- カラーバリエーション -->
+          <div style="display:flex; flex-direction:column; gap:var(--space-2); margin-top:var(--space-2);">
+            <div class="progress"><div class="progress__bar progress__bar--success" style="width:100%"></div></div>
+            <div class="progress"><div class="progress__bar progress__bar--warning" style="width:60%"></div></div>
+            <div class="progress"><div class="progress__bar progress__bar--error" style="width:30%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 不定形 -->
+      <div style="margin-bottom:var(--space-6);">
+        <h3 style="font-size:var(--text-sm); font-weight:var(--font-semibold); color:var(--color-neutral-600); margin-bottom:var(--space-3);">不定形プログレスバー</h3>
+        <div class="preview-container preview-container--col">
+          <p style="font-size:var(--text-xs); color:var(--color-neutral-400); margin-bottom:var(--space-2);">読み込み中... 完了時間が不明な場合に使用</p>
+          <div class="progress progress--indeterminate" role="progressbar" aria-label="読み込み中">
+            <div class="progress__bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 円形 -->
+      <div style="margin-bottom:var(--space-6);">
+        <h3 style="font-size:var(--text-sm); font-weight:var(--font-semibold); color:var(--color-neutral-600); margin-bottom:var(--space-3);">円形プログレス</h3>
+        <div class="preview-container" style="gap:var(--space-8);">
+          <div class="progress-circular" style="--progress:25" data-value="25" role="progressbar" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>
+          <div class="progress-circular" style="--progress:50" data-value="50" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
+          <div class="progress-circular" style="--progress:75" data-value="75" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+          <div class="progress-circular" style="--progress:100" data-value="100" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+      </div>
+
+      <!-- ステップ -->
+      <div>
+        <h3 style="font-size:var(--text-sm); font-weight:var(--font-semibold); color:var(--color-neutral-600); margin-bottom:var(--space-3);">ステップインジケーター</h3>
+        <div class="preview-container preview-container--col" style="max-width:500px; margin:0 auto;">
+          <div class="steps" role="group" aria-label="注文ステップ">
+            <div class="step step--completed">
+              <div class="step__circle">✓</div>
+              <span class="step__label">カート</span>
+            </div>
+            <div class="step step--completed">
+              <div class="step__circle">✓</div>
+              <span class="step__label">配送先</span>
+            </div>
+            <div class="step step--current">
+              <div class="step__circle">3</div>
+              <span class="step__label">お支払い</span>
+            </div>
+            <div class="step">
+              <div class="step__circle">4</div>
+              <span class="step__label">確認</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>確定型 vs 不定形型の使い分け</strong><br>
+        進捗が数値でわかる場合（ファイルアップロードなど）は確定型、完了時間が不明な場合（サーバー処理待ちなど）は不定形型を使います。不定形型はアニメーションで「処理中」を伝えます。</p>
+        <p><strong>conic-gradient による円形プログレス</strong><br>
+        SVGを使わずCSSだけで円形プログレスを実現できます。CSS変数 --progress の値を変えるだけで進捗を更新でき、JavaScriptとの連携が簡単です。</p>
+        <p><strong>role="progressbar" + aria-valuenow</strong><br>
+        スクリーンリーダーに「このバーは進捗を示している」「現在の値は65%」と伝えます。不定形の場合は aria-valuenow を省略し、「進捗中（値不明）」と伝えます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- === 線形プログレスバー === --&gt;
+&lt;!-- role="progressbar" → プログレスバーであることを示す --&gt;
+&lt;!-- aria-valuenow → 現在の値 --&gt;
+&lt;!-- aria-valuemin/max → 最小値と最大値 --&gt;
+&lt;div class="progress" role="progressbar"
+     aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"
+     aria-label="アップロード進捗"&gt;
+  &lt;div class="progress__bar" style="width: 65%"&gt;&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- === 不定形（完了時間不明） === --&gt;
+&lt;!-- aria-valuenow を省略 → 「値が不明」を意味する --&gt;
+&lt;div class="progress progress--indeterminate"
+     role="progressbar" aria-label="読み込み中"&gt;
+  &lt;div class="progress__bar"&gt;&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- === 円形プログレス === --&gt;
+&lt;!-- CSS変数 --progress でconic-gradientの角度を制御 --&gt;
+&lt;div class="progress-circular"
+     style="--progress: 75" data-value="75"
+     role="progressbar" aria-valuenow="75"&gt;&lt;/div&gt;
+
+&lt;!-- === ステップインジケーター === --&gt;
+&lt;div class="steps" role="group" aria-label="注文ステップ"&gt;
+  &lt;div class="step step--completed"&gt;
+    &lt;div class="step__circle"&gt;✓&lt;/div&gt;
+    &lt;span class="step__label"&gt;カート&lt;/span&gt;
+  &lt;/div&gt;
+  &lt;div class="step step--current"&gt;
+    &lt;div class="step__circle"&gt;2&lt;/div&gt;
+    &lt;span class="step__label"&gt;お支払い&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- 線形プログレスバー --- */
+.progress {
+  width: 100%;
+  height: 8px;
+  background: var(--color-neutral-200); /* 未完了部分の色 */
+  border-radius: 9999px;
+  overflow: hidden; /* バーが角丸からはみ出さないように */
+}
+
+.progress__bar {
+  height: 100%;
+  background: var(--color-brand-500);
+  border-radius: 9999px;
+  /* width を transition で滑らかに変化 */
+  transition: width 250ms ease-out;
+}
+
+/* --- 不定形：左右にスライドするアニメーション --- */
+.progress--indeterminate .progress__bar {
+  width: 40%;
+  animation: indeterminate-slide 1.5s ease-in-out infinite;
+}
+
+@keyframes indeterminate-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+/* --- 円形プログレス（conic-gradient） --- */
+.progress-circular {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  /* conic-gradient → 扇形のグラデーション
+     calc(var(--progress) * 1%) で進捗分だけ塗る */
+  background: conic-gradient(
+    var(--color-brand-500) calc(var(--progress) * 1%),
+    var(--color-neutral-200) 0
+  );
+}
+
+/* 中央をくり抜いてドーナツ型にする */
+.progress-circular::after {
+  content: attr(data-value) '%'; /* data属性から値を取得 */
+  width: 62px; height: 62px;
+  background: white;
+  border-radius: 50%;
+}
+
+/* --- ステップ間の接続線 --- */
+.step + .step::before {
+  content: '';
+  position: absolute;
+  top: 16px; /* 丸の中心に合わせる */
+  right: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--color-neutral-200);
+}
+
+/* 完了ステップの次の線を色変え */
+.step--completed + .step::before {
+  background: var(--color-state-success);
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// プログレスバーの値を更新する関数
+function updateProgress(progressEl, value) {
+  const bar = progressEl.querySelector('.progress__bar');
+  bar.style.width = value + '%';
+  progressEl.setAttribute('aria-valuenow', value);
+}
+
+// 円形プログレスの値を更新する関数
+function updateCircularProgress(el, value) {
+  el.style.setProperty('--progress', value);
+  el.setAttribute('data-value', value);
+  el.setAttribute('aria-valuenow', value);
+}
+
+// デモ用スライダー連動
+const slider = document.getElementById('demo-slider');
+slider.addEventListener('input', (e) => {
+  const value = e.target.value;
+  document.getElementById('demo-bar').style.width = value + '%';
+  document.getElementById('demo-label').textContent = value + '%';
+});</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">0% と 100%</div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+            <div class="progress-labeled">
+              <div class="progress" role="progressbar" aria-valuenow="0"><div class="progress__bar" style="width:0%"></div></div>
+              <span class="progress-labeled__text">0%</span>
+            </div>
+            <div class="progress-labeled">
+              <div class="progress" role="progressbar" aria-valuenow="100"><div class="progress__bar progress__bar--success" style="width:100%"></div></div>
+              <span class="progress-labeled__text">100%</span>
+            </div>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">高さの異なるバー</div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+            <div class="progress" style="height:4px;"><div class="progress__bar" style="width:50%"></div></div>
+            <div class="progress" style="height:8px;"><div class="progress__bar" style="width:50%"></div></div>
+            <div class="progress" style="height:16px;"><div class="progress__bar" style="width:50%"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script>
+    // デモ：スライダーでプログレスバーの値を変更
+    const slider = document.getElementById('demo-slider');
+    const bar = document.getElementById('demo-bar');
+    const label = document.getElementById('demo-label');
+    if (slider && bar && label) {
+      slider.addEventListener('input', (e) => {
+        const v = e.target.value;
+        bar.style.width = v + '%';
+        label.textContent = v + '%';
+        bar.closest('[role="progressbar"]').setAttribute('aria-valuenow', v);
+      });
+    }
+  </script>
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

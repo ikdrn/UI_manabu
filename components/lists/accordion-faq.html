@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>アコーディオン/FAQ — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ネイティブ details/summary */
+    .faq-native { max-width: 600px; }
+    .faq-native details { border-bottom: 1px solid var(--color-neutral-200); }
+    .faq-native summary {
+      padding: var(--space-4) 0; cursor: pointer; font-weight: var(--font-medium);
+      color: var(--color-neutral-800); list-style: none; display: flex;
+      justify-content: space-between; align-items: center;
+    }
+    .faq-native summary::-webkit-details-marker { display: none; }
+    .faq-native summary::after {
+      content: "+"; font-size: var(--text-xl); color: var(--color-neutral-400);
+      transition: transform var(--duration-normal);
+    }
+    .faq-native details[open] summary::after { content: "−"; }
+    .faq-native .faq-answer {
+      padding: 0 0 var(--space-4); color: var(--color-neutral-600);
+      font-size: var(--text-sm); line-height: var(--leading-relaxed);
+    }
+
+    /* カスタムアニメーション付き */
+    .faq-custom { max-width: 600px; }
+    .faq-item { border-bottom: 1px solid var(--color-neutral-200); }
+    .faq-trigger {
+      width: 100%; padding: var(--space-4) 0; background: none; border: none;
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; font-weight: var(--font-medium); color: var(--color-neutral-800);
+      font-size: var(--text-base); text-align: left;
+    }
+    .faq-trigger:hover { color: var(--color-brand-600); }
+    .faq-icon {
+      width: 20px; height: 20px; position: relative; flex-shrink: 0;
+      transition: transform var(--duration-normal);
+    }
+    .faq-icon::before, .faq-icon::after {
+      content: ""; position: absolute; background: var(--color-neutral-400);
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+    }
+    .faq-icon::before { width: 12px; height: 2px; }
+    .faq-icon::after { width: 2px; height: 12px; transition: transform var(--duration-normal); }
+    .faq-item.open .faq-icon::after { transform: translate(-50%, -50%) rotate(90deg); }
+    .faq-panel {
+      display: grid; grid-template-rows: 0fr;
+      transition: grid-template-rows var(--duration-slow) var(--ease-out);
+    }
+    .faq-item.open .faq-panel { grid-template-rows: 1fr; }
+    .faq-panel-inner {
+      overflow: hidden; color: var(--color-neutral-600);
+      font-size: var(--text-sm); line-height: var(--leading-relaxed);
+    }
+    .faq-panel-inner p { padding-bottom: var(--space-4); }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+    <header class="component-header">
+      <span class="component-category">リスト</span>
+      <h1 class="component-title">アコーディオン / FAQ</h1>
+      <p class="component-description">クリックで開閉するコンテンツパネル。ネイティブHTML要素を使った方法と、スムーズなアニメーション付きのカスタム実装を比較します。</p>
+    </header>
+
+    <section class="component-section">
+      <h2 class="section-title">ネイティブ実装（details/summary）</h2>
+      <div class="preview-container preview-container--col">
+        <div class="faq-native">
+          <details><summary>UIデザインで最も大切なことは何ですか？</summary><div class="faq-answer">情報の優先順位を明確にすることです。画面内で「何が主役か」がひと目で分かるようにし、ユーザーが迷わず目的を達成できるよう導きます。</div></details>
+          <details><summary>カラーパレットの選び方を教えてください</summary><div class="faq-answer">色に役割を持たせることが重要です。ブランド色・操作色・状態色・注意色を分け、同じ色に複数の意味を持たせないようにしましょう。</div></details>
+          <details><summary>レスポンシブデザインの基本原則は？</summary><div class="faq-answer">モバイルファーストで設計し、min-widthメディアクエリで段階的に拡張します。コンテンツの優先度を決め、小さい画面でも重要な情報が見えるようにします。</div></details>
+          <details><summary>アクセシビリティ対応は必須ですか？</summary><div class="faq-answer">はい。法的義務であるだけでなく、全ユーザーの体験を向上させます。キーボード操作、スクリーンリーダー対応、十分なコントラスト比が基本です。</div></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="component-section">
+      <h2 class="section-title">カスタム実装（アニメーション付き・排他モード）</h2>
+      <div class="preview-container preview-container--col">
+        <div class="faq-custom" id="faqCustom">
+          <div class="faq-item"><button class="faq-trigger" aria-expanded="false">CSSアニメーションのパフォーマンスを上げるには？<span class="faq-icon"></span></button><div class="faq-panel"><div class="faq-panel-inner"><p>transform と opacity のみをアニメーションさせましょう。これらのプロパティはGPUで処理されるため、レイアウトの再計算が発生せず滑らかに動きます。width や height のアニメーションは避けてください。</p></div></div></div>
+          <div class="faq-item"><button class="faq-trigger" aria-expanded="false">なぜgrid-template-rowsでアニメーションするのですか？<span class="faq-icon"></span></button><div class="faq-panel"><div class="faq-panel-inner"><p>max-heightを使った従来の方法は、実際の高さが分からないため値の推測が必要でした。grid-template-rows: 0fr → 1fr はコンテンツの自然な高さまで正確にアニメーションします。</p></div></div></div>
+          <div class="faq-item"><button class="faq-trigger" aria-expanded="false">排他モード（一度に1つだけ開く）は必要ですか？<span class="faq-icon"></span></button><div class="faq-panel"><div class="faq-panel-inner"><p>FAQのように項目が多い場合は排他モードが有効です。全部開くと画面が長くなりすぎ、ユーザーが迷います。ただし、設定画面など複数を同時に確認したいケースでは非排他のほうが良いです。</p></div></div></div>
+          <div class="faq-item"><button class="faq-trigger" aria-expanded="false">ネイティブ実装とカスタム実装、どちらを使うべき？<span class="faq-icon"></span></button><div class="faq-panel"><div class="faq-panel-inner"><p>可能ならネイティブの details/summary を使ってください。JSなしで動き、アクセシビリティも標準対応です。アニメーションや排他モードが必要な場合のみカスタム実装を検討します。</p></div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>プログレッシブ・ディスクロージャー</strong><br>すべての情報を一度に見せると認知負荷が高くなります。アコーディオンは「見出しで判断→興味があれば開く」という段階的な情報開示を実現します。</p>
+        <p><strong>ネイティブ要素を優先する理由</strong><br>details/summaryはブラウザ標準の要素で、JSなしで動作し、スクリーンリーダーも正しく読み上げます。車輪の再発明を避け、必要な場合のみカスタマイズしましょう。</p>
+      </div>
+    </section>
+
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+        <button class="code-tab" data-tab="html">HTML</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* カスタムアコーディオンの開閉アニメーション */
+.faq-panel {
+  /* display: grid → grid-template-rowsでアニメーションするため */
+  display: grid;
+  /* 0fr → 高さ0（閉じた状態） */
+  grid-template-rows: 0fr;
+  /* transition → 開閉をなめらかにアニメーション */
+  transition: grid-template-rows 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* .open クラスが付いたら 1fr → コンテンツの自然な高さまで展開 */
+.faq-item.open .faq-panel {
+  grid-template-rows: 1fr;
+}
+
+/* 内側の要素に overflow: hidden が必須 */
+.faq-panel-inner {
+  /* overflow: hidden → 0frの時にコンテンツがはみ出さないようにする */
+  overflow: hidden;
+}
+
+/* +/− アイコンの切り替え（CSSのみ） */
+.faq-icon::before { width: 12px; height: 2px; } /* 横棒（常に表示） */
+.faq-icon::after { width: 2px; height: 12px; }  /* 縦棒（回転で消える） */
+.faq-item.open .faq-icon::after {
+  /* 90度回転 → 縦棒が横棒と重なり「−」に見える */
+  transform: translate(-50%, -50%) rotate(90deg);
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">/* 排他モード: 1つ開くと他が閉じる */
+var faqItems = document.querySelectorAll('.faq-item');
+
+faqItems.forEach(function(item) {
+  var trigger = item.querySelector('.faq-trigger');
+
+  trigger.addEventListener('click', function() {
+    var isOpen = item.classList.contains('open');
+
+    /* まず全項目を閉じる（排他モード） */
+    faqItems.forEach(function(other) {
+      other.classList.remove('open');
+      other.querySelector('.faq-trigger')
+        .setAttribute('aria-expanded', 'false');
+    });
+
+    /* クリックした項目が閉じていたら開く */
+    if (!isOpen) {
+      item.classList.add('open');
+      trigger.setAttribute('aria-expanded', 'true');
+    }
+  });
+});</code></pre>
+        </div>
+        <div class="code-panel" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- ネイティブ実装: JSなしで動作する -->
+<details>
+  <summary>質問テキスト</summary>
+  <div class="faq-answer">回答テキスト</div>
+</details>
+
+<!-- カスタム実装: アニメーション+排他モード -->
+<div class="faq-item">
+  <!-- aria-expanded → スクリーンリーダーに開閉状態を伝える -->
+  <button class="faq-trigger" aria-expanded="false">
+    質問テキスト
+    <span class="faq-icon"></span>
+  </button>
+  <div class="faq-panel">
+    <div class="faq-panel-inner">
+      <p>回答テキスト</p>
+    </div>
+  </div>
+</div></code></pre>
+        </div>
+      </div>
+    </section>
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">長い質問テキスト（折り返し確認）</div>
+          <div class="faq-native" style="max-width: 300px;">
+            <details>
+              <summary>レスポンシブデザインでブレークポイントの設計に困っています。モバイルファーストで考えるべきですか？</summary>
+              <div class="faq-answer">モバイルファーストが推奨されます。まず最小画面で必須の情報を整理し、大きい画面で追加要素を配置していきます。</div>
+            </details>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">長い回答テキスト（全文表示・スクロールなし）</div>
+          <div class="faq-native" style="max-width: 400px;">
+            <details open>
+              <summary>回答が非常に長い場合は？</summary>
+              <div class="faq-answer">アコーディオン内のコンテンツが長くなる場合、スクロールバーを付けずに全文を表示するのが一般的です。ユーザーがスクロール位置を見失わないよう、開閉時にスムーズにスクロールする配慮も重要です。リスト、画像、コードブロックなど様々なコンテンツが入る可能性を考慮してパディングと行間を適切に設定しましょう。</div>
+            </details>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">アニメーションの比較</div>
+          <p style="font-size: var(--text-sm, 14px); color: var(--color-text-secondary, #64748b);">
+            上の2つの実装を操作して、ネイティブ版はパッと切り替わり、カスタム版はなめらかにアニメーションする違いを比較してください。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    var faqItems = document.querySelectorAll('#faqCustom .faq-item');
+    faqItems.forEach(function(item) {
+      var trigger = item.querySelector('.faq-trigger');
+      trigger.addEventListener('click', function() {
+        var isOpen = item.classList.contains('open');
+        faqItems.forEach(function(o) { o.classList.remove('open'); o.querySelector('.faq-trigger').setAttribute('aria-expanded','false'); });
+        if (!isOpen) { item.classList.add('open'); trigger.setAttribute('aria-expanded','true'); }
+      });
+    });
+  </script>
+</body>
+</html>

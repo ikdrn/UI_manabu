@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>スケルトンローダー — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       スケルトンローダー — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- シマーアニメーション --- */
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+
+    .skeleton {
+      background: var(--color-neutral-200);
+      background-image: linear-gradient(
+        90deg,
+        var(--color-neutral-200) 0%,
+        var(--color-neutral-100) 40%,
+        var(--color-neutral-200) 80%
+      );
+      background-size: 400px 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+      border-radius: var(--radius-sm);
+    }
+
+    /* --- スケルトン形状 --- */
+    .skeleton--text {
+      height: 14px;
+      margin-bottom: var(--space-2);
+    }
+
+    .skeleton--title {
+      height: 20px;
+      width: 60%;
+      margin-bottom: var(--space-3);
+    }
+
+    .skeleton--avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-full);
+      flex-shrink: 0;
+    }
+
+    .skeleton--image {
+      width: 100%;
+      height: 180px;
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-3);
+    }
+
+    .skeleton--button {
+      height: 36px;
+      width: 120px;
+      border-radius: var(--radius-md);
+    }
+
+    /* --- カードスケルトン --- */
+    .skeleton-card {
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      width: 320px;
+    }
+
+    .skeleton-card__header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+
+    .skeleton-card__info {
+      flex: 1;
+    }
+
+    /* --- リストスケルトン --- */
+    .skeleton-list {
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .skeleton-list__item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) 0;
+    }
+
+    .skeleton-list__item + .skeleton-list__item {
+      border-top: 1px solid var(--color-neutral-100);
+    }
+
+    .skeleton-list__icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      flex-shrink: 0;
+    }
+
+    .skeleton-list__lines {
+      flex: 1;
+    }
+
+    /* --- 読み込み完了後の実コンテンツ --- */
+    .loaded-card {
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      width: 320px;
+      animation: fade-in var(--duration-normal) var(--ease-out);
+    }
+
+    .loaded-card__header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+
+    .loaded-card__avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-full);
+      background: var(--color-brand-100);
+      color: var(--color-brand-600);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: var(--font-bold);
+    }
+
+    .loaded-card__name {
+      font-weight: var(--font-semibold);
+      color: var(--color-neutral-800);
+    }
+
+    .loaded-card__role {
+      font-size: var(--text-xs);
+      color: var(--color-neutral-500);
+    }
+
+    .loaded-card__image {
+      width: 100%;
+      height: 180px;
+      background: linear-gradient(135deg, var(--color-brand-100), var(--color-brand-200));
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-brand-400);
+      font-size: var(--text-sm);
+    }
+
+    .loaded-card__text {
+      font-size: var(--text-sm);
+      color: var(--color-neutral-600);
+      line-height: var(--leading-relaxed);
+      margin-bottom: var(--space-3);
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    /* --- デモ用トグルボタン --- */
+    .demo-toggle {
+      padding: 8px 20px;
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      color: var(--color-brand-600);
+      background: var(--color-brand-50);
+      border: 1px solid var(--color-brand-200);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background var(--duration-fast);
+    }
+
+    .demo-toggle:hover {
+      background: var(--color-brand-100);
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">フィードバック</span>
+      <h1 class="component-title">スケルトンローダー</h1>
+      <p class="component-description">
+        コンテンツの読み込み中に、最終的なレイアウトの骨格を先に表示するUI。ユーザーに「何がどこに表示されるか」を予告し、体感的な待ち時間を短縮します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー: カードスケルトン ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+
+      <div style="margin-bottom:var(--space-6);">
+        <h3 style="font-size:var(--text-sm); font-weight:var(--font-semibold); color:var(--color-neutral-600); margin-bottom:var(--space-3);">カードスケルトン</h3>
+        <div class="preview-container preview-container--col" style="align-items:center;">
+          <button class="demo-toggle" id="toggle-card">読み込み完了をシミュレート</button>
+          <div id="card-container" aria-busy="true">
+            <!-- スケルトン状態 -->
+            <div class="skeleton-card" id="skeleton-card">
+              <div class="skeleton-card__header">
+                <div class="skeleton skeleton--avatar"></div>
+                <div class="skeleton-card__info">
+                  <div class="skeleton skeleton--text" style="width:40%"></div>
+                  <div class="skeleton skeleton--text" style="width:25%; height:10px;"></div>
+                </div>
+              </div>
+              <div class="skeleton skeleton--image"></div>
+              <div class="skeleton skeleton--text" style="width:100%"></div>
+              <div class="skeleton skeleton--text" style="width:90%"></div>
+              <div class="skeleton skeleton--text" style="width:70%; margin-bottom:var(--space-4);"></div>
+              <div class="skeleton skeleton--button"></div>
+            </div>
+            <!-- 読み込み完了後 -->
+            <div class="loaded-card" id="loaded-card" style="display:none;">
+              <div class="loaded-card__header">
+                <div class="loaded-card__avatar">田</div>
+                <div>
+                  <div class="loaded-card__name">田中太郎</div>
+                  <div class="loaded-card__role">フロントエンドエンジニア</div>
+                </div>
+              </div>
+              <div class="loaded-card__image">サンプル画像</div>
+              <p class="loaded-card__text">React と TypeScript を使ったWebアプリケーション開発を得意としています。UI/UXにも強い関心があります。</p>
+              <button style="padding:8px 20px; font-size:var(--text-sm); background:var(--color-brand-500); color:white; border:none; border-radius:var(--radius-md); cursor:pointer;">プロフィールを見る</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== リストスケルトン ========== -->
+      <div>
+        <h3 style="font-size:var(--text-sm); font-weight:var(--font-semibold); color:var(--color-neutral-600); margin-bottom:var(--space-3);">リストスケルトン</h3>
+        <div class="preview-container preview-container--col" style="align-items:center;">
+          <div class="skeleton-list" aria-busy="true" aria-label="リスト読み込み中">
+            <div class="skeleton-list__item">
+              <div class="skeleton skeleton-list__icon"></div>
+              <div class="skeleton-list__lines">
+                <div class="skeleton skeleton--text" style="width:70%"></div>
+                <div class="skeleton skeleton--text" style="width:45%; height:10px;"></div>
+              </div>
+            </div>
+            <div class="skeleton-list__item">
+              <div class="skeleton skeleton-list__icon"></div>
+              <div class="skeleton-list__lines">
+                <div class="skeleton skeleton--text" style="width:55%"></div>
+                <div class="skeleton skeleton--text" style="width:35%; height:10px;"></div>
+              </div>
+            </div>
+            <div class="skeleton-list__item">
+              <div class="skeleton skeleton-list__icon"></div>
+              <div class="skeleton-list__lines">
+                <div class="skeleton skeleton--text" style="width:80%"></div>
+                <div class="skeleton skeleton--text" style="width:50%; height:10px;"></div>
+              </div>
+            </div>
+            <div class="skeleton-list__item">
+              <div class="skeleton skeleton-list__icon"></div>
+              <div class="skeleton-list__lines">
+                <div class="skeleton skeleton--text" style="width:60%"></div>
+                <div class="skeleton skeleton--text" style="width:40%; height:10px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜスピナーではなくスケルトンを使うのか？</strong><br>
+        スピナーは「何かが読み込まれている」としか伝えませんが、スケルトンは「何がどのような形で表示されるか」を予告します。これにより体感的な待ち時間が短く感じられ、コンテンツが表示された時のレイアウトシフトも防げます。</p>
+        <p><strong>シマーアニメーションの仕組み</strong><br>
+        linear-gradient で明るい帯を作り、background-position をアニメーションで左から右に動かすことで「光が流れる」効果を実現します。background-size を要素幅より大きくすることで帯が端から端まで流れます。</p>
+        <p><strong>aria-busy="true" で読み込み状態を伝える</strong><br>
+        スケルトン表示中のコンテナに aria-busy="true" を設定すると、スクリーンリーダーが「この領域はまだ読み込み中」であることを理解します。読み込み完了後に false に変更します。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- aria-busy="true" → コンテンツ読み込み中であることを示す --&gt;
+&lt;div id="card-container" aria-busy="true"&gt;
+
+  &lt;!-- スケルトン：最終レイアウトと同じ構造で配置 --&gt;
+  &lt;div class="skeleton-card"&gt;
+    &lt;div class="skeleton-card__header"&gt;
+      &lt;!-- 丸い形 → アバターの骨格 --&gt;
+      &lt;div class="skeleton skeleton--avatar"&gt;&lt;/div&gt;
+      &lt;div&gt;
+        &lt;!-- 長方形 → テキストの骨格 --&gt;
+        &lt;div class="skeleton skeleton--text" style="width:40%"&gt;&lt;/div&gt;
+        &lt;div class="skeleton skeleton--text" style="width:25%"&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;!-- 大きい長方形 → 画像の骨格 --&gt;
+    &lt;div class="skeleton skeleton--image"&gt;&lt;/div&gt;
+    &lt;div class="skeleton skeleton--text"&gt;&lt;/div&gt;
+    &lt;div class="skeleton skeleton--text" style="width:70%"&gt;&lt;/div&gt;
+    &lt;div class="skeleton skeleton--button"&gt;&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 実コンテンツ：読み込み完了後に表示 --&gt;
+  &lt;div class="loaded-card" style="display:none"&gt;
+    実際のコンテンツ...
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- シマーアニメーション --- */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  /* ベース色：薄いグレー */
+  background: var(--color-neutral-200);
+
+  /* linear-gradient → 左から右に流れる明るい帯 */
+  background-image: linear-gradient(
+    90deg,
+    var(--color-neutral-200) 0%,    /* 左端：通常色 */
+    var(--color-neutral-100) 40%,   /* 中央：少し明るい */
+    var(--color-neutral-200) 80%    /* 右端：通常色に戻る */
+  );
+
+  /* background-size → 要素幅より大きくすることで
+     帯が端から端まで移動できるスペースを確保 */
+  background-size: 400px 100%;
+
+  /* シマーアニメーション */
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+/* --- 形状バリエーション --- */
+.skeleton--text   { height: 14px; }          /* テキスト行 */
+.skeleton--avatar { width: 48px; height: 48px;
+                    border-radius: 50%; }    /* 丸いアバター */
+.skeleton--image  { height: 180px;
+                    border-radius: 8px; }    /* 画像プレースホルダー */
+
+/* --- フェードイン --- */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.loaded-card {
+  animation: fade-in 250ms ease-out;
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// データ読み込み完了後にスケルトン → 実コンテンツに切り替え
+async function loadContent() {
+  const container = document.getElementById('card-container');
+  const skeleton = document.getElementById('skeleton-card');
+  const loaded = document.getElementById('loaded-card');
+
+  // データ取得（API呼び出しなど）
+  const data = await fetchData();
+
+  // スケルトンを隠して実コンテンツを表示
+  skeleton.style.display = 'none';
+  loaded.style.display = 'block';
+
+  // aria-busy を false に更新
+  // → スクリーンリーダーに「読み込み完了」を伝える
+  container.setAttribute('aria-busy', 'false');
+}
+
+// トグルボタンでデモ
+const toggleBtn = document.getElementById('toggle-card');
+let isLoaded = false;
+
+toggleBtn.addEventListener('click', () => {
+  isLoaded = !isLoaded;
+  const skeleton = document.getElementById('skeleton-card');
+  const loaded = document.getElementById('loaded-card');
+  const container = document.getElementById('card-container');
+
+  if (isLoaded) {
+    skeleton.style.display = 'none';
+    loaded.style.display = 'block';
+    container.setAttribute('aria-busy', 'false');
+    toggleBtn.textContent = 'スケルトンに戻す';
+  } else {
+    skeleton.style.display = 'block';
+    loaded.style.display = 'none';
+    container.setAttribute('aria-busy', 'true');
+    toggleBtn.textContent = '読み込み完了をシミュレート';
+  }
+});</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">prefers-reduced-motion への対応</div>
+          <p style="font-size:var(--text-sm); color:var(--color-neutral-600); line-height:var(--leading-relaxed);">
+            アニメーションを減らしたいユーザーのために、<code style="font-family:var(--font-mono); font-size:var(--text-xs); background:var(--color-neutral-100); padding:1px 4px; border-radius:2px;">@media (prefers-reduced-motion: reduce)</code> でシマーアニメーションを無効化しましょう。スケルトン自体は残し、アニメーションだけ止めるのがベストです。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">スケルトンと実コンテンツのサイズ差</div>
+          <p style="font-size:var(--text-sm); color:var(--color-neutral-600); line-height:var(--leading-relaxed);">
+            スケルトンの形状が実コンテンツと大きく異なると、切り替わった時にレイアウトがガタつきます（CLS：Cumulative Layout Shift）。スケルトンは実コンテンツのレイアウトをできるだけ正確に模倣することが重要です。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">長時間の読み込み</div>
+          <p style="font-size:var(--text-sm); color:var(--color-neutral-600); line-height:var(--leading-relaxed);">
+            5秒以上スケルトンが表示される場合、ユーザーは「壊れている」と感じることがあります。一定時間後に「読み込みに時間がかかっています」といったメッセージを表示するか、リトライボタンを出すことを検討してください。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script>
+    // カードのスケルトン↔実コンテンツのトグル
+    const toggleBtn = document.getElementById('toggle-card');
+    let isLoaded = false;
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        isLoaded = !isLoaded;
+        const skeleton = document.getElementById('skeleton-card');
+        const loaded = document.getElementById('loaded-card');
+        const container = document.getElementById('card-container');
+
+        if (isLoaded) {
+          skeleton.style.display = 'none';
+          loaded.style.display = 'block';
+          container.setAttribute('aria-busy', 'false');
+          toggleBtn.textContent = 'スケルトンに戻す';
+        } else {
+          skeleton.style.display = 'block';
+          loaded.style.display = 'none';
+          container.setAttribute('aria-busy', 'true');
+          toggleBtn.textContent = '読み込み完了をシミュレート';
+        }
+      });
+    }
+  </script>
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

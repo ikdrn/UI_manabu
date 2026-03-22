@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ボタングループ — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       ボタングループ / セグメンテッドコントロール — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- セグメンテッドコントロール（ラジオボタン的な排他選択） --- */
+    .segmented-control {
+      /* display: flex → 子ボタンを横一列に並べる */
+      display: flex;
+      /* border-radius → グループ全体の角丸。個々のボタンの角丸は後で制御する */
+      border-radius: var(--radius-md);
+      /* overflow: hidden → はみ出た子要素の角を親の角丸でクリップする */
+      overflow: hidden;
+      /* border → グループ全体を囲む枠線 */
+      border: 1px solid var(--color-brand-500);
+      /* width: fit-content → 中身の幅に合わせる（親要素いっぱいに広がらない） */
+      width: fit-content;
+    }
+
+    .segmented-control__btn {
+      /* flex: 1 → 各ボタンを均等幅にする */
+      flex: 1;
+      padding: 10px 20px;
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      line-height: 1;
+      color: var(--color-brand-500);
+      background-color: transparent;
+      border: none;
+      /* border-right → ボタン間の区切り線。最後のボタンは不要なので後で消す */
+      border-right: 1px solid var(--color-brand-500);
+      cursor: pointer;
+      transition: background-color var(--duration-fast),
+                  color var(--duration-fast);
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    /* 最後のボタンの右枠線を消す（親の枠線と重複するため） */
+    .segmented-control__btn:last-child {
+      border-right: none;
+    }
+
+    /* アクティブ状態 → ブランドカラーで塗りつぶし、テキストを白にする */
+    .segmented-control__btn.is-active {
+      background-color: var(--color-brand-500);
+      color: white;
+    }
+
+    .segmented-control__btn:hover:not(.is-active) {
+      background-color: var(--color-brand-50, hsla(222, 80%, 50%, 0.08));
+    }
+
+    .segmented-control__btn:focus-visible {
+      outline: 2px solid var(--color-brand-500);
+      outline-offset: -2px;
+    }
+
+    /* --- 標準ボタングループ（共有ボーダーで隣接するボタン群） --- */
+    .btn-group {
+      /* display: inline-flex → 横並びかつインライン要素として配置する */
+      display: inline-flex;
+      /* gap は使わず、ボーダーを共有する。代わりに負のマージンで重ねる */
+    }
+
+    .btn-group__btn {
+      padding: 10px 20px;
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      line-height: 1;
+      color: var(--color-text-secondary, #555);
+      background-color: white;
+      border: 1px solid var(--color-border, #d1d5db);
+      cursor: pointer;
+      transition: background-color var(--duration-fast),
+                  color var(--duration-fast),
+                  border-color var(--duration-fast);
+      user-select: none;
+      white-space: nowrap;
+      /* border-radius: 0 → 中間のボタンは角丸なし。端だけ後で角丸を付ける */
+      border-radius: 0;
+      /* margin-left: -1px → 隣のボタンと枠線を1px重ねて二重線を防ぐ */
+      margin-left: -1px;
+      position: relative;
+    }
+
+    /* :first-child → グループの最初のボタンだけ左端を丸くする */
+    .btn-group__btn:first-child {
+      border-radius: var(--radius-md) 0 0 var(--radius-md);
+      margin-left: 0;
+    }
+
+    /* :last-child → グループの最後のボタンだけ右端を丸くする */
+    .btn-group__btn:last-child {
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    }
+
+    .btn-group__btn:hover {
+      background-color: var(--color-bg-secondary, #f3f4f6);
+      z-index: 1;
+    }
+
+    .btn-group__btn.is-active {
+      background-color: var(--color-brand-500);
+      color: white;
+      border-color: var(--color-brand-500);
+      z-index: 2;
+    }
+
+    .btn-group__btn:focus-visible {
+      outline: 2px solid var(--color-brand-500);
+      outline-offset: -2px;
+      z-index: 3;
+    }
+
+    /* --- エッジケース: オーバーフロー用 --- */
+    .btn-group-overflow-demo {
+      max-width: 320px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">ボタン</span>
+      <h1 class="component-title">ボタングループ / セグメンテッドコントロール</h1>
+      <p class="component-description">
+        関連する複数の操作をひとまとめにし、視覚的にグループであることを示すパターン。セグメンテッドコントロールは排他選択（1つだけ選べる）、標準ボタングループは並列操作に使います。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー: セグメンテッドコントロール ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー — セグメンテッドコントロール</h2>
+      <div class="preview-container">
+        <!-- role="radiogroup" → スクリーンリーダーに「排他選択グループ」と伝える -->
+        <div class="segmented-control" role="radiogroup" aria-label="表示切替">
+          <!-- aria-pressed → 現在の選択状態をスクリーンリーダーに伝える -->
+          <button type="button" class="segmented-control__btn is-active" aria-pressed="true">リスト</button>
+          <button type="button" class="segmented-control__btn" aria-pressed="false">グリッド</button>
+          <button type="button" class="segmented-control__btn" aria-pressed="false">マップ</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== プレビュー: 標準ボタングループ ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー — 標準ボタングループ</h2>
+      <div class="preview-container">
+        <div class="btn-group" role="group" aria-label="テキスト整列">
+          <button type="button" class="btn-group__btn is-active" aria-pressed="true">左揃え</button>
+          <button type="button" class="btn-group__btn" aria-pressed="false">中央</button>
+          <button type="button" class="btn-group__btn" aria-pressed="false">右揃え</button>
+          <button type="button" class="btn-group__btn" aria-pressed="false">両端</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>グルーピングが有効な場面と逆効果な場面</strong><br>
+        関連する操作（例：テキストの左揃え・中央・右揃え）をグループにすると、ユーザーは選択肢の全体像を一目で把握できます。一方、性質の異なる操作（例：「保存」と「表示切替」）を無理にまとめると、かえって混乱を招きます。</p>
+        <p><strong>セグメンテッドコントロール vs タブ</strong><br>
+        見た目は似ていますが、役割が異なります。タブは「コンテンツパネルを切り替える」（パネルA/B/Cが入れ替わる）。セグメンテッドコントロールは「同じコンテンツの表示方法を変える」（リスト表示⇄グリッド表示など）。使い分けを間違えるとユーザーの期待を裏切ります。</p>
+        <p><strong>セグメントの最大数は2〜5個</strong><br>
+        6個以上になるとラベルが読みにくくなり、タップ領域も狭くなります。選択肢が多い場合はドロップダウンやタブバーへの切り替えを検討してください。</p>
+        <p><strong>負のマージンでボーダーを共有する理由</strong><br>
+        隣り合うボタンにそれぞれ1pxのborderを付けると、境界部分が2px（二重線）になってしまいます。<code>margin-left: -1px</code> で1pxだけ重ねることで、見た目上1pxの区切り線を実現しています。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- ============================================
+     セグメンテッドコントロール
+     role="radiogroup" → 排他選択グループであることを
+     スクリーンリーダーに伝える
+     ============================================ -->
+&lt;div class="segmented-control"
+     role="radiogroup"
+     aria-label="表示切替"&gt;
+
+  &lt;!-- aria-pressed="true" → 現在選択中であることを示す --&gt;
+  &lt;button type="button"
+          class="segmented-control__btn is-active"
+          aria-pressed="true"&gt;
+    リスト
+  &lt;/button&gt;
+
+  &lt;button type="button"
+          class="segmented-control__btn"
+          aria-pressed="false"&gt;
+    グリッド
+  &lt;/button&gt;
+
+  &lt;button type="button"
+          class="segmented-control__btn"
+          aria-pressed="false"&gt;
+    マップ
+  &lt;/button&gt;
+&lt;/div&gt;
+
+<!-- ============================================
+     標準ボタングループ
+     role="group" → 関連ボタンのグループであることを伝える
+     ============================================ -->
+&lt;div class="btn-group"
+     role="group"
+     aria-label="テキスト整列"&gt;
+
+  &lt;button type="button"
+          class="btn-group__btn is-active"
+          aria-pressed="true"&gt;
+    左揃え
+  &lt;/button&gt;
+
+  &lt;button type="button"
+          class="btn-group__btn"
+          aria-pressed="false"&gt;
+    中央
+  &lt;/button&gt;
+
+  &lt;button type="button"
+          class="btn-group__btn"
+          aria-pressed="false"&gt;
+    右揃え
+  &lt;/button&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* ===================================================================
+   セグメンテッドコントロール — 排他選択用のボタングループ
+   =================================================================== */
+
+.segmented-control {
+  /* display: flex → 子ボタンを横一列に並べる。
+     flexboxはボタングループの基本レイアウト */
+  display: flex;
+
+  /* border-radius → グループ全体の外枠を角丸にする。
+     個々のボタンの角丸は overflow: hidden で切り落とす */
+  border-radius: var(--radius-md);
+
+  /* overflow: hidden → 角丸の外にはみ出た子要素を隠す。
+     これにより個々のボタンに角丸を指定しなくても
+     グループ全体がきれいに丸まる */
+  overflow: hidden;
+
+  /* border → グループ全体を囲む枠線 */
+  border: 1px solid var(--color-brand-500);
+
+  /* width: fit-content → 中身の合計幅に合わせる。
+     指定しないと親要素いっぱいに広がってしまう */
+  width: fit-content;
+}
+
+.segmented-control__btn {
+  /* flex: 1 → 各ボタンの幅を均等に分配する。
+     3つのボタンなら各33.3%になる */
+  flex: 1;
+
+  padding: 10px 20px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  line-height: 1;
+  color: var(--color-brand-500);
+  background-color: transparent;
+  border: none;
+
+  /* border-right → ボタン間の区切り線。
+     親に overflow: hidden があるので角丸からはみ出ない */
+  border-right: 1px solid var(--color-brand-500);
+
+  cursor: pointer;
+  transition: background-color 150ms, color 150ms;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* :last-child → 最後のボタンの右枠線を消す。
+   親の右枠線と重複して2pxになるのを防ぐ */
+.segmented-control__btn:last-child {
+  border-right: none;
+}
+
+/* アクティブ（選択中）状態 → 塗りつぶしで選択を明示する */
+.segmented-control__btn.is-active {
+  background-color: var(--color-brand-500);
+  color: white;
+}
+
+/* ===================================================================
+   標準ボタングループ — 共有ボーダーで隣接させるパターン
+   =================================================================== */
+
+.btn-group {
+  /* display: inline-flex → 横一列に並べつつ、
+     グループ自体はインライン要素として他の要素と横に並べられる */
+  display: inline-flex;
+}
+
+.btn-group__btn {
+  padding: 10px 20px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  line-height: 1;
+  color: #555;
+  background-color: white;
+  border: 1px solid #d1d5db;
+  cursor: pointer;
+  transition: background-color 150ms, color 150ms, border-color 150ms;
+  user-select: none;
+  white-space: nowrap;
+
+  /* border-radius: 0 → 全ボタンの角丸をリセット。
+     端のボタンだけ後から角丸を付け直す */
+  border-radius: 0;
+
+  /* margin-left: -1px → 左に1pxずらして隣のボタンと枠線を重ねる。
+     これで境界が2pxではなく1pxになる（ボーダー共有テクニック） */
+  margin-left: -1px;
+
+  /* position: relative → z-indexを効かせるために必要。
+     hover時に手前に出して枠線が途切れないようにする */
+  position: relative;
+}
+
+/* :first-child → 最初のボタンだけ左側を丸くする */
+.btn-group__btn:first-child {
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  margin-left: 0; /* 最初は左マージン不要 */
+}
+
+/* :last-child → 最後のボタンだけ右側を丸くする */
+.btn-group__btn:last-child {
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+/* hover時 → z-indexで手前に出し、枠線が隣に隠れないようにする */
+.btn-group__btn:hover {
+  background-color: #f3f4f6;
+  z-index: 1;
+}
+
+/* アクティブ状態 → z-index: 2 で最前面にして
+   ブランドカラーの枠線が確実に見えるようにする */
+.btn-group__btn.is-active {
+  background-color: var(--color-brand-500);
+  color: white;
+  border-color: var(--color-brand-500);
+  z-index: 2;
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// ===================================================================
+// ボタングループ — ラジオボタン的な排他選択の実装
+// ===================================================================
+
+/**
+ * initToggleGroup — グループ内のボタンにラジオボタン挙動を付与する
+ *
+ * 仕組み:
+ * 1. クリックされたボタンに is-active クラスを付ける
+ * 2. 兄弟ボタンから is-active を外す（排他選択）
+ * 3. aria-pressed を更新してスクリーンリーダーにも状態を伝える
+ *
+ * @param {string} groupSelector — グループのCSSセレクタ
+ * @param {string} btnSelector   — ボタンのCSSセレクタ
+ */
+function initToggleGroup(groupSelector, btnSelector) {
+  // querySelectorAll → 該当するすべてのグループ要素を取得する
+  const groups = document.querySelectorAll(groupSelector);
+
+  groups.forEach(function(group) {
+    // グループ内の全ボタンを取得する
+    const buttons = group.querySelectorAll(btnSelector);
+
+    buttons.forEach(function(btn) {
+      // addEventListener('click', ...) → クリックイベントを登録する
+      btn.addEventListener('click', function() {
+
+        // --- 兄弟ボタンから選択状態を解除する ---
+        buttons.forEach(function(sibling) {
+          // classList.remove → CSSクラスを取り除く
+          sibling.classList.remove('is-active');
+          // setAttribute → HTML属性を書き換える
+          sibling.setAttribute('aria-pressed', 'false');
+        });
+
+        // --- クリックされたボタンを選択状態にする ---
+        // classList.add → CSSクラスを追加する
+        btn.classList.add('is-active');
+        btn.setAttribute('aria-pressed', 'true');
+      });
+    });
+  });
+}
+
+// 初期化 — ページ読み込み後に実行する
+// DOMContentLoaded → HTMLの解析が完了したタイミングで発火する
+document.addEventListener('DOMContentLoaded', function() {
+  // セグメンテッドコントロールの初期化
+  initToggleGroup('.segmented-control', '.segmented-control__btn');
+
+  // 標準ボタングループの初期化
+  initToggleGroup('.btn-group', '.btn-group__btn');
+});</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">セグメントが多すぎる場合（横スクロール）</div>
+          <div class="btn-group-overflow-demo">
+            <div class="segmented-control" role="radiogroup" aria-label="多数セグメント">
+              <button type="button" class="segmented-control__btn is-active" aria-pressed="true">全て</button>
+              <button type="button" class="segmented-control__btn" aria-pressed="false">画像</button>
+              <button type="button" class="segmented-control__btn" aria-pressed="false">動画</button>
+              <button type="button" class="segmented-control__btn" aria-pressed="false">音声</button>
+              <button type="button" class="segmented-control__btn" aria-pressed="false">ドキュメント</button>
+              <button type="button" class="segmented-control__btn" aria-pressed="false">スプレッドシート</button>
+              <button type="button" class="segmented-control__btn" aria-pressed="false">その他</button>
+            </div>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">アクティブ状態の視認性（コントラスト確認）</div>
+          <div class="segmented-control" role="radiogroup" aria-label="コントラスト例">
+            <button type="button" class="segmented-control__btn" aria-pressed="false">非選択</button>
+            <button type="button" class="segmented-control__btn is-active" aria-pressed="true">選択中</button>
+            <button type="button" class="segmented-control__btn" aria-pressed="false">非選択</button>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">ボタン2つだけの最小構成</div>
+          <div class="segmented-control" role="radiogroup" aria-label="ON/OFF切替">
+            <button type="button" class="segmented-control__btn is-active" aria-pressed="true">ON</button>
+            <button type="button" class="segmented-control__btn" aria-pressed="false">OFF</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script>
+    // ===================================================================
+    // ボタングループ — ラジオボタン的な排他選択の実装
+    // ===================================================================
+
+    /**
+     * initToggleGroup — グループ内のボタンにラジオボタン挙動を付与する
+     *
+     * 仕組み:
+     * 1. クリックされたボタンに is-active クラスを付ける
+     * 2. 兄弟ボタンから is-active を外す（排他選択）
+     * 3. aria-pressed を更新してスクリーンリーダーにも状態を伝える
+     */
+    function initToggleGroup(groupSelector, btnSelector) {
+      // querySelectorAll → 該当するすべてのグループ要素を取得する
+      var groups = document.querySelectorAll(groupSelector);
+
+      groups.forEach(function(group) {
+        // グループ内の全ボタンを取得する
+        var buttons = group.querySelectorAll(btnSelector);
+
+        buttons.forEach(function(btn) {
+          // addEventListener('click', ...) → クリックイベントを登録する
+          btn.addEventListener('click', function() {
+
+            // --- 兄弟ボタンから選択状態を解除する ---
+            buttons.forEach(function(sibling) {
+              // classList.remove → CSSクラスを取り除く
+              sibling.classList.remove('is-active');
+              // setAttribute → HTML属性を書き換える
+              sibling.setAttribute('aria-pressed', 'false');
+            });
+
+            // --- クリックされたボタンを選択状態にする ---
+            // classList.add → CSSクラスを追加する
+            btn.classList.add('is-active');
+            btn.setAttribute('aria-pressed', 'true');
+          });
+        });
+      });
+    }
+
+    // 初期化 — DOMContentLoaded でHTMLの解析完了を待ってから実行する
+    document.addEventListener('DOMContentLoaded', function() {
+      // セグメンテッドコントロールの初期化
+      initToggleGroup('.segmented-control', '.segmented-control__btn');
+      // 標準ボタングループの初期化
+      initToggleGroup('.btn-group', '.btn-group__btn');
+    });
+  </script>
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

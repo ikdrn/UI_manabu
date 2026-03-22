@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ソート可能リスト — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       ソート可能リスト — コンポーネントスタイル
+       =================================================================== */
+
+    /* ソートリストのコンテナ */
+    .sortable-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-width: 480px;
+      width: 100%;
+    }
+
+    /* 各アイテム */
+    .sortable-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-bg-primary);
+      border: 1px solid var(--color-border-secondary);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-2);
+      transition: box-shadow var(--duration-fast),
+                  transform var(--duration-fast),
+                  opacity var(--duration-fast);
+      cursor: default;
+      user-select: none;
+    }
+
+    /* ドラッグハンドル — 掴める場所を示す */
+    .drag-handle {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      cursor: grab;
+      padding: var(--space-1);
+      color: var(--color-text-tertiary);
+      flex-shrink: 0;
+    }
+
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+
+    /* ハンドルのドット模様（6つの点） */
+    .drag-handle-dots {
+      display: grid;
+      grid-template-columns: repeat(2, 5px);
+      gap: 3px;
+    }
+
+    .drag-handle-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background-color: var(--color-text-tertiary);
+    }
+
+    /* タスクのテキスト部分 */
+    .sortable-item-content {
+      flex: 1;
+      font-size: var(--text-sm);
+      color: var(--color-text-primary);
+    }
+
+    /* タスク番号バッジ */
+    .sortable-item-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background-color: var(--color-brand-100);
+      color: var(--color-brand-600);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      flex-shrink: 0;
+    }
+
+    /* ドラッグ中のアイテム */
+    .sortable-item.dragging {
+      opacity: 0.4;
+      transform: scale(0.98);
+      box-shadow: none;
+    }
+
+    /* ドロップ位置のインジケーター */
+    .sortable-item.drag-over-top {
+      border-top: 3px solid var(--color-brand-500);
+      margin-top: -2px;
+    }
+
+    .sortable-item.drag-over-bottom {
+      border-bottom: 3px solid var(--color-brand-500);
+      margin-bottom: -1px;
+    }
+
+    /* ドラッグ中にリスト全体にフィードバック */
+    .sortable-list.has-dragging .sortable-item:not(.dragging):hover {
+      background-color: var(--color-bg-secondary);
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">ドラッグ&ドロップ</span>
+      <h1 class="component-title">ソート可能リスト</h1>
+      <p class="component-description">
+        ドラッグ操作でアイテムの順序を入れ替えられるリスト。ドラッグハンドル、視覚的フィードバック、ドロップインジケーターを備え、直感的な並べ替え操作を実現します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col" style="align-items: center;">
+        <ul class="sortable-list" id="sortableList">
+          <li class="sortable-item" draggable="true">
+            <div class="drag-handle" aria-label="ドラッグして並べ替え">
+              <div class="drag-handle-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <span class="sortable-item-number">1</span>
+            <span class="sortable-item-content">要件定義書を作成する</span>
+          </li>
+          <li class="sortable-item" draggable="true">
+            <div class="drag-handle" aria-label="ドラッグして並べ替え">
+              <div class="drag-handle-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <span class="sortable-item-number">2</span>
+            <span class="sortable-item-content">ワイヤーフレームを設計する</span>
+          </li>
+          <li class="sortable-item" draggable="true">
+            <div class="drag-handle" aria-label="ドラッグして並べ替え">
+              <div class="drag-handle-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <span class="sortable-item-number">3</span>
+            <span class="sortable-item-content">デザインモックアップを作成する</span>
+          </li>
+          <li class="sortable-item" draggable="true">
+            <div class="drag-handle" aria-label="ドラッグして並べ替え">
+              <div class="drag-handle-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <span class="sortable-item-number">4</span>
+            <span class="sortable-item-content">フロントエンドを実装する</span>
+          </li>
+          <li class="sortable-item" draggable="true">
+            <div class="drag-handle" aria-label="ドラッグして並べ替え">
+              <div class="drag-handle-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <span class="sortable-item-number">5</span>
+            <span class="sortable-item-content">テストを実施する</span>
+          </li>
+          <li class="sortable-item" draggable="true">
+            <div class="drag-handle" aria-label="ドラッグして並べ替え">
+              <div class="drag-handle-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <span class="sortable-item-number">6</span>
+            <span class="sortable-item-content">本番環境にデプロイする</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜドラッグハンドルが必要なのか？</strong><br>
+        アイテム全体をドラッグ可能にすると、テキスト選択やリンククリックと干渉します。ハンドルを分離することで「ここを掴めば動かせる」と明示し、他の操作との衝突を防ぎます。</p>
+        <p><strong>ドラッグ中の半透明表現</strong><br>
+        ドラッグ中のアイテムを半透明にすることで「これが移動中のアイテムだ」と視覚的に伝えます。同時にドロップ先にインジケーターを表示し、どこに挿入されるかを予測可能にします。</p>
+        <p><strong>insertBefore()による自然な並べ替え</strong><br>
+        DOM操作のinsertBefore()を使うことで、ドラッグ＆ドロップの結果がリアルタイムでDOMに反映されます。仮想的な状態管理ではなく、実際のDOM構造が変わるため、直感的に理解しやすい実装です。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- ul要素 → 順序付きリストのコンテナ --&gt;
+&lt;ul class="sortable-list" id="sortableList"&gt;
+
+  &lt;!-- draggable="true" → この要素をドラッグ可能にするHTML属性 --&gt;
+  &lt;li class="sortable-item" draggable="true"&gt;
+
+    &lt;!-- ドラッグハンドル → 掴める場所を示すUI部品 --&gt;
+    &lt;div class="drag-handle" aria-label="ドラッグして並べ替え"&gt;
+      &lt;div class="drag-handle-dots"&gt;
+        &lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;
+        &lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;
+        &lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- 番号バッジ → 現在の順番を表示 --&gt;
+    &lt;span class="sortable-item-number"&gt;1&lt;/span&gt;
+
+    &lt;!-- タスク内容 --&gt;
+    &lt;span class="sortable-item-content"&gt;要件定義書を作成する&lt;/span&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* ソート可能アイテムの基本スタイル */
+.sortable-item {
+  /* display: flex → 横並びレイアウト。ハンドル・番号・テキストを一行に */
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+
+  /* transition → ドラッグ時の変化をスムーズにする */
+  transition: box-shadow 150ms, transform 150ms, opacity 150ms;
+
+  /* user-select: none → テキスト選択を防止してドラッグ操作に専念させる */
+  user-select: none;
+}
+
+/* ドラッグハンドル — cursor: grab で「掴める」ことを示す */
+.drag-handle {
+  cursor: grab;
+  color: var(--color-text-tertiary);
+}
+
+.drag-handle:active {
+  cursor: grabbing; /* 掴んでいる最中は拳マークに変化 */
+}
+
+/* ドラッグ中のアイテム — 半透明にして「移動中」を表現 */
+.sortable-item.dragging {
+  opacity: 0.4;
+  transform: scale(0.98);
+}
+
+/* ドロップ位置のインジケーター — 上辺または下辺にブランドカラーの線を表示 */
+.sortable-item.drag-over-top {
+  border-top: 3px solid var(--color-brand-500);
+}
+
+.sortable-item.drag-over-bottom {
+  border-bottom: 3px solid var(--color-brand-500);
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// ソート可能リストの初期化
+const list = document.getElementById('sortableList');
+let draggedItem = null; // 現在ドラッグ中のアイテムを保持する変数
+
+// dragstart → ドラッグが開始された時に発火するイベント
+list.addEventListener('dragstart', (e) =&gt; {
+  // closest() → イベント発生要素から最も近い親要素を探すメソッド
+  draggedItem = e.target.closest('.sortable-item');
+  draggedItem.classList.add('dragging');
+  list.classList.add('has-dragging');
+
+  // dataTransfer.effectAllowed → ドラッグ操作の種類を指定
+  // 'move' はアイテムの移動を意味する
+  e.dataTransfer.effectAllowed = 'move';
+});
+
+// dragover → ドラッグ中の要素がこの上を通過中に連続発火するイベント
+list.addEventListener('dragover', (e) =&gt; {
+  e.preventDefault(); // デフォルト動作を防止してdropを発火可能に
+  const item = e.target.closest('.sortable-item');
+  if (!item || item === draggedItem) return;
+
+  // マウスのY座標とアイテム中央を比較して挿入位置を決定
+  const rect = item.getBoundingClientRect();
+  const midY = rect.top + rect.height / 2;
+
+  clearIndicators();
+  if (e.clientY &lt; midY) {
+    item.classList.add('drag-over-top');   // 上半分 → 上に挿入
+  } else {
+    item.classList.add('drag-over-bottom'); // 下半分 → 下に挿入
+  }
+});
+
+// drop → ドラッグ要素がドロップされた時に発火するイベント
+list.addEventListener('drop', (e) =&gt; {
+  e.preventDefault();
+  const item = e.target.closest('.sortable-item');
+  if (!item || item === draggedItem) return;
+
+  const rect = item.getBoundingClientRect();
+  const midY = rect.top + rect.height / 2;
+
+  // insertBefore() → 指定要素の前にノードを挿入するDOM API
+  if (e.clientY &lt; midY) {
+    list.insertBefore(draggedItem, item);
+  } else {
+    list.insertBefore(draggedItem, item.nextSibling);
+  }
+  updateNumbers(); // 番号バッジを振り直す
+});
+
+// dragend → ドラッグ操作が終了した時に発火（成功/キャンセル問わず）
+list.addEventListener('dragend', () =&gt; {
+  draggedItem?.classList.remove('dragging');
+  list.classList.remove('has-dragging');
+  clearIndicators();
+  draggedItem = null;
+});
+
+// ヘルパー: すべてのインジケーターを消去
+function clearIndicators() {
+  list.querySelectorAll('.sortable-item').forEach(item =&gt; {
+    item.classList.remove('drag-over-top', 'drag-over-bottom');
+  });
+}
+
+// ヘルパー: 番号バッジを現在の並び順で更新
+function updateNumbers() {
+  list.querySelectorAll('.sortable-item-number').forEach((num, i) =&gt; {
+    num.textContent = i + 1;
+  });
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">長いテキストのアイテム</div>
+          <ul class="sortable-list">
+            <li class="sortable-item" draggable="true">
+              <div class="drag-handle"><div class="drag-handle-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div>
+              <span class="sortable-item-number">1</span>
+              <span class="sortable-item-content">このタスクは非常に長い説明テキストを含んでおり、レイアウトが崩れないかを確認するためのテストケースです</span>
+            </li>
+          </ul>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">1件のみのリスト（並べ替え不可）</div>
+          <ul class="sortable-list">
+            <li class="sortable-item" draggable="true">
+              <div class="drag-handle"><div class="drag-handle-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div></div>
+              <span class="sortable-item-number">1</span>
+              <span class="sortable-item-content">唯一のタスク</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    /* ===================================================================
+       ソート可能リスト — ドラッグ&ドロップ制御
+       =================================================================== */
+
+    const list = document.getElementById('sortableList');
+    let draggedItem = null;
+
+    /* dragstart → ドラッグ開始時にアイテムを記録 */
+    list.addEventListener('dragstart', (e) => {
+      draggedItem = e.target.closest('.sortable-item');
+      if (!draggedItem) return;
+      draggedItem.classList.add('dragging');
+      list.classList.add('has-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    /* dragover → ドラッグ中にドロップ位置のインジケーターを表示 */
+    list.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const item = e.target.closest('.sortable-item');
+      if (!item || item === draggedItem) return;
+
+      clearIndicators();
+      const rect = item.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (e.clientY < midY) {
+        item.classList.add('drag-over-top');
+      } else {
+        item.classList.add('drag-over-bottom');
+      }
+    });
+
+    /* drop → ドロップ時にDOM要素を移動 */
+    list.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const item = e.target.closest('.sortable-item');
+      if (!item || item === draggedItem) return;
+
+      const rect = item.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+
+      if (e.clientY < midY) {
+        list.insertBefore(draggedItem, item);
+      } else {
+        list.insertBefore(draggedItem, item.nextSibling);
+      }
+      updateNumbers();
+    });
+
+    /* dragend → ドラッグ終了時にクリーンアップ */
+    list.addEventListener('dragend', () => {
+      if (draggedItem) draggedItem.classList.remove('dragging');
+      list.classList.remove('has-dragging');
+      clearIndicators();
+      draggedItem = null;
+    });
+
+    list.addEventListener('dragleave', (e) => {
+      const item = e.target.closest('.sortable-item');
+      if (item) item.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+
+    function clearIndicators() {
+      list.querySelectorAll('.sortable-item').forEach(item => {
+        item.classList.remove('drag-over-top', 'drag-over-bottom');
+      });
+    }
+
+    function updateNumbers() {
+      list.querySelectorAll('.sortable-item-number').forEach((num, i) => {
+        num.textContent = i + 1;
+      });
+    }
+  </script>
+</body>
+</html>

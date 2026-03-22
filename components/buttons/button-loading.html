@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ローディングボタン — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       ローディングボタン — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- 基本ボタンスタイル --- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      padding: 10px 20px;
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      line-height: 1;
+      color: white;
+      background-color: var(--color-brand-500);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background-color var(--duration-fast),
+                  box-shadow var(--duration-fast),
+                  transform var(--duration-fast),
+                  opacity var(--duration-fast);
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background-color: var(--color-brand-600);
+      box-shadow: 0 2px 8px hsla(222, 80%, 50%, 0.3);
+    }
+
+    .btn:active {
+      background-color: var(--color-brand-700);
+      transform: scale(0.98);
+      box-shadow: none;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--color-brand-500);
+      outline-offset: 2px;
+    }
+
+    /* --- スピナーのアニメーション定義 --- */
+    /* @keyframes → CSSアニメーションの動きを定義するルール。
+       0%（開始）から100%（終了）までの変化を指定する */
+    @keyframes spin {
+      /* 0% → アニメーション開始時。回転角度0度 */
+      0% {
+        transform: rotate(0deg);
+      }
+      /* 100% → アニメーション終了時。360度＝1回転 */
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* --- スピナー要素 --- */
+    .btn__spinner {
+      /* 幅と高さを指定して正円にする */
+      width: 14px;
+      height: 14px;
+
+      /* border → 全辺に白い半透明の線を引いて円を作る */
+      border: 2px solid rgba(255, 255, 255, 0.3);
+
+      /* border-top-color: transparent → 上辺だけ透明にする。
+         これにより「切れ目のある円」＝スピナーの見た目になる */
+      border-top-color: transparent;
+
+      /* border-radius: 50% → 正方形を完全な円にする */
+      border-radius: 50%;
+
+      /* animation の各値の意味：
+         spin     → @keyframes spin を使う
+         0.8s     → 1回転にかかる時間（0.8秒）
+         linear   → 一定速度で回転（ease だと加減速してしまう）
+         infinite → 無限に繰り返す */
+      animation: spin 0.8s linear infinite;
+
+      /* デフォルトでは非表示 */
+      display: none;
+    }
+
+    /* --- ローディング状態 --- */
+    .btn--loading {
+      /* pointer-events: none → クリックやホバーなどのマウス操作を無効化する。
+         disabled属性と違い、CSSだけで制御できるのが利点。
+         二重送信を防ぐために使う */
+      pointer-events: none;
+
+      /* opacity → 透明度を下げて「操作不可」を視覚的に伝える。
+         0.7 = 70%の不透明度で、うっすらグレーがかった印象に */
+      opacity: 0.7;
+
+      /* カーソルも変更（pointer-eventsがnoneなので実質見えないが、念のため） */
+      cursor: not-allowed;
+    }
+
+    /* ローディング中はスピナーを表示する */
+    .btn--loading .btn__spinner {
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">ボタン</span>
+      <h1 class="component-title">ローディングボタン</h1>
+      <p class="component-description">
+        ボタンをクリックした後、処理中であることをユーザーに伝えるローディング状態付きボタン。即座にフィードバックを返すことで、ユーザーの不安を取り除き、二重送信を防ぎます。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container">
+        <!-- aria-busy → スクリーンリーダーに「処理中かどうか」を伝えるアクセシビリティ属性。
+             false = 通常状態、true = 処理中 -->
+        <button type="button" class="btn" id="loading-btn" aria-busy="false">
+          <!-- スピナー要素：CSSだけで回転するアニメーションを実現 -->
+          <span class="btn__spinner" aria-hidden="true"></span>
+          <span class="btn__text">送信する</span>
+        </button>
+      </div>
+      <p style="margin-top: var(--space-3); color: var(--color-text-muted); font-size: var(--text-xs);">
+        ※ クリックすると2秒間ローディング状態になり、自動的に元に戻ります。
+      </p>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜ即座にフィードバックを返すのか？</strong><br>
+        ユーザーがボタンを押した後、画面に何も変化がないと「押せたのか？」「壊れたのか？」と不安になります。ローディング状態を表示することで「あなたの操作を受け付けました。今処理中です」と伝えることができます。ヤコブ・ニールセンの研究では、0.1秒以内の反応が「瞬時」と感じられるとされています。</p>
+        <p><strong>二重送信の防止</strong><br>
+        決済や投稿などの操作で、ユーザーが「押せてないかも」と何度もクリックすると、同じ処理が複数回実行されてしまいます。ローディング中は <code>pointer-events: none</code> でクリックを無効化し、この問題を防ぎます。</p>
+        <p><strong>ローディング状態 vs disabled状態の違い</strong><br>
+        <code>disabled</code> 属性は「この操作はまだ利用できません」を意味します。一方、ローディング状態は「操作を受け付けて処理中です」を意味します。目的が異なるため、見た目も使い分けます。ローディングではスピナーを表示し、テキストを「処理中...」に変えることで、待てば完了することを伝えます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- ローディングボタンのHTML構造 -->
+<!-- aria-busy="false" → スクリーンリーダーに処理状態を伝える属性。
+     "true" にすると「処理中です」と読み上げられる -->
+&lt;button type="button" class="btn" id="loading-btn" aria-busy="false"&gt;
+
+  <!-- スピナー要素 → CSSだけで回転アニメーションする円 -->
+  <!-- aria-hidden="true" → スクリーンリーダーに無視させる。
+       視覚的な装飾なので読み上げ不要 -->
+  &lt;span class="btn__spinner" aria-hidden="true"&gt;&lt;/span&gt;
+
+  <!-- テキスト要素 → JavaScriptでローディング中に書き換える -->
+  &lt;span class="btn__text"&gt;送信する&lt;/span&gt;
+
+&lt;/button&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* === スピナーのアニメーション定義 ===
+   @keyframes → CSSアニメーションの「動きの台本」を定義する。
+   名前を付けて、animationプロパティから呼び出す */
+@keyframes spin {
+  /* from（= 0%）→ アニメーション開始時の状態 */
+  0% {
+    /* rotate(0deg) → 回転角度0度。まだ回っていない */
+    transform: rotate(0deg);
+  }
+  /* to（= 100%）→ アニメーション終了時の状態 */
+  100% {
+    /* rotate(360deg) → 360度回転 = 1周。
+       0→360の変化を繰り返すことで連続回転する */
+    transform: rotate(360deg);
+  }
+}
+
+/* === スピナー要素のスタイル === */
+.btn__spinner {
+  /* 正方形にして円の土台を作る */
+  width: 14px;
+  height: 14px;
+
+  /* border → 円の「輪っか」を作る線。
+     rgba(255,255,255,0.3) → 白の30%不透明度で薄い円を描く */
+  border: 2px solid rgba(255, 255, 255, 0.3);
+
+  /* border-top-color: transparent → 上辺だけ透明にする。
+     これがスピナーの「切れ目」になる。
+     回転すると、この切れ目が回って見える = ローディング表現 */
+  border-top-color: transparent;
+
+  /* border-radius: 50% → 正方形 → 完全な円に変形 */
+  border-radius: 50%;
+
+  /* animation の一括指定。各値の意味：
+     spin     → 使用する @keyframes の名前
+     0.8s     → 1回転に0.8秒かける（速すぎず遅すぎない速度）
+     linear   → 等速で回転する（ease にすると不自然に速度が変わる）
+     infinite → 永遠に繰り返す（ローディング中ずっと回る） */
+  animation: spin 0.8s linear infinite;
+
+  /* 通常時は非表示。ローディング中のみ表示する */
+  display: none;
+}
+
+/* === ローディング状態のボタン === */
+.btn--loading {
+  /* pointer-events: none → マウスのクリック・ホバーを完全に無効化。
+     HTMLの disabled属性を使わずにCSSだけでクリック不可にできる。
+     ※ disabled だとフォーム送信から除外されるなど副作用があるため、
+     ローディング中は pointer-events で制御するのがベター */
+  pointer-events: none;
+
+  /* opacity: 0.7 → 透明度を下げて「操作できない」ことを示す。
+     完全に消す(0)のではなく、少し薄くすることで
+     「まだ存在しているが、今は使えない」と伝える */
+  opacity: 0.7;
+
+  /* カーソル変更（pointer-eventsがnoneなので直接見えないが、
+     CSSの一貫性のために指定） */
+  cursor: not-allowed;
+}
+
+/* ローディング中だけスピナーを表示する */
+.btn--loading .btn__spinner {
+  /* display: inline-block → 非表示(none)から表示に切り替え。
+     inline-block にすることでテキストと横並びになる */
+  display: inline-block;
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// ローディングボタンの動作制御
+
+// getElementById → HTMLのid属性でDOM要素を取得する
+const btn = document.getElementById('loading-btn');
+// querySelector → CSSセレクタで子要素を取得する
+const btnText = btn.querySelector('.btn__text');
+
+// addEventListener → ボタンのクリックイベントを監視する
+btn.addEventListener('click', function () {
+
+  // --- ローディング開始 ---
+
+  // classList.add → 要素にCSSクラスを追加する。
+  // 'btn--loading' を付けることで、CSSのローディングスタイルが適用される
+  btn.classList.add('btn--loading');
+
+  // setAttribute → HTML属性の値を変更する。
+  // aria-busy="true" でスクリーンリーダーに「処理中」と伝える
+  btn.setAttribute('aria-busy', 'true');
+
+  // textContent → 要素のテキストを書き換える。
+  // ユーザーに「処理中」であることをテキストでも伝える
+  btnText.textContent = '処理中...';
+
+  // --- 2秒後にローディング解除（デモ用） ---
+
+  // setTimeout → 指定したミリ秒後に関数を実行する。
+  // 2000ミリ秒 = 2秒。実際のアプリではAPIのレスポンスを待つ
+  setTimeout(function () {
+
+    // classList.remove → 要素からCSSクラスを削除する。
+    // ローディングスタイルが解除され、通常状態に戻る
+    btn.classList.remove('btn--loading');
+
+    // aria-busy を false に戻す → 「処理が終わった」と伝える
+    btn.setAttribute('aria-busy', 'false');
+
+    // テキストを元に戻す
+    btnText.textContent = '送信する';
+
+  }, 2000);  // 2000ミリ秒 = 2秒後に実行
+});</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">連打対策（素早く何度もクリック）</div>
+          <p style="font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--space-2);">
+            <code>pointer-events: none</code> により、ローディング中のクリックは無視されます。ただし、<code>classList.add</code> が実行される前の極めて短い時間に2回目のクリックが入る可能性があるため、実運用ではJavaScript側でもフラグ変数（<code>isLoading</code>）を使って二重実行を防ぎます。
+          </p>
+          <button type="button" class="btn" id="rapid-btn" aria-busy="false">
+            <span class="btn__spinner" aria-hidden="true"></span>
+            <span class="btn__text">連打してみて</span>
+          </button>
+          <span id="rapid-count" style="margin-left: var(--space-3); font-size: var(--text-xs); color: var(--color-text-muted);">実行回数: 0</span>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">タイムアウト対策（ネットワーク遅延）</div>
+          <p style="font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--space-2);">
+            実際のアプリケーションでは、通信が永遠に終わらない可能性があります。一定時間（例: 10秒）経っても応答がない場合は、ローディングを解除してエラーメッセージを表示するべきです。ユーザーを無限に待たせないことが重要です。
+          </p>
+          <button type="button" class="btn" id="timeout-btn" aria-busy="false">
+            <span class="btn__spinner" aria-hidden="true"></span>
+            <span class="btn__text">タイムアウト体験（5秒）</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    // ===================================================================
+    // メインのローディングボタン — デモ動作
+    // ===================================================================
+
+    (function () {
+      // メインボタンの要素を取得
+      var btn = document.getElementById('loading-btn');
+      var btnText = btn.querySelector('.btn__text');
+
+      btn.addEventListener('click', function () {
+        // ローディング開始：クラス追加 + aria属性変更 + テキスト変更
+        btn.classList.add('btn--loading');
+        btn.setAttribute('aria-busy', 'true');
+        btnText.textContent = '処理中...';
+
+        // 2秒後に通常状態に戻す（デモ用）
+        setTimeout(function () {
+          btn.classList.remove('btn--loading');
+          btn.setAttribute('aria-busy', 'false');
+          btnText.textContent = '送信する';
+        }, 2000);
+      });
+    })();
+
+    // ===================================================================
+    // 連打対策デモ — フラグ変数で二重実行を防ぐ
+    // ===================================================================
+
+    (function () {
+      var btn = document.getElementById('rapid-btn');
+      var btnText = btn.querySelector('.btn__text');
+      var countDisplay = document.getElementById('rapid-count');
+
+      // isLoading → ローディング中かどうかを追跡するフラグ変数。
+      // CSSの pointer-events だけでなく、JS側でも制御することで
+      // 確実に二重実行を防ぐ
+      var isLoading = false;
+      var executeCount = 0;
+
+      btn.addEventListener('click', function () {
+        // フラグが true なら何もせずに終了する（二重実行防止）
+        if (isLoading) return;
+
+        // フラグを立てる → 以降のクリックをブロック
+        isLoading = true;
+        executeCount++;
+        countDisplay.textContent = '実行回数: ' + executeCount;
+
+        btn.classList.add('btn--loading');
+        btn.setAttribute('aria-busy', 'true');
+        btnText.textContent = '処理中...';
+
+        setTimeout(function () {
+          btn.classList.remove('btn--loading');
+          btn.setAttribute('aria-busy', 'false');
+          btnText.textContent = '連打してみて';
+          // フラグを戻す → 再度クリック可能に
+          isLoading = false;
+        }, 2000);
+      });
+    })();
+
+    // ===================================================================
+    // タイムアウトデモ — 一定時間後にエラー表示
+    // ===================================================================
+
+    (function () {
+      var btn = document.getElementById('timeout-btn');
+      var btnText = btn.querySelector('.btn__text');
+      var isLoading = false;
+
+      btn.addEventListener('click', function () {
+        if (isLoading) return;
+        isLoading = true;
+
+        btn.classList.add('btn--loading');
+        btn.setAttribute('aria-busy', 'true');
+        btnText.textContent = '処理中...';
+
+        // 5秒後にタイムアウト → エラー状態を表示
+        setTimeout(function () {
+          btn.classList.remove('btn--loading');
+          btn.setAttribute('aria-busy', 'false');
+
+          // エラー時はボタンの色を赤に変えてフィードバック
+          btn.style.backgroundColor = 'var(--color-danger-500, #ef4444)';
+          btnText.textContent = 'タイムアウト！再試行してください';
+
+          // さらに2秒後に元に戻す
+          setTimeout(function () {
+            btn.style.backgroundColor = '';
+            btnText.textContent = 'タイムアウト体験（5秒）';
+            isLoading = false;
+          }, 2000);
+        }, 5000);
+      });
+    })();
+  </script>
+</body>
+</html>

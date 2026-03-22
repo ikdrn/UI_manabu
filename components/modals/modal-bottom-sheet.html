@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ボトムシート — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       ボトムシート — コンポーネントスタイル
+       =================================================================== */
+
+    /* 背景オーバーレイ */
+    .bottom-sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 300ms ease, visibility 300ms ease;
+    }
+
+    .bottom-sheet-backdrop.is-active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* シート本体 */
+    .bottom-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: var(--color-surface, #fff);
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+      transform: translateY(100%);
+      transition: transform 300ms ease;
+      max-height: 80dvh;
+      display: flex;
+      flex-direction: column;
+      touch-action: none;
+    }
+
+    .bottom-sheet.is-active {
+      transform: translateY(0);
+    }
+
+    /* ドラッグハンドル */
+    .bottom-sheet__handle {
+      display: flex;
+      justify-content: center;
+      padding: 12px 0 8px;
+      cursor: grab;
+      flex-shrink: 0;
+    }
+
+    .bottom-sheet__handle::after {
+      content: "";
+      width: 36px;
+      height: 4px;
+      background: var(--color-border, #d1d5db);
+      border-radius: var(--radius-full, 9999px);
+    }
+
+    .bottom-sheet__handle:active {
+      cursor: grabbing;
+    }
+
+    /* ヘッダー */
+    .bottom-sheet__header {
+      padding: 4px 20px 12px;
+      flex-shrink: 0;
+    }
+
+    .bottom-sheet__title {
+      font-size: var(--text-base, 16px);
+      font-weight: var(--font-semibold, 600);
+      color: var(--color-text-primary, #1a1a2e);
+    }
+
+    /* アクションリスト */
+    .bottom-sheet__list {
+      list-style: none;
+      padding: 0 8px 8px;
+      margin: 0;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .bottom-sheet__item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 12px;
+      border-radius: var(--radius-md, 8px);
+      cursor: pointer;
+      transition: background-color var(--duration-fast, 150ms);
+      color: var(--color-text-primary, #1a1a2e);
+      font-size: var(--text-sm, 14px);
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      font-family: inherit;
+    }
+
+    .bottom-sheet__item:hover {
+      background: var(--color-surface-alt, #f3f4f6);
+    }
+
+    .bottom-sheet__item:active {
+      background: var(--color-border, #e5e7eb);
+    }
+
+    /* アクションアイコン */
+    .bottom-sheet__icon {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-surface-alt, #f3f4f6);
+      border-radius: var(--radius-md, 8px);
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .bottom-sheet__item-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .bottom-sheet__item-label {
+      font-weight: var(--font-medium, 500);
+    }
+
+    .bottom-sheet__item-desc {
+      font-size: var(--text-xs, 12px);
+      color: var(--color-text-secondary, #6b7280);
+    }
+
+    /* 危険な操作 */
+    .bottom-sheet__item--danger {
+      color: #ef4444;
+    }
+
+    .bottom-sheet__item--danger .bottom-sheet__icon {
+      background: #fef2f2;
+      color: #ef4444;
+    }
+
+    /* 区切り線 */
+    .bottom-sheet__divider {
+      height: 1px;
+      background: var(--color-border, #e5e7eb);
+      margin: 4px 12px;
+    }
+
+    /* キャンセルボタン */
+    .bottom-sheet__cancel {
+      padding: 8px;
+      flex-shrink: 0;
+      border-top: 1px solid var(--color-border, #e5e7eb);
+    }
+
+    .bottom-sheet__cancel-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      font-size: var(--text-sm, 14px);
+      font-weight: var(--font-semibold, 600);
+      color: var(--color-text-primary, #1a1a2e);
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-md, 8px);
+      cursor: pointer;
+      transition: background-color var(--duration-fast, 150ms);
+      font-family: inherit;
+    }
+
+    .bottom-sheet__cancel-btn:hover {
+      background: var(--color-surface-alt, #f3f4f6);
+    }
+
+    /* body スクロール防止 */
+    body.no-scroll {
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">モーダル</span>
+      <h1 class="component-title">ボトムシート</h1>
+      <p class="component-description">
+        画面下部から滑り上がるモバイル向けのUIパターン。アクション一覧やオプション選択に使い、ドラッグで閉じることができます。片手操作に最適化された、モバイルファーストなコンポーネントです。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container">
+        <button type="button" style="
+          padding: 10px 20px;
+          font-size: 14px;
+          font-weight: 600;
+          color: white;
+          background: var(--color-brand-500, #4f6ef7);
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+        " onclick="openBottomSheet()">
+          ボトムシートを開く
+        </button>
+      </div>
+
+      <!-- 背景オーバーレイ -->
+      <div class="bottom-sheet-backdrop" id="bottomSheetBackdrop" onclick="closeBottomSheet()"></div>
+
+      <!-- ボトムシート本体 -->
+      <div class="bottom-sheet" id="bottomSheet" role="dialog" aria-modal="true" aria-label="アクション">
+        <div class="bottom-sheet__handle" id="bottomSheetHandle"></div>
+        <div class="bottom-sheet__header">
+          <h3 class="bottom-sheet__title">アクション</h3>
+        </div>
+        <ul class="bottom-sheet__list">
+          <li>
+            <button type="button" class="bottom-sheet__item" onclick="closeBottomSheet()">
+              <span class="bottom-sheet__icon">📋</span>
+              <span class="bottom-sheet__item-text">
+                <span class="bottom-sheet__item-label">コピーする</span>
+                <span class="bottom-sheet__item-desc">クリップボードにコピー</span>
+              </span>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="bottom-sheet__item" onclick="closeBottomSheet()">
+              <span class="bottom-sheet__icon">📤</span>
+              <span class="bottom-sheet__item-text">
+                <span class="bottom-sheet__item-label">共有する</span>
+                <span class="bottom-sheet__item-desc">リンクを共有</span>
+              </span>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="bottom-sheet__item" onclick="closeBottomSheet()">
+              <span class="bottom-sheet__icon">✏️</span>
+              <span class="bottom-sheet__item-text">
+                <span class="bottom-sheet__item-label">編集する</span>
+                <span class="bottom-sheet__item-desc">内容を変更</span>
+              </span>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="bottom-sheet__item" onclick="closeBottomSheet()">
+              <span class="bottom-sheet__icon">⭐</span>
+              <span class="bottom-sheet__item-text">
+                <span class="bottom-sheet__item-label">お気に入りに追加</span>
+              </span>
+            </button>
+          </li>
+          <li><div class="bottom-sheet__divider"></div></li>
+          <li>
+            <button type="button" class="bottom-sheet__item bottom-sheet__item--danger" onclick="closeBottomSheet()">
+              <span class="bottom-sheet__icon">🗑</span>
+              <span class="bottom-sheet__item-text">
+                <span class="bottom-sheet__item-label">削除する</span>
+                <span class="bottom-sheet__item-desc">この操作は取り消せません</span>
+              </span>
+            </button>
+          </li>
+        </ul>
+        <div class="bottom-sheet__cancel">
+          <button type="button" class="bottom-sheet__cancel-btn" onclick="closeBottomSheet()">キャンセル</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜ下からスライドするのか？</strong><br>
+        スマートフォンを片手で持つとき、親指の届きやすい範囲は画面下部です。ボトムシートは操作対象を画面下部に配置することで、片手での操作性を最大化します。iOSのShare SheetやAndroidのBottom Sheetなど、主要なモバイルOSでも標準パターンとして採用されています。</p>
+        <p><strong>ドラッグハンドルの役割</strong><br>
+        上部の小さなバー（ドラッグハンドル）は、「この要素はドラッグで操作できる」ことを視覚的に伝えるアフォーダンスです。ユーザーがハンドルを下方向にドラッグすると、シートが閉じるジェスチャーが発動します。</p>
+        <p><strong>position: fixedの使い方</strong><br>
+        bottom: 0; left: 0; right: 0;でビューポートの下端に固定し、transform: translateY(100%)で画面外に隠します。開くときにtranslateY(0)にすることで、下からスライドするアニメーションになります。</p>
+        <p><strong>危険な操作の視覚的分離</strong><br>
+        「削除する」のような不可逆な操作は、区切り線で他のアクションと視覚的に分離し、赤色で警告を示します。誤タップを防ぐための重要なデザインパターンです。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- 背景オーバーレイ → クリックでシートを閉じる --&gt;
+&lt;div class="bottom-sheet-backdrop" id="backdrop"&gt;&lt;/div&gt;
+
+&lt;!-- ボトムシート本体 --&gt;
+&lt;div class="bottom-sheet" id="bottomSheet"
+     role="dialog" aria-modal="true" aria-label="アクション"&gt;
+
+  &lt;!-- ドラッグハンドル → 下にドラッグして閉じる --&gt;
+  &lt;div class="bottom-sheet__handle"&gt;&lt;/div&gt;
+
+  &lt;!-- ヘッダー --&gt;
+  &lt;div class="bottom-sheet__header"&gt;
+    &lt;h3 class="bottom-sheet__title"&gt;アクション&lt;/h3&gt;
+  &lt;/div&gt;
+
+  &lt;!-- アクションリスト --&gt;
+  &lt;ul class="bottom-sheet__list"&gt;
+    &lt;li&gt;
+      &lt;button type="button" class="bottom-sheet__item"&gt;
+        &lt;span class="bottom-sheet__icon"&gt;📋&lt;/span&gt;
+        &lt;span class="bottom-sheet__item-text"&gt;
+          &lt;span class="bottom-sheet__item-label"&gt;コピーする&lt;/span&gt;
+          &lt;span class="bottom-sheet__item-desc"&gt;クリップボードにコピー&lt;/span&gt;
+        &lt;/span&gt;
+      &lt;/button&gt;
+    &lt;/li&gt;
+
+    &lt;!-- 区切り線で危険な操作を分離 --&gt;
+    &lt;li&gt;&lt;div class="bottom-sheet__divider"&gt;&lt;/div&gt;&lt;/li&gt;
+
+    &lt;!-- 削除（危険な操作） --&gt;
+    &lt;li&gt;
+      &lt;button type="button"
+              class="bottom-sheet__item bottom-sheet__item--danger"&gt;
+        &lt;span class="bottom-sheet__icon"&gt;🗑&lt;/span&gt;
+        &lt;span class="bottom-sheet__item-text"&gt;
+          &lt;span class="bottom-sheet__item-label"&gt;削除する&lt;/span&gt;
+        &lt;/span&gt;
+      &lt;/button&gt;
+    &lt;/li&gt;
+  &lt;/ul&gt;
+
+  &lt;!-- キャンセルボタン --&gt;
+  &lt;div class="bottom-sheet__cancel"&gt;
+    &lt;button type="button" class="bottom-sheet__cancel-btn"&gt;
+      キャンセル
+    &lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* 背景オーバーレイ */
+.bottom-sheet-backdrop {
+  position: fixed;
+  /* inset: 0 → top/right/bottom/leftを全て0に。
+     画面全体を覆う */
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  /* 初期状態：非表示 */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 300ms ease, visibility 300ms ease;
+}
+
+.bottom-sheet-backdrop.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* シート本体 */
+.bottom-sheet {
+  /* position: fixed → ビューポートに対して固定配置 */
+  position: fixed;
+  /* bottom: 0 → 画面の下端に配置 */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: #fff;
+  /* 上側だけ角丸 → 下から出てくる「シート」の形状 */
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+
+  /* 初期状態：画面外（下）に隠す */
+  transform: translateY(100%);
+  transition: transform 300ms ease;
+
+  max-height: 80dvh;
+  display: flex;
+  flex-direction: column;
+
+  /* touch-action: none → ブラウザのデフォルトのタッチ操作
+     （スクロール等）を無効化し、独自のドラッグ処理を行う */
+  touch-action: none;
+}
+
+.bottom-sheet.is-active {
+  /* 表示状態：元の位置にスライドアップ */
+  transform: translateY(0);
+}
+
+/* ドラッグハンドル — 疑似要素で短いバーを描画 */
+.bottom-sheet__handle::after {
+  content: "";
+  width: 36px;
+  height: 4px;
+  background: #d1d5db;
+  border-radius: 9999px;
+}
+
+/* 危険な操作は赤色で警告 */
+.bottom-sheet__item--danger {
+  color: #ef4444;
+}
+
+.bottom-sheet__item--danger .bottom-sheet__icon {
+  background: #fef2f2;
+  color: #ef4444;
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="javascript">const sheet = document.getElementById('bottomSheet');
+const backdrop = document.getElementById('backdrop');
+const handle = document.getElementById('handle');
+
+// シートを開く
+function openBottomSheet() {
+  sheet.classList.add('is-active');
+  backdrop.classList.add('is-active');
+  // 背景スクロールを防止
+  document.body.classList.add('no-scroll');
+}
+
+// シートを閉じる
+function closeBottomSheet() {
+  sheet.classList.remove('is-active');
+  backdrop.classList.remove('is-active');
+  document.body.classList.remove('no-scroll');
+}
+
+// 背景クリックで閉じる
+backdrop.addEventListener('click', closeBottomSheet);
+
+// ===== ドラッグで閉じる処理 =====
+let startY = 0;       // ドラッグ開始時のY座標
+let currentY = 0;     // 現在のY座標
+let isDragging = false;
+
+// touchstart → ドラッグ開始
+handle.addEventListener('touchstart', (e) =&gt; {
+  isDragging = true;
+  startY = e.touches[0].clientY;
+  // transitionを無効にして、指の動きに直接追従させる
+  sheet.style.transition = 'none';
+});
+
+// touchmove → ドラッグ中
+handle.addEventListener('touchmove', (e) =&gt; {
+  if (!isDragging) return;
+  currentY = e.touches[0].clientY;
+  // deltaY → 下方向に動いた距離（正の値）
+  const deltaY = Math.max(0, currentY - startY);
+  // シートを下にずらす
+  sheet.style.transform = `translateY(${deltaY}px)`;
+});
+
+// touchend → ドラッグ終了
+handle.addEventListener('touchend', () =&gt; {
+  isDragging = false;
+  // transitionを戻してアニメーションさせる
+  sheet.style.transition = 'transform 300ms ease';
+
+  const deltaY = currentY - startY;
+  // 100px以上下にドラッグしたら閉じる
+  if (deltaY &gt; 100) {
+    closeBottomSheet();
+  } else {
+    // 閾値未満なら元に戻す
+    sheet.style.transform = 'translateY(0)';
+  }
+});</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">多数のアクション項目</div>
+          <p style="font-size: 14px; color: var(--color-text-secondary, #6b7280);">
+            アクション数が多い場合、max-heightで制限しoverflow-y: autoでスクロール可能にしています。ドラッグとスクロールの競合を防ぐため、ドラッグはハンドル部分のみで受け付けます。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">マウス環境でのドラッグ</div>
+          <p style="font-size: 14px; color: var(--color-text-secondary, #6b7280);">
+            タッチイベント（touchstart/touchmove/touchend）はモバイル向けです。デスクトップ環境ではmousedown/mousemove/mouseupイベントも併用するか、背景クリックやキャンセルボタンで閉じる方法を提供します。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">アクセシビリティ</div>
+          <p style="font-size: 14px; color: var(--color-text-secondary, #6b7280);">
+            dialog要素ではないため、role="dialog"とaria-modal="true"を手動で設定しています。また、フォーカストラップやEscapeキーでの閉じる処理もJavaScriptで実装する必要があります。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script>
+    // ボトムシートの開閉
+    function openBottomSheet() {
+      document.getElementById('bottomSheet').classList.add('is-active');
+      document.getElementById('bottomSheetBackdrop').classList.add('is-active');
+      document.body.classList.add('no-scroll');
+    }
+
+    function closeBottomSheet() {
+      const sheet = document.getElementById('bottomSheet');
+      sheet.classList.remove('is-active');
+      document.getElementById('bottomSheetBackdrop').classList.remove('is-active');
+      document.body.classList.remove('no-scroll');
+      // transformをリセット（ドラッグ後のリセット）
+      sheet.style.transition = 'transform 300ms ease';
+      sheet.style.transform = '';
+    }
+
+    // ドラッグで閉じる処理
+    (function() {
+      const sheet = document.getElementById('bottomSheet');
+      const handle = document.getElementById('bottomSheetHandle');
+      let startY = 0;
+      let currentY = 0;
+      let isDragging = false;
+
+      // タッチイベント
+      handle.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        startY = e.touches[0].clientY;
+        sheet.style.transition = 'none';
+      });
+
+      handle.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        currentY = e.touches[0].clientY;
+        const deltaY = Math.max(0, currentY - startY);
+        sheet.style.transform = `translateY(${deltaY}px)`;
+      });
+
+      handle.addEventListener('touchend', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        sheet.style.transition = 'transform 300ms ease';
+        const deltaY = currentY - startY;
+        if (deltaY > 100) {
+          closeBottomSheet();
+        } else {
+          sheet.style.transform = 'translateY(0)';
+        }
+      });
+
+      // マウスイベント（デスクトップ対応）
+      handle.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startY = e.clientY;
+        sheet.style.transition = 'none';
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        currentY = e.clientY;
+        const deltaY = Math.max(0, currentY - startY);
+        sheet.style.transform = `translateY(${deltaY}px)`;
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        sheet.style.transition = 'transform 300ms ease';
+        const deltaY = currentY - startY;
+        if (deltaY > 100) {
+          closeBottomSheet();
+        } else {
+          sheet.style.transform = 'translateY(0)';
+        }
+      });
+
+      // Escapeキーで閉じる
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && sheet.classList.contains('is-active')) {
+          closeBottomSheet();
+        }
+      });
+    })();
+  </script>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>トースト通知 — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       トースト通知 — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- トーストコンテナ（右上に固定） --- */
+    .toast-container {
+      position: fixed;
+      top: var(--space-4);
+      right: var(--space-4);
+      z-index: var(--z-toast);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      pointer-events: none;
+    }
+
+    /* --- トースト本体 --- */
+    .toast {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      min-width: 300px;
+      max-width: 420px;
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      font-size: var(--text-sm);
+      color: var(--color-neutral-700);
+      pointer-events: auto;
+      animation: toast-slide-in var(--duration-normal) var(--ease-out);
+    }
+
+    .toast.is-leaving {
+      animation: toast-slide-out var(--duration-fast) var(--ease-out) forwards;
+    }
+
+    @keyframes toast-slide-in {
+      from { transform: translateX(120%); opacity: 0; }
+      to   { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes toast-slide-out {
+      from { transform: translateX(0); opacity: 1; }
+      to   { transform: translateX(120%); opacity: 0; }
+    }
+
+    /* --- アイコンエリア --- */
+    .toast__icon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: white;
+      margin-top: 1px;
+    }
+
+    /* --- バリエーション --- */
+    .toast--success { border-left: 3px solid var(--color-state-success); }
+    .toast--success .toast__icon { background: var(--color-state-success); }
+
+    .toast--error { border-left: 3px solid var(--color-state-error); }
+    .toast--error .toast__icon { background: var(--color-state-error); }
+
+    .toast--warning { border-left: 3px solid var(--color-state-warning); }
+    .toast--warning .toast__icon { background: var(--color-state-warning); }
+
+    .toast--info { border-left: 3px solid var(--color-state-info); }
+    .toast--info .toast__icon { background: var(--color-state-info); }
+
+    /* --- コンテンツ --- */
+    .toast__content {
+      flex: 1;
+    }
+
+    .toast__title {
+      font-weight: var(--font-semibold);
+      color: var(--color-neutral-800);
+      margin-bottom: 2px;
+    }
+
+    .toast__message {
+      color: var(--color-neutral-500);
+      line-height: var(--leading-normal);
+    }
+
+    /* --- 閉じるボタン --- */
+    .toast__close {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      color: var(--color-neutral-400);
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      font-size: var(--text-base);
+      transition: background var(--duration-fast), color var(--duration-fast);
+    }
+
+    .toast__close:hover {
+      background: var(--color-neutral-100);
+      color: var(--color-neutral-700);
+    }
+
+    /* --- デモ用ボタン群 --- */
+    .demo-btn {
+      padding: 8px 16px;
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      color: white;
+      transition: opacity var(--duration-fast);
+    }
+    .demo-btn:hover { opacity: 0.85; }
+    .demo-btn--success { background: var(--color-state-success); }
+    .demo-btn--error { background: var(--color-state-error); }
+    .demo-btn--warning { background: var(--color-state-warning); }
+    .demo-btn--info { background: var(--color-state-info); }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">フィードバック</span>
+      <h1 class="component-title">トースト通知</h1>
+      <p class="component-description">
+        一時的なフィードバックメッセージを画面の隅に表示し、自動的に消えるUI。操作の結果（成功・エラー等）をユーザーに伝えます。
+      </p>
+    </header>
+
+    <!-- ========== トーストコンテナ ========== -->
+    <div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container">
+        <button class="demo-btn demo-btn--success" onclick="showToast('success', '保存完了', 'データが正常に保存されました。')">成功</button>
+        <button class="demo-btn demo-btn--error" onclick="showToast('error', 'エラー', '保存に失敗しました。もう一度お試しください。')">エラー</button>
+        <button class="demo-btn demo-btn--warning" onclick="showToast('warning', '注意', 'ディスク容量が残り10%です。')">警告</button>
+        <button class="demo-btn demo-btn--info" onclick="showToast('info', 'お知らせ', '新しいアップデートが利用可能です。')">情報</button>
+      </div>
+    </section>
+
+    <!-- ========== 静的プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">全バリエーション</h2>
+      <div class="preview-container preview-container--col" style="gap:var(--space-3); align-items:stretch; max-width:420px; margin:0 auto;">
+        <div class="toast toast--success" style="animation:none; position:static;">
+          <div class="toast__icon">✓</div>
+          <div class="toast__content">
+            <div class="toast__title">保存完了</div>
+            <div class="toast__message">データが正常に保存されました。</div>
+          </div>
+          <button class="toast__close" aria-label="閉じる">×</button>
+        </div>
+        <div class="toast toast--error" style="animation:none; position:static;">
+          <div class="toast__icon">!</div>
+          <div class="toast__content">
+            <div class="toast__title">エラー</div>
+            <div class="toast__message">保存に失敗しました。もう一度お試しください。</div>
+          </div>
+          <button class="toast__close" aria-label="閉じる">×</button>
+        </div>
+        <div class="toast toast--warning" style="animation:none; position:static;">
+          <div class="toast__icon">⚠</div>
+          <div class="toast__content">
+            <div class="toast__title">注意</div>
+            <div class="toast__message">ディスク容量が残り10%です。</div>
+          </div>
+          <button class="toast__close" aria-label="閉じる">×</button>
+        </div>
+        <div class="toast toast--info" style="animation:none; position:static;">
+          <div class="toast__icon">i</div>
+          <div class="toast__content">
+            <div class="toast__title">お知らせ</div>
+            <div class="toast__message">新しいアップデートが利用可能です。</div>
+          </div>
+          <button class="toast__close" aria-label="閉じる">×</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>aria-live="polite" で通知をアクセシブルに</strong><br>
+        aria-live="polite" を設定したコンテナに要素を追加すると、スクリーンリーダーが現在の読み上げを中断せずに通知内容を読み上げます。エラーなど緊急性の高いものには "assertive" を使います。</p>
+        <p><strong>自動消去と手動閉じの併用</strong><br>
+        成功メッセージは3〜5秒で自動消去、エラーは手動で閉じるまで残すのが一般的です。自動消去だけだと「読む前に消えた」問題が起き、手動だけだと「閉じるのが面倒」になります。</p>
+        <p><strong>スタッキング（積み重ね）</strong><br>
+        複数のトーストが同時に出る場合、上から下に積み重ねます。flex-direction: column と gap で自然に配置されます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- aria-live="polite" → 動的に追加されたコンテンツを
+     スクリーンリーダーが自動的に読み上げる --&gt;
+&lt;div class="toast-container" aria-live="polite" aria-atomic="true"&gt;
+
+  &lt;!-- トースト1つ分 --&gt;
+  &lt;div class="toast toast--success" role="status"&gt;
+    &lt;div class="toast__icon"&gt;✓&lt;/div&gt;
+    &lt;div class="toast__content"&gt;
+      &lt;div class="toast__title"&gt;保存完了&lt;/div&gt;
+      &lt;div class="toast__message"&gt;データが正常に保存されました。&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;button class="toast__close" aria-label="閉じる"&gt;×&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- トーストコンテナ：画面右上に固定 --- */
+.toast-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column; /* 上から下に積み重ねる */
+  gap: 8px;
+  pointer-events: none;   /* コンテナ自体はクリック透過 */
+}
+
+/* --- スライドインアニメーション --- */
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(120%); /* 右端の外から */
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* --- スライドアウト（消える時） --- */
+@keyframes toast-slide-out {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(120%); opacity: 0; }
+}
+
+/* --- 種類ごとの左ボーダー色 --- */
+.toast--success { border-left: 3px solid var(--color-state-success); }
+.toast--error   { border-left: 3px solid var(--color-state-error); }
+.toast--warning { border-left: 3px solid var(--color-state-warning); }
+.toast--info    { border-left: 3px solid var(--color-state-info); }</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// アイコンマッピング
+const ICONS = {
+  success: '✓', error: '!', warning: '⚠', info: 'i'
+};
+
+function showToast(type, title, message, duration = 4000) {
+  const container = document.getElementById('toast-container');
+
+  // トースト要素を生成
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${type}`;
+  toast.setAttribute('role', 'status');
+
+  toast.innerHTML = `
+    &lt;div class="toast__icon"&gt;${ICONS[type]}&lt;/div&gt;
+    &lt;div class="toast__content"&gt;
+      &lt;div class="toast__title"&gt;${title}&lt;/div&gt;
+      &lt;div class="toast__message"&gt;${message}&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;button class="toast__close" aria-label="閉じる"&gt;×&lt;/button&gt;
+  `;
+
+  // 閉じるボタンのイベント
+  toast.querySelector('.toast__close')
+    .addEventListener('click', () => removeToast(toast));
+
+  // コンテナに追加
+  container.appendChild(toast);
+
+  // 自動消去：指定時間後にスライドアウト
+  if (duration > 0) {
+    setTimeout(() => removeToast(toast), duration);
+  }
+}
+
+function removeToast(toast) {
+  toast.classList.add('is-leaving');
+  // アニメーション終了後にDOMから削除
+  toast.addEventListener('animationend', () => toast.remove());
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">長いメッセージ</div>
+          <div class="toast toast--info" style="animation:none; position:static; max-width:420px;">
+            <div class="toast__icon">i</div>
+            <div class="toast__content">
+              <div class="toast__title">システムメンテナンスのお知らせ</div>
+              <div class="toast__message">2024年2月15日 午前2:00〜午前6:00の間、システムメンテナンスを実施します。この間、一部の機能がご利用いただけません。ご不便をおかけしますが、ご理解のほどよろしくお願いいたします。</div>
+            </div>
+            <button class="toast__close" aria-label="閉じる">×</button>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">タイトルのみ（メッセージなし）</div>
+          <div class="toast toast--success" style="animation:none; position:static; max-width:420px;">
+            <div class="toast__icon">✓</div>
+            <div class="toast__content">
+              <div class="toast__title">コピーしました</div>
+            </div>
+            <button class="toast__close" aria-label="閉じる">×</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script>
+    const ICONS = { success: '✓', error: '!', warning: '⚠', info: 'i' };
+
+    function showToast(type, title, message, duration = 4000) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast toast--${type}`;
+      toast.setAttribute('role', 'status');
+      toast.innerHTML = `
+        <div class="toast__icon">${ICONS[type]}</div>
+        <div class="toast__content">
+          <div class="toast__title">${title}</div>
+          ${message ? `<div class="toast__message">${message}</div>` : ''}
+        </div>
+        <button class="toast__close" aria-label="閉じる">×</button>
+      `;
+      toast.querySelector('.toast__close').addEventListener('click', () => removeToast(toast));
+      container.appendChild(toast);
+      if (duration > 0) {
+        setTimeout(() => removeToast(toast), duration);
+      }
+    }
+
+    function removeToast(toast) {
+      if (!toast.parentNode) return;
+      toast.classList.add('is-leaving');
+      toast.addEventListener('animationend', () => toast.remove());
+    }
+  </script>
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

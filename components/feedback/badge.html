@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>バッジ — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       バッジ — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- ドットバッジ --- */
+    .badge-dot-wrapper {
+      position: relative;
+      display: inline-flex;
+    }
+
+    .badge-dot {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 10px;
+      height: 10px;
+      background: var(--color-state-error);
+      border: 2px solid var(--color-surface-raised);
+      border-radius: var(--radius-full);
+    }
+
+    /* パルスアニメーション */
+    .badge-dot--pulse::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      width: 10px;
+      height: 10px;
+      background: var(--color-state-error);
+      border-radius: var(--radius-full);
+      animation: badge-pulse 1.5s ease-out infinite;
+    }
+
+    @keyframes badge-pulse {
+      0%   { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(2.5); opacity: 0; }
+    }
+
+    /* --- カウンターバッジ --- */
+    .badge-count-wrapper {
+      position: relative;
+      display: inline-flex;
+    }
+
+    .badge-count {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      font-size: 11px;
+      font-weight: var(--font-bold);
+      line-height: 20px;
+      text-align: center;
+      color: white;
+      background: var(--color-state-error);
+      border: 2px solid var(--color-surface-raised);
+      border-radius: var(--radius-full);
+      transform: translate(25%, -25%);
+    }
+
+    /* --- ステータスラベルバッジ --- */
+    .badge-label {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: 2px 10px;
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      border-radius: var(--radius-full);
+      line-height: 1.5;
+    }
+
+    .badge-label--success {
+      color: var(--color-state-success);
+      background: var(--color-state-success-bg);
+    }
+
+    .badge-label--error {
+      color: var(--color-state-error);
+      background: var(--color-state-error-bg);
+    }
+
+    .badge-label--warning {
+      color: hsl(38, 70%, 35%);
+      background: var(--color-state-warning-bg);
+    }
+
+    .badge-label--info {
+      color: var(--color-state-info);
+      background: var(--color-state-info-bg);
+    }
+
+    .badge-label--neutral {
+      color: var(--color-neutral-600);
+      background: var(--color-neutral-100);
+    }
+
+    /* ステータスドット */
+    .badge-label__dot {
+      width: 6px;
+      height: 6px;
+      border-radius: var(--radius-full);
+      background: currentColor;
+    }
+
+    /* --- デモ用アイコンボタン --- */
+    .demo-icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: var(--color-neutral-100);
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: 20px;
+      color: var(--color-neutral-600);
+    }
+
+    /* --- デモ用アバター --- */
+    .demo-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-full);
+      background: var(--color-brand-100);
+      color: var(--color-brand-600);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: var(--font-bold);
+      font-size: var(--text-sm);
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">フィードバック</span>
+      <h1 class="component-title">バッジ</h1>
+      <p class="component-description">
+        通知数や状態を小さなインジケーターで伝えるUI。ドットバッジ、カウンターバッジ、ステータスラベルの3種類を学びます。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー: ドットバッジ ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+
+      <div style="margin-bottom:var(--space-6);">
+        <h3 style="font-size:var(--text-sm); font-weight:var(--font-semibold); color:var(--color-neutral-600); margin-bottom:var(--space-3);">ドットバッジ</h3>
+        <div class="preview-container" style="gap:var(--space-8);">
+          <div class="badge-dot-wrapper">
+            <button class="demo-icon-btn" aria-label="通知（未読あり）">🔔</button>
+            <span class="badge-dot" aria-hidden="true"></span>
+          </div>
+          <div class="badge-dot-wrapper">
+            <div class="demo-avatar">田</div>
+            <span class="badge-dot badge-dot--pulse" aria-hidden="true"></span>
+          </div>
+          <div class="badge-dot-wrapper">
+            <button class="demo-icon-btn" aria-label="メッセージ（未読あり）">✉</button>
+            <span class="badge-dot" aria-hidden="true"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== カウンターバッジ ========== -->
+      <div style="margin-bottom:var(--space-6);">
+        <h3 style="font-size:var(--text-sm); font-weight:var(--font-semibold); color:var(--color-neutral-600); margin-bottom:var(--space-3);">カウンターバッジ</h3>
+        <div class="preview-container" style="gap:var(--space-8);">
+          <div class="badge-count-wrapper">
+            <button class="demo-icon-btn" aria-label="通知 3件">🔔</button>
+            <span class="badge-count" aria-hidden="true">3</span>
+          </div>
+          <div class="badge-count-wrapper">
+            <button class="demo-icon-btn" aria-label="メッセージ 12件">✉</button>
+            <span class="badge-count" aria-hidden="true">12</span>
+          </div>
+          <div class="badge-count-wrapper">
+            <button class="demo-icon-btn" aria-label="カート 99件以上">🛒</button>
+            <span class="badge-count" aria-hidden="true">99+</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== ステータスラベル ========== -->
+      <div>
+        <h3 style="font-size:var(--text-sm); font-weight:var(--font-semibold); color:var(--color-neutral-600); margin-bottom:var(--space-3);">ステータスラベル</h3>
+        <div class="preview-container" style="gap:var(--space-3);">
+          <span class="badge-label badge-label--success"><span class="badge-label__dot"></span>アクティブ</span>
+          <span class="badge-label badge-label--error"><span class="badge-label__dot"></span>エラー</span>
+          <span class="badge-label badge-label--warning"><span class="badge-label__dot"></span>保留中</span>
+          <span class="badge-label badge-label--info"><span class="badge-label__dot"></span>進行中</span>
+          <span class="badge-label badge-label--neutral"><span class="badge-label__dot"></span>下書き</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>position: absolute + transform でバッジを配置</strong><br>
+        親要素を position: relative にし、バッジを absolute で右上に配置します。transform で微調整することで、親要素の外にはみ出す「浮いた」表現になります。</p>
+        <p><strong>パルスアニメーションで注意を引く</strong><br>
+        重要な通知には ::after 疑似要素でパルス（波紋）アニメーションを追加します。常にアニメーションするとうるさくなるので、本当に重要な通知にのみ使います。</p>
+        <p><strong>aria-hidden="true" で装飾を隠す</strong><br>
+        バッジのドットや数字は視覚的な補助です。スクリーンリーダーには親要素の aria-label（例：「通知 3件」）で情報を伝えるので、バッジ自体は aria-hidden にします。</p>
+        <p><strong>min-width でカウンターの形を保つ</strong><br>
+        カウンターバッジに min-width を設定することで、1桁でも2桁でも最低限の幅を保ち、きれいな丸い形を維持します。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- === ドットバッジ === --&gt;
+&lt;!-- ラッパーを position: relative に --&gt;
+&lt;div class="badge-dot-wrapper"&gt;
+  &lt;!-- aria-label でバッジの情報を含める --&gt;
+  &lt;button aria-label="通知（未読あり）"&gt;🔔&lt;/button&gt;
+  &lt;!-- バッジ自体は装飾なので aria-hidden --&gt;
+  &lt;span class="badge-dot" aria-hidden="true"&gt;&lt;/span&gt;
+&lt;/div&gt;
+
+&lt;!-- === パルス付きドット === --&gt;
+&lt;span class="badge-dot badge-dot--pulse" aria-hidden="true"&gt;&lt;/span&gt;
+
+&lt;!-- === カウンターバッジ === --&gt;
+&lt;div class="badge-count-wrapper"&gt;
+  &lt;button aria-label="カート 12件"&gt;🛒&lt;/button&gt;
+  &lt;span class="badge-count" aria-hidden="true"&gt;12&lt;/span&gt;
+&lt;/div&gt;
+
+&lt;!-- === ステータスラベル === --&gt;
+&lt;span class="badge-label badge-label--success"&gt;
+  &lt;span class="badge-label__dot"&gt;&lt;/span&gt;
+  アクティブ
+&lt;/span&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- ドットバッジ --- */
+.badge-dot-wrapper {
+  position: relative; /* バッジの位置基準 */
+  display: inline-flex;
+}
+
+.badge-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  background: var(--color-state-error);
+  /* border → 背景色と同じ色のボーダーで「くり抜き」効果 */
+  border: 2px solid var(--color-surface-raised);
+  border-radius: 9999px;
+}
+
+/* --- パルスアニメーション --- */
+.badge-dot--pulse::after {
+  content: '';
+  position: absolute;
+  inset: -2px; /* top/right/bottom/left 全て -2px */
+  background: var(--color-state-error);
+  border-radius: 9999px;
+  animation: badge-pulse 1.5s ease-out infinite;
+}
+
+@keyframes badge-pulse {
+  0%   { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* --- カウンターバッジ --- */
+.badge-count {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  /* min-width → 1桁でも最低幅を確保して丸い形を保つ */
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 20px;
+  color: white;
+  background: var(--color-state-error);
+  border: 2px solid var(--color-surface-raised);
+  border-radius: 9999px;
+}
+
+/* --- ステータスラベル --- */
+.badge-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 9999px; /* ピル型 */
+}
+
+.badge-label--success {
+  color: var(--color-state-success);
+  background: var(--color-state-success-bg);
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">大きな数値（99+表記）</div>
+          <div style="display:flex; gap:var(--space-6); align-items:center;">
+            <div class="badge-count-wrapper">
+              <button class="demo-icon-btn" aria-label="通知 1件">🔔</button>
+              <span class="badge-count" aria-hidden="true">1</span>
+            </div>
+            <div class="badge-count-wrapper">
+              <button class="demo-icon-btn" aria-label="通知 99件">🔔</button>
+              <span class="badge-count" aria-hidden="true">99</span>
+            </div>
+            <div class="badge-count-wrapper">
+              <button class="demo-icon-btn" aria-label="通知 100件以上">🔔</button>
+              <span class="badge-count" aria-hidden="true">99+</span>
+            </div>
+          </div>
+          <p style="font-size:var(--text-xs); color:var(--color-neutral-500); margin-top:var(--space-2);">100以上は「99+」と表示してバッジの幅を制限するのが一般的です。</p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">バッジなし（数が0の場合）</div>
+          <div class="badge-count-wrapper">
+            <button class="demo-icon-btn" aria-label="通知 0件">🔔</button>
+            <!-- バッジを非表示にする（DOMから削除 or display:none） -->
+          </div>
+          <p style="font-size:var(--text-xs); color:var(--color-neutral-500); margin-top:var(--space-2);">通知が0件の時はバッジ自体を非表示にします。</p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>モバイルボトムナビ — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       モバイルボトムナビゲーション — コンポーネントスタイル
+       =================================================================== */
+
+    .bottom-nav {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-around;
+      background: var(--color-surface-raised);
+      border-top: 1px solid var(--color-neutral-200);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      width: 100%;
+      max-width: 480px;
+    }
+
+    /* fixed版（実運用） */
+    .bottom-nav--fixed {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-width: none;
+      z-index: var(--z-sticky);
+      box-shadow: 0 -2px 8px hsla(220, 15%, 10%, 0.06);
+    }
+
+    /* --- 各アイテム --- */
+    .bottom-nav__item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      flex: 1;
+      padding: var(--space-2) var(--space-1);
+      color: var(--color-neutral-400);
+      text-decoration: none;
+      font-size: 10px;
+      font-weight: var(--font-medium);
+      transition: color var(--duration-fast);
+      position: relative;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .bottom-nav__item:hover {
+      color: var(--color-neutral-600);
+      text-decoration: none;
+    }
+
+    /* アクティブ状態 */
+    .bottom-nav__item.is-active {
+      color: var(--color-brand-600);
+    }
+
+    .bottom-nav__item.is-active::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 2px;
+      background: var(--color-brand-500);
+      border-radius: 0 0 2px 2px;
+    }
+
+    /* --- アイコン（SVGインライン） --- */
+    .bottom-nav__icon {
+      width: 24px;
+      height: 24px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .bottom-nav__item.is-active .bottom-nav__icon {
+      stroke-width: 2.2;
+    }
+
+    /* --- ラベル --- */
+    .bottom-nav__label {
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">ナビゲーション</span>
+      <h1 class="component-title">モバイルボトムナビ</h1>
+      <p class="component-description">
+        モバイルアプリでよく使われる画面下部固定のナビゲーション。アイコンとラベルの4項目で、主要な画面に素早くアクセスできます。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col" style="padding:0; overflow:hidden; max-width:420px; margin:0 auto; border-radius:var(--radius-lg); min-height:auto;">
+        <div style="padding:var(--space-8) var(--space-4); text-align:center; color:var(--color-neutral-400); font-size:var(--text-sm);">
+          画面コンテンツ領域<br><span style="font-size:var(--text-xs);">実運用では position: fixed で画面下部に固定</span>
+        </div>
+        <nav class="bottom-nav" aria-label="メインナビゲーション">
+          <a href="#" class="bottom-nav__item is-active" aria-current="page">
+            <svg class="bottom-nav__icon" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
+            <span class="bottom-nav__label">ホーム</span>
+          </a>
+          <a href="#" class="bottom-nav__item">
+            <svg class="bottom-nav__icon" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <span class="bottom-nav__label">検索</span>
+          </a>
+          <a href="#" class="bottom-nav__item">
+            <svg class="bottom-nav__icon" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            <span class="bottom-nav__label">通知</span>
+          </a>
+          <a href="#" class="bottom-nav__item">
+            <svg class="bottom-nav__icon" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zm-4 7a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <span class="bottom-nav__label">マイページ</span>
+          </a>
+        </nav>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>position: fixed + env(safe-area-inset-bottom)</strong><br>
+        固定配置で常に画面下部に表示します。iPhoneのホームインジケーター領域と重ならないように env(safe-area-inset-bottom) で下余白を確保します。</p>
+        <p><strong>4〜5項目が最適</strong><br>
+        ボトムナビの項目数は3〜5が推奨されます。多すぎるとタップ領域が狭くなり操作しにくくなります。6項目以上ある場合は「その他」メニューにまとめます。</p>
+        <p><strong>アイコン＋テキストラベル</strong><br>
+        アイコンだけでは意味が伝わらないことがあるため、必ずテキストラベルを添えます。アクティブ状態は色変更に加え、上部に小さなインジケーターバーを表示して視認性を高めます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- nav要素で囲み、aria-labelで識別 --&gt;
+&lt;nav class="bottom-nav bottom-nav--fixed"
+     aria-label="メインナビゲーション"&gt;
+
+  &lt;!-- 各アイテム：a要素でリンク。is-activeで現在のページ --&gt;
+  &lt;a href="/" class="bottom-nav__item is-active"
+     aria-current="page"&gt;
+    &lt;!-- SVGアイコン：インラインで配置 --&gt;
+    &lt;svg class="bottom-nav__icon" viewBox="0 0 24 24"&gt;
+      &lt;path d="M3 12l2-2m0 0l7-7 7 7..."&gt;&lt;/path&gt;
+    &lt;/svg&gt;
+    &lt;!-- テキストラベル：アイコンの意味を補足 --&gt;
+    &lt;span class="bottom-nav__label"&gt;ホーム&lt;/span&gt;
+  &lt;/a&gt;
+
+  &lt;a href="/search" class="bottom-nav__item"&gt;
+    &lt;svg class="bottom-nav__icon" viewBox="0 0 24 24"&gt;...&lt;/svg&gt;
+    &lt;span class="bottom-nav__label"&gt;検索&lt;/span&gt;
+  &lt;/a&gt;
+  &lt;!-- ... 残りのアイテム --&gt;
+&lt;/nav&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">.bottom-nav {
+  /* flex で均等配置 */
+  display: flex;
+  justify-content: space-around;
+
+  /* 画面下部に固定 */
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+
+  background: var(--color-surface-raised);
+  border-top: 1px solid var(--color-neutral-200);
+
+  /* env(safe-area-inset-bottom) →
+     iPhoneのホームインジケーター領域分の余白を確保。
+     対応していないブラウザでは 0px がフォールバック */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+
+  z-index: var(--z-sticky);
+}
+
+.bottom-nav__item {
+  /* 縦方向に積む：アイコン → ラベル */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+
+  /* flex: 1 → 全アイテムが均等幅 */
+  flex: 1;
+
+  /* タップ対象は44px以上を推奨 */
+  padding: 8px 4px;
+  font-size: 10px;
+  color: var(--color-neutral-400);
+
+  /* iOS Safariのタップハイライトを消す */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* アクティブ状態のインジケーターバー */
+.bottom-nav__item.is-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 2px;
+  background: var(--color-brand-500);
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">5項目（上限）</div>
+          <nav class="bottom-nav" aria-label="5項目デモ" style="max-width:480px;">
+            <a href="#" class="bottom-nav__item is-active" aria-current="page">
+              <svg class="bottom-nav__icon" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
+              <span class="bottom-nav__label">ホーム</span>
+            </a>
+            <a href="#" class="bottom-nav__item">
+              <svg class="bottom-nav__icon" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <span class="bottom-nav__label">検索</span>
+            </a>
+            <a href="#" class="bottom-nav__item">
+              <svg class="bottom-nav__icon" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+              <span class="bottom-nav__label">投稿</span>
+            </a>
+            <a href="#" class="bottom-nav__item">
+              <svg class="bottom-nav__icon" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              <span class="bottom-nav__label">通知</span>
+            </a>
+            <a href="#" class="bottom-nav__item">
+              <svg class="bottom-nav__icon" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zm-4 7a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+              <span class="bottom-nav__label">マイページ</span>
+            </a>
+          </nav>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">長いラベルテキスト</div>
+          <nav class="bottom-nav" aria-label="長いラベルデモ" style="max-width:480px;">
+            <a href="#" class="bottom-nav__item is-active" aria-current="page">
+              <svg class="bottom-nav__icon" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
+              <span class="bottom-nav__label">ホーム</span>
+            </a>
+            <a href="#" class="bottom-nav__item">
+              <svg class="bottom-nav__icon" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <span class="bottom-nav__label">お気に入り</span>
+            </a>
+            <a href="#" class="bottom-nav__item">
+              <svg class="bottom-nav__icon" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              <span class="bottom-nav__label">お知らせ</span>
+            </a>
+            <a href="#" class="bottom-nav__item">
+              <svg class="bottom-nav__icon" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zm-4 7a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+              <span class="bottom-nav__label">アカウント設定</span>
+            </a>
+          </nav>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script>
+    // アクティブ切り替えデモ
+    document.querySelectorAll('.bottom-nav').forEach(nav => {
+      nav.querySelectorAll('.bottom-nav__item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          nav.querySelectorAll('.bottom-nav__item').forEach(i => {
+            i.classList.remove('is-active');
+            i.removeAttribute('aria-current');
+          });
+          item.classList.add('is-active');
+          item.setAttribute('aria-current', 'page');
+        });
+      });
+    });
+  </script>
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

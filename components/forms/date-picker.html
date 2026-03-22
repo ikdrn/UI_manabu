@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日付ピッカー — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       日付ピッカー — コンポーネントスタイル
+       =================================================================== */
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .form-label {
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--color-neutral-800);
+    }
+
+    /* --- 日付入力フィールド --- */
+    .date-input-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .date-input {
+      width: 100%;
+      padding: 10px 40px 10px 12px;
+      font-size: var(--text-sm);
+      font-family: inherit;
+      color: var(--color-neutral-800);
+      background-color: var(--color-surface-raised);
+      border: 1px solid var(--color-neutral-300);
+      border-radius: var(--radius-md);
+      outline: none;
+      cursor: pointer;
+      transition: border-color var(--duration-fast),
+                  box-shadow var(--duration-fast);
+    }
+
+    .date-input:focus {
+      border-color: var(--color-brand-500);
+      box-shadow: 0 0 0 3px hsla(222, 80%, 50%, 0.15);
+    }
+
+    .date-input::placeholder {
+      color: var(--color-neutral-400);
+    }
+
+    .date-input-icon {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      color: var(--color-neutral-400);
+      pointer-events: none;
+    }
+
+    /* ============================================================
+       カレンダー本体
+       ============================================================ */
+    .calendar {
+      width: 320px;
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: var(--space-4);
+      user-select: none;
+    }
+
+    /* ドロップダウンとして表示する場合 */
+    .calendar--dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      z-index: var(--z-dropdown);
+      display: none;
+    }
+
+    .calendar--dropdown.open {
+      display: block;
+    }
+
+    /* --- ヘッダー（月表示 + ナビゲーション） --- */
+    .calendar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-4);
+    }
+
+    .calendar-title {
+      font-size: var(--text-base);
+      font-weight: var(--font-semibold);
+      color: var(--color-neutral-800);
+    }
+
+    .calendar-nav {
+      display: flex;
+      gap: var(--space-1);
+    }
+
+    .calendar-nav-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: none;
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      color: var(--color-neutral-600);
+      transition: background-color var(--duration-fast),
+                  border-color var(--duration-fast);
+    }
+
+    .calendar-nav-btn:hover {
+      background-color: var(--color-neutral-50);
+      border-color: var(--color-neutral-300);
+    }
+
+    .calendar-nav-btn:focus-visible {
+      outline: 2px solid var(--color-brand-500);
+      outline-offset: 2px;
+    }
+
+    /* --- 曜日ヘッダー --- */
+    .calendar-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0;
+      margin-bottom: var(--space-1);
+    }
+
+    .calendar-weekday {
+      font-size: var(--text-xs);
+      font-weight: var(--font-medium);
+      color: var(--color-neutral-400);
+      text-align: center;
+      padding: var(--space-1) 0;
+    }
+
+    /* 日曜を赤、土曜を青 */
+    .calendar-weekday:first-child {
+      color: hsl(0, 60%, 55%);
+    }
+
+    .calendar-weekday:last-child {
+      color: hsl(222, 60%, 55%);
+    }
+
+    /* --- 日付グリッド --- */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+    }
+
+    .calendar-day {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      aspect-ratio: 1;
+      font-size: var(--text-sm);
+      color: var(--color-neutral-700);
+      background: none;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background-color var(--duration-fast),
+                  color var(--duration-fast);
+      position: relative;
+    }
+
+    .calendar-day:hover {
+      background-color: var(--color-brand-50);
+    }
+
+    .calendar-day:focus-visible {
+      outline: 2px solid var(--color-brand-500);
+      outline-offset: -2px;
+    }
+
+    /* 今日のハイライト */
+    .calendar-day--today {
+      font-weight: var(--font-bold);
+      color: var(--color-brand-600);
+    }
+
+    .calendar-day--today::after {
+      content: '';
+      position: absolute;
+      bottom: 3px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: var(--radius-full);
+      background-color: var(--color-brand-500);
+    }
+
+    /* 選択された日付 */
+    .calendar-day--selected {
+      background-color: var(--color-brand-500);
+      color: white;
+      font-weight: var(--font-semibold);
+    }
+
+    .calendar-day--selected:hover {
+      background-color: var(--color-brand-600);
+    }
+
+    .calendar-day--selected.calendar-day--today::after {
+      background-color: white;
+    }
+
+    /* 当月以外の日（前月・翌月の日） */
+    .calendar-day--outside {
+      color: var(--color-neutral-300);
+    }
+
+    .calendar-day--outside:hover {
+      background-color: var(--color-neutral-50);
+    }
+
+    /* 日曜・土曜の色 */
+    .calendar-day--sun {
+      color: hsl(0, 55%, 55%);
+    }
+
+    .calendar-day--sat {
+      color: hsl(222, 55%, 55%);
+    }
+
+    .calendar-day--selected.calendar-day--sun,
+    .calendar-day--selected.calendar-day--sat {
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">フォーム</span>
+      <h1 class="component-title">日付ピッカー</h1>
+      <p class="component-description">
+        カレンダー形式の日付ピッカーは、ユーザーが視覚的に日付を選択できるコンポーネントです。CSS Gridによるカレンダーレイアウト、JavaScriptのDate APIによる月の計算、今日の強調表示を実装します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー：インラインカレンダー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー：インラインカレンダー</h2>
+      <div class="preview-container preview-container--col" style="align-items: flex-start;">
+
+        <div class="calendar" id="calendar-inline" role="application" aria-label="カレンダー">
+          <div class="calendar-header">
+            <span class="calendar-title" id="cal-inline-title"></span>
+            <div class="calendar-nav">
+              <button class="calendar-nav-btn" data-dir="prev" aria-label="前の月">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <button class="calendar-nav-btn" data-dir="next" aria-label="次の月">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="calendar-weekdays">
+            <span class="calendar-weekday">日</span>
+            <span class="calendar-weekday">月</span>
+            <span class="calendar-weekday">火</span>
+            <span class="calendar-weekday">水</span>
+            <span class="calendar-weekday">木</span>
+            <span class="calendar-weekday">金</span>
+            <span class="calendar-weekday">土</span>
+          </div>
+          <div class="calendar-grid" id="cal-inline-grid" role="grid"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== プレビュー：ドロップダウンカレンダー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー：ドロップダウン式</h2>
+      <div class="preview-container preview-container--col" style="align-items: flex-start; min-height: 420px;">
+
+        <div class="form-group">
+          <label class="form-label" for="date-field">予約日</label>
+          <div class="date-input-wrapper" id="date-picker-wrapper">
+            <input class="date-input" type="text" id="date-field" placeholder="yyyy/mm/dd" readonly aria-haspopup="dialog" aria-label="日付を選択">
+            <svg class="date-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+
+            <div class="calendar calendar--dropdown" id="calendar-dropdown" role="dialog" aria-label="日付選択カレンダー">
+              <div class="calendar-header">
+                <span class="calendar-title" id="cal-drop-title"></span>
+                <div class="calendar-nav">
+                  <button class="calendar-nav-btn" data-dir="prev" aria-label="前の月">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  </button>
+                  <button class="calendar-nav-btn" data-dir="next" aria-label="次の月">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="calendar-weekdays">
+                <span class="calendar-weekday">日</span>
+                <span class="calendar-weekday">月</span>
+                <span class="calendar-weekday">火</span>
+                <span class="calendar-weekday">水</span>
+                <span class="calendar-weekday">木</span>
+                <span class="calendar-weekday">金</span>
+                <span class="calendar-weekday">土</span>
+              </div>
+              <div class="calendar-grid" id="cal-drop-grid" role="grid"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>CSS Gridで7列のカレンダーレイアウトを作る</strong><br>
+        <code>grid-template-columns: repeat(7, 1fr)</code>で曜日に対応した7列グリッドを作ります。日付ボタンを順番に並べるだけで、自動的にカレンダーの形になります。前月の末日で開始位置を調整するのがポイントです。</p>
+
+        <p><strong>JavaScriptのDate APIでカレンダーを計算する</strong><br>
+        <code>new Date(year, month, 0).getDate()</code>でその月の日数を取得し、<code>new Date(year, month, 1).getDay()</code>で月初の曜日を知ります。この2つの情報があればカレンダーグリッドを構築できます。</p>
+
+        <p><strong>今日の日付をハイライトする理由</strong><br>
+        ユーザーがカレンダーを見た瞬間に「今日」がわかることで、「3日後」「来週の水曜日」といった相対的な日付選択が容易になります。小さなドット（<code>::after</code>擬似要素）で控えめに示します。</p>
+
+        <p><strong>日曜・土曜の色分け</strong><br>
+        日本のカレンダー慣習に合わせて、日曜を赤系、土曜を青系で表示します。休日の判定はロケールやAPIによって異なるため、ここでは曜日ベースの色分けのみ実装しています。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- カレンダー本体 -->
+&lt;div class="calendar" role="application" aria-label="カレンダー"&gt;
+  <!-- ヘッダー：月名と前後ナビゲーション -->
+  &lt;div class="calendar-header"&gt;
+    &lt;span class="calendar-title"&gt;2026年3月&lt;/span&gt;
+    &lt;div class="calendar-nav"&gt;
+      &lt;button class="calendar-nav-btn" data-dir="prev"
+              aria-label="前の月"&gt;
+        &lt;svg ...&gt;&lt;polyline points="15 18 9 12 15 6"/&gt;&lt;/svg&gt;
+      &lt;/button&gt;
+      &lt;button class="calendar-nav-btn" data-dir="next"
+              aria-label="次の月"&gt;
+        &lt;svg ...&gt;&lt;polyline points="9 18 15 12 9 6"/&gt;&lt;/svg&gt;
+      &lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  <!-- 曜日ヘッダー（7列のGrid） -->
+  &lt;div class="calendar-weekdays"&gt;
+    &lt;span class="calendar-weekday"&gt;日&lt;/span&gt;
+    &lt;span class="calendar-weekday"&gt;月&lt;/span&gt;
+    &lt;span class="calendar-weekday"&gt;火&lt;/span&gt;
+    &lt;span class="calendar-weekday"&gt;水&lt;/span&gt;
+    &lt;span class="calendar-weekday"&gt;木&lt;/span&gt;
+    &lt;span class="calendar-weekday"&gt;金&lt;/span&gt;
+    &lt;span class="calendar-weekday"&gt;土&lt;/span&gt;
+  &lt;/div&gt;
+
+  <!-- 日付グリッド → JSで動的に生成する -->
+  &lt;div class="calendar-grid" role="grid"&gt;
+    <!-- 各日付ボタン -->
+    &lt;button class="calendar-day"
+            aria-label="2026年3月22日"&gt;22&lt;/button&gt;
+    &lt;button class="calendar-day calendar-day--today"
+            aria-label="2026年3月22日（今日）"&gt;22&lt;/button&gt;
+    &lt;button class="calendar-day calendar-day--selected"
+            aria-pressed="true"&gt;15&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+<!-- ドロップダウン式 → 入力欄をクリックでカレンダーを表示 -->
+&lt;div class="date-input-wrapper"&gt;
+  &lt;input class="date-input" type="text" readonly
+         placeholder="yyyy/mm/dd"
+         aria-haspopup="dialog"&gt;
+  &lt;div class="calendar calendar--dropdown" role="dialog"&gt;
+    ...
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- カレンダーの7列グリッド --- */
+.calendar-grid {
+  /* display: grid → CSS Gridレイアウトを使う */
+  display: grid;
+  /* repeat(7, 1fr) → 7等分の列を作る。
+     曜日（日〜土）に対応する */
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+/* --- 日付ボタン --- */
+.calendar-day {
+  /* aspect-ratio: 1 → 正方形にする。
+     幅が変わっても常に1:1の比率を保つ */
+  aspect-ratio: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 150ms, color 150ms;
+}
+
+/* --- 今日のマーク --- */
+.calendar-day--today {
+  font-weight: 700;
+  color: var(--color-brand-600);
+}
+
+/* ::after擬似要素 → ボタンの下に小さなドットを追加して
+   「今日」を示す。content: ''で空の要素を生成する */
+.calendar-day--today::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--color-brand-500);
+}
+
+/* --- 選択された日付 --- */
+.calendar-day--selected {
+  /* ブランドカラーで塗りつぶして選択状態を示す */
+  background-color: var(--color-brand-500);
+  color: white;
+}
+
+/* --- 当月以外の日（前月・翌月） --- */
+.calendar-day--outside {
+  /* 薄いグレーで「この月の日ではない」ことを伝える */
+  color: var(--color-neutral-300);
+}
+
+/* --- ドロップダウン配置 --- */
+.calendar--dropdown {
+  /* position: absolute → 入力欄の真下に浮かせる */
+  position: absolute;
+  top: calc(100% + 4px);
+  z-index: var(--z-dropdown);
+  display: none;
+}
+
+.calendar--dropdown.open {
+  display: block;
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// --- カレンダー描画関数 ---
+function renderCalendar(container, year, month, selectedDate) {
+  const grid = container.querySelector('.calendar-grid');
+  const title = container.querySelector('.calendar-title');
+
+  // タイトルを「2026年3月」の形式で表示
+  title.textContent = `${year}年${month + 1}月`;
+
+  // --- 月の日数と開始曜日を計算 ---
+  // new Date(year, month + 1, 0) → 翌月の0日目＝当月の最終日
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  // new Date(year, month, 1).getDay() → 月初の曜日（0=日曜）
+  const startDay = new Date(year, month, 1).getDay();
+  // 前月の日数（カレンダーの先頭を埋めるため）
+  const prevDays = new Date(year, month, 0).getDate();
+
+  const today = new Date();
+  grid.innerHTML = '';
+
+  // --- 前月の日（グレー表示） ---
+  for (let i = startDay - 1; i &gt;= 0; i--) {
+    const day = prevDays - i;
+    const btn = createDayButton(day, 'outside');
+    grid.appendChild(btn);
+  }
+
+  // --- 当月の日 ---
+  for (let d = 1; d &lt;= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const dayOfWeek = date.getDay();
+    const classes = [];
+
+    // 今日かどうか判定
+    if (date.toDateString() === today.toDateString()) {
+      classes.push('today');
+    }
+
+    // 選択済みかどうか判定
+    if (selectedDate &amp;&amp;
+        date.toDateString() === selectedDate.toDateString()) {
+      classes.push('selected');
+    }
+
+    // 曜日の色分け（日曜=0, 土曜=6）
+    if (dayOfWeek === 0) classes.push('sun');
+    if (dayOfWeek === 6) classes.push('sat');
+
+    const btn = createDayButton(d, classes.join(' '));
+    // aria-label → 「2026年3月22日」のような読み上げテキスト
+    btn.setAttribute('aria-label',
+      `${year}年${month + 1}月${d}日` +
+      (classes.includes('today') ? '（今日）' : '')
+    );
+    grid.appendChild(btn);
+  }
+
+  // --- 翌月の日（残りのセルを埋める） ---
+  const totalCells = grid.children.length;
+  const remaining = (7 - totalCells % 7) % 7;
+  for (let i = 1; i &lt;= remaining; i++) {
+    const btn = createDayButton(i, 'outside');
+    grid.appendChild(btn);
+  }
+}
+
+function createDayButton(day, classStr) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'calendar-day';
+  // クラス名を追加（today, selected, outside, sun, sat）
+  if (classStr) {
+    classStr.split(' ').forEach(c =&gt; {
+      if (c) btn.classList.add('calendar-day--' + c);
+    });
+  }
+  btn.textContent = day;
+  return btn;
+}
+
+// --- 前月・次月ナビゲーション ---
+let currentYear = new Date().getFullYear();
+let currentMonth = new Date().getMonth();
+
+document.querySelectorAll('.calendar-nav-btn').forEach(btn =&gt; {
+  btn.addEventListener('click', () =&gt; {
+    if (btn.dataset.dir === 'prev') {
+      currentMonth--;
+      if (currentMonth &lt; 0) {
+        currentMonth = 11;
+        currentYear--;
+      }
+    } else {
+      currentMonth++;
+      if (currentMonth &gt; 11) {
+        currentMonth = 0;
+        currentYear++;
+      }
+    }
+    renderCalendar(calendar, currentYear, currentMonth, null);
+  });
+});</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">うるう年（2月29日）</div>
+          <p style="font-size: var(--text-xs); color: var(--color-neutral-500); margin: 4px 0 0;">
+            <code>new Date(year, 2, 0).getDate()</code>は自動的にうるう年を考慮して28または29を返します。特別な処理は不要です。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">年をまたぐナビゲーション（12月 → 1月）</div>
+          <p style="font-size: var(--text-xs); color: var(--color-neutral-500); margin: 4px 0 0;">
+            月を<code>++</code>/<code>--</code>した後に<code>0未満</code>なら年を-1、<code>11超</code>なら年を+1する処理が必要です。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">タイムゾーンの問題</div>
+          <p style="font-size: var(--text-xs); color: var(--color-neutral-500); margin: 4px 0 0;">
+            <code>new Date()</code>はブラウザのローカルタイムゾーンを使います。UTC基準で日付を扱う場合は<code>getUTCDate()</code>などのUTCメソッドを使う必要があります。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">月の初日が日曜日の場合</div>
+          <p style="font-size: var(--text-xs); color: var(--color-neutral-500); margin: 4px 0 0;">
+            <code>getDay()</code>が0を返すため、前月の日を表示しなくてよいケースです。ループの開始条件<code>i = startDay - 1</code>が<code>-1</code>になり、ループが実行されません。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    // ============================================================
+    // カレンダー描画ロジック
+    // ============================================================
+
+    function createCalendarInstance(container) {
+      const grid = container.querySelector('.calendar-grid');
+      const titleEl = container.querySelector('.calendar-title');
+      const navBtns = container.querySelectorAll('.calendar-nav-btn');
+
+      const today = new Date();
+      let viewYear = today.getFullYear();
+      let viewMonth = today.getMonth();
+      let selectedDate = null;
+      let onSelect = null;
+
+      function render() {
+        titleEl.textContent = `${viewYear}年${viewMonth + 1}月`;
+
+        const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+        const startDay = new Date(viewYear, viewMonth, 1).getDay();
+        const prevMonthDays = new Date(viewYear, viewMonth, 0).getDate();
+
+        grid.innerHTML = '';
+
+        // 前月の日
+        for (let i = startDay - 1; i >= 0; i--) {
+          grid.appendChild(makeDayBtn(prevMonthDays - i, true, null));
+        }
+
+        // 当月の日
+        for (let d = 1; d <= daysInMonth; d++) {
+          const date = new Date(viewYear, viewMonth, d);
+          const isToday = date.toDateString() === today.toDateString();
+          const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
+          const dayOfWeek = date.getDay();
+
+          const btn = makeDayBtn(d, false, date);
+
+          if (isToday) btn.classList.add('calendar-day--today');
+          if (isSelected) {
+            btn.classList.add('calendar-day--selected');
+            btn.setAttribute('aria-pressed', 'true');
+          }
+          if (dayOfWeek === 0) btn.classList.add('calendar-day--sun');
+          if (dayOfWeek === 6) btn.classList.add('calendar-day--sat');
+
+          const labelParts = [`${viewYear}年${viewMonth + 1}月${d}日`];
+          if (isToday) labelParts.push('（今日）');
+          btn.setAttribute('aria-label', labelParts.join(''));
+
+          btn.addEventListener('click', () => {
+            selectedDate = new Date(viewYear, viewMonth, d);
+            render();
+            if (onSelect) onSelect(selectedDate);
+          });
+
+          grid.appendChild(btn);
+        }
+
+        // 翌月の日
+        const totalCells = grid.children.length;
+        const remaining = (7 - totalCells % 7) % 7;
+        for (let i = 1; i <= remaining; i++) {
+          grid.appendChild(makeDayBtn(i, true, null));
+        }
+      }
+
+      function makeDayBtn(day, isOutside) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'calendar-day';
+        btn.textContent = day;
+        if (isOutside) btn.classList.add('calendar-day--outside');
+        return btn;
+      }
+
+      navBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (btn.dataset.dir === 'prev') {
+            viewMonth--;
+            if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+          } else {
+            viewMonth++;
+            if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+          }
+          render();
+        });
+      });
+
+      render();
+
+      return {
+        setOnSelect(fn) { onSelect = fn; },
+        getSelected() { return selectedDate; }
+      };
+    }
+
+    // --- インラインカレンダー ---
+    const inlineCal = createCalendarInstance(document.getElementById('calendar-inline'));
+
+    // --- ドロップダウンカレンダー ---
+    const dropdownWrapper = document.getElementById('date-picker-wrapper');
+    const dateInput = document.getElementById('date-field');
+    const dropdownCal = document.getElementById('calendar-dropdown');
+    const dropdownInstance = createCalendarInstance(dropdownCal);
+
+    // 入力欄クリックで開閉
+    dateInput.addEventListener('click', () => {
+      dropdownCal.classList.toggle('open');
+    });
+
+    // 日付選択時にフィールドに反映して閉じる
+    dropdownInstance.setOnSelect((date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      dateInput.value = `${y}/${m}/${d}`;
+      dropdownCal.classList.remove('open');
+    });
+
+    // 外側クリックで閉じる
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#date-picker-wrapper')) {
+        dropdownCal.classList.remove('open');
+      }
+    });
+  </script>
+</body>
+</html>

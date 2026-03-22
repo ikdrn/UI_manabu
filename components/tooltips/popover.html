@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ポップオーバー — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       ポップオーバー — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- 共通のポップオーバー基盤 --- */
+    .popover-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .popover-content {
+      position: absolute;
+      z-index: 10;
+      opacity: 0;
+      transform: scale(0.95);
+      transform-origin: top left;
+      pointer-events: none;
+      transition: opacity var(--duration-fast, 150ms) ease,
+                  transform var(--duration-fast, 150ms) ease;
+    }
+
+    .popover-content.is-open {
+      opacity: 1;
+      transform: scale(1);
+      pointer-events: auto;
+    }
+
+    /* ===========================
+       プロフィールカード型ポップオーバー
+       =========================== */
+    .profile-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2, 8px);
+      padding: 8px 16px;
+      background: var(--color-brand-500, #3b82f6);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md, 8px);
+      cursor: pointer;
+      font-size: var(--text-sm, 14px);
+      font-weight: var(--font-medium, 500);
+      transition: background-color var(--duration-fast, 150ms);
+    }
+
+    .profile-trigger:hover {
+      background-color: var(--color-brand-600, #2563eb);
+    }
+
+    .profile-trigger:focus-visible {
+      outline: 2px solid var(--color-brand-500, #3b82f6);
+      outline-offset: 2px;
+    }
+
+    .profile-card {
+      top: calc(100% + 8px);
+      left: 0;
+      width: 280px;
+      background: white;
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: var(--radius-lg, 12px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1),
+                  0 4px 10px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+    }
+
+    /* ヘッダー部分（カバー画像の代替） */
+    .profile-card__header {
+      height: 60px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    .profile-card__body {
+      padding: var(--space-4, 16px);
+      position: relative;
+    }
+
+    /* アバター */
+    .profile-card__avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--color-brand-500, #3b82f6);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-lg, 18px);
+      font-weight: var(--font-bold, 700);
+      border: 3px solid white;
+      position: absolute;
+      top: -28px;
+      left: 16px;
+    }
+
+    .profile-card__name {
+      margin-top: 28px;
+      font-size: var(--text-base, 16px);
+      font-weight: var(--font-semibold, 600);
+      color: var(--color-text-primary, #1a202c);
+    }
+
+    .profile-card__role {
+      font-size: var(--text-xs, 12px);
+      color: var(--color-text-tertiary, #94a3b8);
+      margin-top: 2px;
+    }
+
+    .profile-card__bio {
+      font-size: var(--text-sm, 14px);
+      color: var(--color-text-secondary, #64748b);
+      line-height: 1.5;
+      margin-top: var(--space-3, 12px);
+    }
+
+    .profile-card__actions {
+      display: flex;
+      gap: var(--space-2, 8px);
+      margin-top: var(--space-3, 12px);
+    }
+
+    .profile-card__btn {
+      flex: 1;
+      padding: 6px 12px;
+      font-size: var(--text-xs, 12px);
+      font-weight: var(--font-medium, 500);
+      border-radius: var(--radius-md, 8px);
+      cursor: pointer;
+      transition: background-color var(--duration-fast, 150ms);
+      text-align: center;
+    }
+
+    .profile-card__btn--primary {
+      background: var(--color-brand-500, #3b82f6);
+      color: white;
+      border: none;
+    }
+
+    .profile-card__btn--primary:hover {
+      background: var(--color-brand-600, #2563eb);
+    }
+
+    .profile-card__btn--secondary {
+      background: transparent;
+      color: var(--color-text-secondary, #64748b);
+      border: 1px solid var(--color-border, #e2e8f0);
+    }
+
+    .profile-card__btn--secondary:hover {
+      background: var(--color-surface-hover, #f7fafc);
+    }
+
+    /* ===========================
+       ドロップダウンメニュー型ポップオーバー
+       =========================== */
+    .menu-trigger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: none;
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: var(--radius-md, 8px);
+      cursor: pointer;
+      color: var(--color-text-secondary, #64748b);
+      font-size: 18px;
+      letter-spacing: 2px;
+      transition: background-color var(--duration-fast, 150ms),
+                  border-color var(--duration-fast, 150ms);
+    }
+
+    .menu-trigger:hover {
+      background-color: var(--color-surface-hover, #f7fafc);
+      border-color: var(--color-brand-300, #93c5fd);
+    }
+
+    .menu-trigger:focus-visible {
+      outline: 2px solid var(--color-brand-500, #3b82f6);
+      outline-offset: 2px;
+    }
+
+    .dropdown-menu {
+      top: calc(100% + 4px);
+      right: 0;
+      left: auto;
+      transform-origin: top right;
+      min-width: 180px;
+      background: white;
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: var(--radius-md, 8px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1),
+                  0 4px 10px rgba(0, 0, 0, 0.05);
+      padding: var(--space-1, 4px);
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2, 8px);
+      width: 100%;
+      padding: 8px 12px;
+      font-size: var(--text-sm, 14px);
+      color: var(--color-text-primary, #1a202c);
+      background: none;
+      border: none;
+      border-radius: var(--radius-sm, 4px);
+      cursor: pointer;
+      text-align: left;
+      transition: background-color var(--duration-fast, 150ms);
+    }
+
+    .dropdown-item:hover {
+      background-color: var(--color-surface-hover, #f7fafc);
+    }
+
+    .dropdown-item:focus-visible {
+      outline: 2px solid var(--color-brand-500, #3b82f6);
+      outline-offset: -2px;
+    }
+
+    .dropdown-item--danger {
+      color: var(--color-error, #ef4444);
+    }
+
+    .dropdown-item--danger:hover {
+      background-color: #fef2f2;
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background: var(--color-border, #e2e8f0);
+      margin: var(--space-1, 4px) 0;
+    }
+
+    .dropdown-item__icon {
+      width: 16px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    /* --- デモ配置用 --- */
+    .popover-demo-row {
+      display: flex;
+      gap: var(--space-8, 32px);
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">ツールチップ</span>
+      <h1 class="component-title">ポップオーバー</h1>
+      <p class="component-description">
+        クリックで表示されるフローティングUIパネル。プロフィールカードや3点メニューのドロップダウンなど、追加情報やアクションを提示するパターンです。外側クリックで閉じ、aria-expanded で開閉状態を伝えます。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container" style="min-height: 320px; align-items: flex-start;">
+        <div class="popover-demo-row">
+
+          <!-- プロフィールカード型 -->
+          <div class="popover-wrapper" id="profilePopover">
+            <button class="profile-trigger"
+                    aria-expanded="false"
+                    aria-haspopup="true"
+                    id="profileTrigger">
+              👤 田中 太郎
+            </button>
+            <div class="popover-content profile-card" id="profileCard" role="dialog" aria-label="プロフィール">
+              <div class="profile-card__header"></div>
+              <div class="profile-card__body">
+                <div class="profile-card__avatar">田</div>
+                <div class="profile-card__name">田中 太郎</div>
+                <div class="profile-card__role">UIデザイナー / フロントエンド開発者</div>
+                <p class="profile-card__bio">
+                  ユーザー体験を第一に考えたインターフェース設計を得意としています。デザインシステムの構築に情熱を持っています。
+                </p>
+                <div class="profile-card__actions">
+                  <button class="profile-card__btn profile-card__btn--primary">フォロー</button>
+                  <button class="profile-card__btn profile-card__btn--secondary">メッセージ</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3点メニュー型 -->
+          <div class="popover-wrapper" id="menuPopover">
+            <button class="menu-trigger"
+                    aria-expanded="false"
+                    aria-haspopup="true"
+                    aria-label="操作メニュー"
+                    id="menuTrigger">
+              ⋮
+            </button>
+            <div class="popover-content dropdown-menu" id="dropdownMenu" role="menu" aria-label="操作メニュー">
+              <button class="dropdown-item" role="menuitem">
+                <span class="dropdown-item__icon">✏️</span>
+                編集する
+              </button>
+              <button class="dropdown-item" role="menuitem">
+                <span class="dropdown-item__icon">📋</span>
+                コピーする
+              </button>
+              <button class="dropdown-item" role="menuitem">
+                <span class="dropdown-item__icon">📌</span>
+                ピン留め
+              </button>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item dropdown-item--danger" role="menuitem">
+                <span class="dropdown-item__icon">🗑️</span>
+                削除する
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>クリックトリガー vs ホバートリガー</strong><br>
+        ツールチップはホバーで表示しますが、ポップオーバーはクリックで表示します。ポップオーバーにはボタンやリンクなどのインタラクティブ要素が含まれるため、ホバーでは操作しづらく、タッチデバイスでは動作しません。</p>
+        <p><strong>外側クリックで閉じる理由</strong><br>
+        ユーザーがポップオーバーの外をクリックした時に閉じることは、「意図しない操作を防ぐ」ためです。Escapeキーでも閉じられるようにすると、キーボードユーザーの体験も向上します。</p>
+        <p><strong>scale(0.95)→scale(1) のアニメーション</strong><br>
+        ポップオーバーが「ボタンから生まれる」ような印象を与えるために、小さい状態から実寸に拡大します。transform-originをトリガーの近くに設定することで、視覚的な連続性が生まれます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- ポップオーバーのラッパー: position: relative の基準 --&gt;
+&lt;div class="popover-wrapper"&gt;
+
+  &lt;!-- aria-expanded → 開閉状態をスクリーンリーダーに伝える --&gt;
+  &lt;!-- aria-haspopup → この要素がポップアップを持つことを宣言 --&gt;
+  &lt;button class="profile-trigger"
+          aria-expanded="false"
+          aria-haspopup="true"&gt;
+    田中 太郎
+  &lt;/button&gt;
+
+  &lt;!-- role="dialog" → ポップオーバーをダイアログとして認識させる --&gt;
+  &lt;div class="popover-content profile-card"
+       role="dialog"
+       aria-label="プロフィール"&gt;
+    &lt;!-- カードの中身 --&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- === ドロップダウンメニュー === --&gt;
+&lt;div class="popover-wrapper"&gt;
+  &lt;button class="menu-trigger"
+          aria-expanded="false"
+          aria-haspopup="true"
+          aria-label="操作メニュー"&gt;
+    ⋮
+  &lt;/button&gt;
+
+  &lt;!-- role="menu" → メニュー項目のリストとして認識 --&gt;
+  &lt;div class="popover-content dropdown-menu"
+       role="menu"
+       aria-label="操作メニュー"&gt;
+
+    &lt;!-- role="menuitem" → メニュー内の各項目 --&gt;
+    &lt;button class="dropdown-item" role="menuitem"&gt;
+      編集する
+    &lt;/button&gt;
+    &lt;button class="dropdown-item" role="menuitem"&gt;
+      コピーする
+    &lt;/button&gt;
+
+    &lt;!-- 区切り線 --&gt;
+    &lt;div class="dropdown-divider"&gt;&lt;/div&gt;
+
+    &lt;!-- 危険な操作は色を変えて注意を促す --&gt;
+    &lt;button class="dropdown-item dropdown-item--danger" role="menuitem"&gt;
+      削除する
+    &lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- ポップオーバーの基盤スタイル --- */
+.popover-wrapper {
+  /* position: relative → 子要素のabsolute配置の基準点にする */
+  position: relative;
+  display: inline-block;
+}
+
+.popover-content {
+  /* position: absolute → トリガーボタンからの相対位置で配置 */
+  position: absolute;
+  z-index: 10;
+
+  /* 初期状態: 非表示 */
+  opacity: 0;
+  transform: scale(0.95);  /* わずかに小さい状態から始める */
+
+  /* transform-origin → アニメーションの起点。
+     トリガーに近い角を起点にすると自然な動きになる */
+  transform-origin: top left;
+
+  /* pointer-events: none → 非表示時はクリックを透過させる */
+  pointer-events: none;
+
+  /* opacity と transform をなめらかに変化させる */
+  transition: opacity 150ms ease,
+              transform 150ms ease;
+}
+
+/* is-open クラスで表示状態にする */
+.popover-content.is-open {
+  opacity: 1;
+  transform: scale(1);       /* 実寸に戻す */
+  pointer-events: auto;      /* クリックを受け付ける */
+}
+
+/* --- プロフィールカード --- */
+.profile-card {
+  /* トリガーの下に8pxの隙間を空けて配置 */
+  top: calc(100% + 8px);
+  left: 0;
+  width: 280px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  /* 2重シャドウで深みを出す（大きい影 + 小さい影） */
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1),
+              0 4px 10px rgba(0,0,0,0.05);
+}
+
+/* --- ドロップダウンメニュー --- */
+.dropdown-menu {
+  top: calc(100% + 4px);
+  right: 0;              /* 右揃え（3点ボタンの右端に合わせる） */
+  left: auto;
+  transform-origin: top right;  /* 右上を起点にアニメーション */
+  min-width: 180px;
+}
+
+/* メニュー項目 */
+.dropdown-item {
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 150ms;
+}
+
+.dropdown-item:hover {
+  background-color: #f7fafc;
+}
+
+/* 危険な操作は赤文字で警告 */
+.dropdown-item--danger {
+  color: #ef4444;
+}
+
+.dropdown-item--danger:hover {
+  background-color: #fef2f2;  /* 薄い赤背景 */
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// --- ポップオーバーの汎用制御クラス ---
+function setupPopover(triggerId, contentId) {
+  const trigger = document.getElementById(triggerId);
+  const content = document.getElementById(contentId);
+
+  // --- クリックで開閉をトグル ---
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation(); // イベントの伝播を止める
+    const isOpen = content.classList.contains('is-open');
+
+    // まず全てのポップオーバーを閉じる
+    closeAllPopovers();
+
+    if (!isOpen) {
+      // 閉じていたら開く
+      content.classList.add('is-open');
+      trigger.setAttribute('aria-expanded', 'true');
+    }
+  });
+}
+
+// --- 全ポップオーバーを閉じる関数 ---
+function closeAllPopovers() {
+  document.querySelectorAll('.popover-content.is-open')
+    .forEach(el => el.classList.remove('is-open'));
+  document.querySelectorAll('[aria-expanded="true"]')
+    .forEach(el => el.setAttribute('aria-expanded', 'false'));
+}
+
+// --- 外側クリックで閉じる ---
+// document全体のクリックを監視
+document.addEventListener('click', (e) => {
+  // closest() → クリック位置から親方向に.popover-wrapperを探す
+  // 見つからない = ポップオーバーの外側をクリックした
+  if (!e.target.closest('.popover-wrapper')) {
+    closeAllPopovers();
+  }
+});
+
+// --- Escapeキーで閉じる ---
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeAllPopovers();
+  }
+});
+
+// 各ポップオーバーを初期化
+setupPopover('profileTrigger', 'profileCard');
+setupPopover('menuTrigger', 'dropdownMenu');</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">画面端での位置調整</div>
+          <p style="font-size: var(--text-sm, 14px); color: var(--color-text-secondary, #64748b);">
+            ポップオーバーが画面の右端や下端からはみ出す場合、表示方向を自動で反転させるフリップ処理が必要です。Floating UIなどのライブラリを使うと効率的に実装できます。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">複数ポップオーバーの排他制御</div>
+          <p style="font-size: var(--text-sm, 14px); color: var(--color-text-secondary, #64748b);">
+            上のプレビューで両方のボタンを交互にクリックしてください。一方を開くともう一方が自動的に閉じることを確認できます。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">キーボード操作（Escapeで閉じる）</div>
+          <p style="font-size: var(--text-sm, 14px); color: var(--color-text-secondary, #64748b);">
+            ポップオーバーを開いた状態でEscapeキーを押すと閉じます。フォーカスがトリガーボタンに戻ることで、キーボードユーザーが迷子にならないようにします。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    // ===================================================================
+    // ポップオーバー — インタラクション制御
+    // ===================================================================
+
+    (() => {
+      // --- ポップオーバーの汎用セットアップ ---
+      function setupPopover(triggerId, contentId) {
+        const trigger = document.getElementById(triggerId);
+        const content = document.getElementById(contentId);
+
+        // クリックで開閉をトグル
+        trigger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isOpen = content.classList.contains('is-open');
+
+          // まず全てのポップオーバーを閉じる
+          closeAllPopovers();
+
+          if (!isOpen) {
+            content.classList.add('is-open');
+            trigger.setAttribute('aria-expanded', 'true');
+          }
+        });
+
+        // ポップオーバー内のクリックは伝播を止める
+        content.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+      }
+
+      // --- 全ポップオーバーを閉じる ---
+      function closeAllPopovers() {
+        document.querySelectorAll('.popover-content.is-open')
+          .forEach(el => el.classList.remove('is-open'));
+        document.querySelectorAll('[aria-expanded="true"]')
+          .forEach(el => el.setAttribute('aria-expanded', 'false'));
+      }
+
+      // --- 外側クリックで閉じる ---
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.popover-wrapper')) {
+          closeAllPopovers();
+        }
+      });
+
+      // --- Escapeキーで閉じる ---
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closeAllPopovers();
+        }
+      });
+
+      // 各ポップオーバーを初期化
+      setupPopover('profileTrigger', 'profileCard');
+      setupPopover('menuTrigger', 'dropdownMenu');
+    })();
+  </script>
+</body>
+</html>

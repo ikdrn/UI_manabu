@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>基本データテーブル — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       基本データテーブル — コンポーネントスタイル
+       =================================================================== */
+
+    /* --------------------------------------------------------------------
+       テーブルラッパー
+       横スクロール対応のためにテーブルを囲む外枠。
+       overflow-x: auto → テーブルが親要素より広い場合に横スクロールバーを表示する。
+       モバイルなど画面幅が狭い環境で、テーブル全体が崩れるのを防ぐ。
+       -------------------------------------------------------------------- */
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+
+      /* -webkit-overflow-scrolling: touch →
+         iOSで慣性スクロール（指を離しても滑らかに動く）を有効にする */
+      -webkit-overflow-scrolling: touch;
+
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+    }
+
+    /* --------------------------------------------------------------------
+       テーブル本体
+       -------------------------------------------------------------------- */
+    .data-table {
+      /* width: 100% → 親要素の幅いっぱいに広がる。
+         テーブルが狭すぎてスカスカになるのを防ぐ */
+      width: 100%;
+
+      /* border-collapse: collapse → セル同士の隙間をなくし、
+         ボーダーを1本線で共有する。これが最も一般的なテーブルスタイル。
+         対照的に border-spacing は隙間を空けるが、
+         デザインの制御が難しくなるため通常は collapse を使う */
+      border-collapse: collapse;
+
+      /* font-size → テーブル内の文字サイズ。本文より少し小さくして
+         多くのデータを見渡しやすくする */
+      font-size: var(--text-sm);
+
+      /* line-height → 行間を適度に取り、セル内のテキストを読みやすくする */
+      line-height: 1.5;
+    }
+
+    /* --------------------------------------------------------------------
+       キャプション — テーブルのタイトル
+       <caption>は意味的にテーブルの説明を示すHTML要素。
+       スクリーンリーダーがテーブルの内容を読み上げる際に使われる。
+       視覚的に非表示にしても、アクセシビリティ上必ず付けるべき要素。
+       -------------------------------------------------------------------- */
+    .data-table caption {
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--text-base);
+      font-weight: var(--font-semibold);
+      text-align: left;
+      color: var(--color-text-primary);
+      background-color: var(--color-bg-secondary);
+      border-bottom: 1px solid var(--color-border);
+
+      /* caption-side: top → キャプションをテーブルの上部に配置する。
+         bottom にすると下に移動する */
+      caption-side: top;
+    }
+
+    /* --------------------------------------------------------------------
+       ヘッダーセル（<th>）
+       scope="col" → この見出しが「列」全体に適用されることを示す。
+       スクリーンリーダーがデータセルを読み上げる際、
+       「名前: 田中太郎」のように見出しと値を関連づけて読む。
+       -------------------------------------------------------------------- */
+    .data-table thead th {
+      padding: var(--space-3) var(--space-4);
+      font-weight: var(--font-semibold);
+      text-align: left;
+      color: var(--color-text-secondary);
+      background-color: var(--color-bg-secondary);
+      border-bottom: 2px solid var(--color-border);
+
+      /* white-space: nowrap → ヘッダーテキストを折り返さない。
+         ヘッダーが改行されると列幅が不安定になるため */
+      white-space: nowrap;
+
+      /* vertical-align: middle → セル内のテキストを上下中央揃え。
+         ヘッダーの高さが異なる場合でも中央に整列する */
+      vertical-align: middle;
+
+      /* ユーザーがヘッダーを選択しにくくする（ソート操作時の誤選択防止） */
+      user-select: none;
+    }
+
+    /* --------------------------------------------------------------------
+       データセル（<td>）
+       -------------------------------------------------------------------- */
+    .data-table tbody td {
+      padding: var(--space-3) var(--space-4);
+      color: var(--color-text-primary);
+      border-bottom: 1px solid var(--color-border);
+
+      /* vertical-align: middle → セル内容が複数行になった場合でも
+         上下中央に配置されて見やすくなる */
+      vertical-align: middle;
+    }
+
+    /* --------------------------------------------------------------------
+       ゼブラストライプ（交互背景色）
+       :nth-child(even) → 偶数番目の行にだけスタイルを適用する。
+       広いテーブルで行を横に目で追う時、
+       交互の背景色があると行を見失いにくくなる。
+       odd（奇数）を使うか even（偶数）を使うかはデザイン次第。
+       -------------------------------------------------------------------- */
+    .data-table tbody tr:nth-child(even) {
+      background-color: var(--color-bg-secondary);
+    }
+
+    /* --------------------------------------------------------------------
+       ホバーハイライト
+       マウスを行に乗せた時に背景色を変えて、
+       今どの行を見ているかを強調する。
+       ゼブラストライプと組み合わせることで視認性がさらに向上する。
+       -------------------------------------------------------------------- */
+    .data-table tbody tr:hover {
+      background-color: hsla(222, 80%, 60%, 0.08);
+    }
+
+    /* --------------------------------------------------------------------
+       数値列の右揃え
+       text-align: right → 数字は右揃えが原則。
+       桁数が異なる数値を並べた時、右端を揃えることで
+       大小の比較が直感的にできる。
+       テキストは左揃え、数字は右揃えが表デザインの基本ルール。
+       -------------------------------------------------------------------- */
+    .data-table .col-number {
+      text-align: right;
+    }
+
+    /* --------------------------------------------------------------------
+       メール列 — 折り返し防止
+       white-space: nowrap → メールアドレスは途中で改行されると
+       非常に読みにくくなるため、折り返しを禁止する。
+       テーブルラッパーの overflow-x: auto と組み合わせて
+       横スクロールで対応する。
+       -------------------------------------------------------------------- */
+    .data-table .col-email {
+      white-space: nowrap;
+    }
+
+    /* --------------------------------------------------------------------
+       フッターセル（<tfoot>）
+       テーブル下部の合計行やサマリー行。
+       thead と同じ背景色でヘッダーと対になる視覚的な区切りを作る。
+       -------------------------------------------------------------------- */
+    .data-table tfoot td {
+      padding: var(--space-3) var(--space-4);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-secondary);
+      background-color: var(--color-bg-secondary);
+      border-top: 2px solid var(--color-border);
+    }
+
+    /* ===================================================================
+       エッジケース用スタイル
+       =================================================================== */
+
+    /* 空テーブル状態 — データが0件の時に表示するメッセージ */
+    .table-empty-message {
+      padding: var(--space-8) var(--space-4);
+      text-align: center;
+      color: var(--color-text-tertiary);
+      font-size: var(--text-sm);
+    }
+
+    /* 長いセル内容のトランケート（省略表示） */
+    .col-truncate {
+      max-width: 200px;
+
+      /* overflow: hidden → はみ出す部分を非表示にする */
+      overflow: hidden;
+
+      /* text-overflow: ellipsis → はみ出した部分を「...」で示す */
+      text-overflow: ellipsis;
+
+      /* white-space: nowrap → 折り返しを禁止してellipsisを機能させる。
+         nowrapがないとテキストは折り返してしまい、ellipsisが発動しない */
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">テーブル</span>
+      <h1 class="component-title">基本データテーブル</h1>
+      <p class="component-description">
+        表形式のデータを整理して表示するための基本テーブル。ゼブラストライプとホバーハイライトで行の追跡を助け、適切なセマンティックHTMLでアクセシビリティを確保します。テーブルは「実際の表データ」を表示する時にのみ使い、ページレイアウト目的には使ってはいけません。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col">
+        <!-- テーブルラッパー — 横スクロール対応 -->
+        <div class="table-wrapper">
+          <table class="data-table">
+            <!-- caption → テーブルの目的を示すタイトル。
+                 見た目だけでなく、スクリーンリーダーが
+                 「社員一覧というテーブルです」と読み上げてくれる -->
+            <caption>社員一覧</caption>
+
+            <!-- thead → テーブルの見出し行グループ。
+                 意味的に「これがデータの項目名である」ことを示す -->
+            <thead>
+              <tr>
+                <!-- scope="col" → この見出しが列方向に適用されることを明示。
+                     アクセシビリティツールが正しくデータを解釈するために必要 -->
+                <th scope="col">名前</th>
+                <th scope="col">部署</th>
+                <th scope="col">役職</th>
+                <th scope="col" class="col-number">入社年</th>
+                <th scope="col" class="col-email">メールアドレス</th>
+              </tr>
+            </thead>
+
+            <!-- tbody → テーブルの本体データグループ。
+                 thead/tfoot と分けることでブラウザが
+                 ヘッダーとフッターを固定スクロールにできる場合がある -->
+            <tbody>
+              <tr>
+                <td>田中 太郎</td>
+                <td>エンジニアリング</td>
+                <td>シニアエンジニア</td>
+                <td class="col-number">2018</td>
+                <td class="col-email">tanaka.taro@example.com</td>
+              </tr>
+              <tr>
+                <td>佐藤 花子</td>
+                <td>デザイン</td>
+                <td>リードデザイナー</td>
+                <td class="col-number">2019</td>
+                <td class="col-email">sato.hanako@example.com</td>
+              </tr>
+              <tr>
+                <td>鈴木 一郎</td>
+                <td>マーケティング</td>
+                <td>マネージャー</td>
+                <td class="col-number">2016</td>
+                <td class="col-email">suzuki.ichiro@example.com</td>
+              </tr>
+              <tr>
+                <td>高橋 美咲</td>
+                <td>エンジニアリング</td>
+                <td>ジュニアエンジニア</td>
+                <td class="col-number">2023</td>
+                <td class="col-email">takahashi.misaki@example.com</td>
+              </tr>
+              <tr>
+                <td>伊藤 健太</td>
+                <td>営業</td>
+                <td>営業部長</td>
+                <td class="col-number">2015</td>
+                <td class="col-email">ito.kenta@example.com</td>
+              </tr>
+              <tr>
+                <td>渡辺 愛</td>
+                <td>人事</td>
+                <td>採用担当</td>
+                <td class="col-number">2021</td>
+                <td class="col-email">watanabe.ai@example.com</td>
+              </tr>
+              <tr>
+                <td>山本 大輔</td>
+                <td>エンジニアリング</td>
+                <td>テックリード</td>
+                <td class="col-number">2017</td>
+                <td class="col-email">yamamoto.daisuke@example.com</td>
+              </tr>
+            </tbody>
+
+            <!-- tfoot → テーブルのフッター行グループ。
+                 合計値やサマリー情報を配置する。
+                 HTMLの仕様上、tfoot は thead の直後（tbody の前）に
+                 書くこともできるが、現在は tbody の後に書くのが一般的 -->
+            <tfoot>
+              <tr>
+                <td colspan="3">合計社員数</td>
+                <td class="col-number">7名</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>テーブルを使うべき場面とは？</strong><br>
+        テーブルは「2次元の表データ」を表示する時にのみ使います。たとえば社員一覧、料金プラン比較、時刻表など、行と列で交差するデータが意味を持つ場合です。ページの段組みやレイアウトには絶対にテーブルを使わず、CSSのFlexboxやGridを使います。</p>
+
+        <p><strong>数字は右揃え、テキストは左揃え</strong><br>
+        数値を右揃えにすると桁が揃い、数字の大小を瞬時に比較できます。たとえば「2015」と「2023」が右揃えなら、一の位から十の位まで縦に揃って比較しやすくなります。一方、テキストは左揃えが自然で読みやすい方向です。</p>
+
+        <p><strong>ゼブラストライプ（交互背景色）の効果</strong><br>
+        列が多い表では、ある行のデータを横に追う時に隣の行に目が移ってしまうことがあります。交互の背景色があると、視線が同じ行に留まりやすくなります。行数が少ない（3行以下）場合はストライプなしでも問題ありません。</p>
+
+        <p><strong>キャプションでテーブルの文脈を伝える</strong><br>
+        &lt;caption&gt;要素はテーブルのタイトルです。視覚的にも意味的にも「このテーブルは何のデータか」を明示します。スクリーンリーダーのユーザーにとっては、テーブルに到達した瞬間に内容を把握できる重要な手がかりです。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- テーブル全体をラッパーで囲む。
+     overflow-x: auto を指定して横スクロールに対応する -->
+&lt;div class="table-wrapper"&gt;
+
+  <!-- table要素 → 表データを構造的にマークアップする専用のHTML要素。
+       レイアウト目的には使わず、データ表示にのみ使うこと -->
+  &lt;table class="data-table"&gt;
+
+    <!-- caption → テーブルのタイトル。視覚的にも、
+         スクリーンリーダーにも「何のテーブルか」を伝える -->
+    &lt;caption&gt;社員一覧&lt;/caption&gt;
+
+    <!-- thead → 見出し行のグループ。
+         tbody や tfoot と分けることで意味を明確にする -->
+    &lt;thead&gt;
+      &lt;tr&gt;
+        <!-- scope="col" → この th が「列」の見出しであることを明示。
+             スクリーンリーダーが各セルを
+             「名前: 田中太郎」のように読み上げてくれる -->
+        &lt;th scope="col"&gt;名前&lt;/th&gt;
+        &lt;th scope="col"&gt;部署&lt;/th&gt;
+        &lt;th scope="col"&gt;役職&lt;/th&gt;
+        &lt;th scope="col" class="col-number"&gt;入社年&lt;/th&gt;
+        &lt;th scope="col" class="col-email"&gt;メールアドレス&lt;/th&gt;
+      &lt;/tr&gt;
+    &lt;/thead&gt;
+
+    <!-- tbody → データ行のグループ。
+         ブラウザが自動挿入することもあるが、
+         明示的に書くのがベストプラクティス -->
+    &lt;tbody&gt;
+      &lt;tr&gt;
+        &lt;td&gt;田中 太郎&lt;/td&gt;
+        &lt;td&gt;エンジニアリング&lt;/td&gt;
+        &lt;td&gt;シニアエンジニア&lt;/td&gt;
+        &lt;td class="col-number"&gt;2018&lt;/td&gt;
+        &lt;td class="col-email"&gt;tanaka.taro@example.com&lt;/td&gt;
+      &lt;/tr&gt;
+      <!-- ... 他の行も同じ構造 ... -->
+    &lt;/tbody&gt;
+
+    <!-- tfoot → フッター行のグループ。合計値やサマリーに使う。
+         colspan="3" → 3列分のセルを結合する -->
+    &lt;tfoot&gt;
+      &lt;tr&gt;
+        &lt;td colspan="3"&gt;合計社員数&lt;/td&gt;
+        &lt;td class="col-number"&gt;7名&lt;/td&gt;
+        &lt;td&gt;&lt;/td&gt;
+      &lt;/tr&gt;
+    &lt;/tfoot&gt;
+
+  &lt;/table&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* === テーブルラッパー ===
+   横スクロール対応のために必須。
+   テーブルが画面幅を超えた場合、ラッパーが
+   スクロールバーを表示して内容を見られるようにする */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;   /* 横にはみ出したらスクロール */
+  -webkit-overflow-scrolling: touch;  /* iOS慣性スクロール */
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* === テーブル本体 === */
+.data-table {
+  width: 100%;
+
+  /* border-collapse: collapse → セルの隙間を消して、
+     ボーダーを1本に重ねて表示する。
+     もう一つの方法 border-spacing は隙間を空けるが、
+     モダンなUIでは collapse がほぼ標準 */
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+/* === キャプション（テーブルタイトル） === */
+.data-table caption {
+  padding: var(--space-3) var(--space-4);
+  font-weight: var(--font-semibold);
+  text-align: left;
+  caption-side: top;  /* top=上部、bottom=下部 */
+}
+
+/* === ヘッダーセル ===
+   scope="col" と合わせて、アクセシビリティを確保する */
+.data-table thead th {
+  padding: var(--space-3) var(--space-4);
+  font-weight: var(--font-semibold);
+  text-align: left;
+  white-space: nowrap;       /* ヘッダーは折り返さない */
+  vertical-align: middle;    /* 上下中央揃え */
+  border-bottom: 2px solid var(--color-border);  /* 太い線で区切り */
+}
+
+/* === データセル === */
+.data-table tbody td {
+  padding: var(--space-3) var(--space-4);
+  vertical-align: middle;    /* セルの内容を上下中央に配置 */
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* === ゼブラストライプ ===
+   :nth-child(even) → 偶数行に薄い背景色を付ける。
+   広いテーブルで行を目で追いやすくする効果がある。
+   odd を使えば奇数行に適用できる */
+.data-table tbody tr:nth-child(even) {
+  background-color: var(--color-bg-secondary);
+}
+
+/* === ホバーハイライト ===
+   マウスを乗せた行を強調して、今見ている行を明確にする */
+.data-table tbody tr:hover {
+  background-color: hsla(222, 80%, 60%, 0.08);
+}
+
+/* === 数値列の右揃え ===
+   数字を右揃えにすると桁が揃い、大小比較がしやすくなる。
+   金額・年数・個数など数値データには必ず適用する */
+.col-number {
+  text-align: right;
+}
+
+/* === メール列の折り返し防止 ===
+   メールアドレスは途中改行すると読みにくいため、
+   改行を禁止して横スクロールで対応する */
+.col-email {
+  white-space: nowrap;
+}
+
+/* === フッター行 ===
+   合計やサマリーを表示する行。
+   border-top を太くしてデータ行との境界を明確にする */
+.data-table tfoot td {
+  padding: var(--space-3) var(--space-4);
+  font-weight: var(--font-semibold);
+  border-top: 2px solid var(--color-border);
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+
+        <!-- エッジケース1: 空テーブル -->
+        <div class="edge-case-item">
+          <div class="edge-case-label">データが0件の場合</div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <caption>社員一覧（空の状態）</caption>
+              <thead>
+                <tr>
+                  <th scope="col">名前</th>
+                  <th scope="col">部署</th>
+                  <th scope="col">役職</th>
+                  <th scope="col" class="col-number">入社年</th>
+                  <th scope="col" class="col-email">メールアドレス</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <!-- colspan="5" → 5列分を結合して空メッセージを中央に表示する -->
+                  <td colspan="5" class="table-empty-message">
+                    該当するデータがありません
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- エッジケース2: 長いセル内容 -->
+        <div class="edge-case-item">
+          <div class="edge-case-label">セル内容が非常に長い場合（省略表示）</div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <caption>長いデータの例</caption>
+              <thead>
+                <tr>
+                  <th scope="col">名前</th>
+                  <th scope="col">部署</th>
+                  <th scope="col">備考</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>田中 太郎</td>
+                  <td>エンジニアリング</td>
+                  <td class="col-truncate" title="このテキストは非常に長いため省略されます。全文はツールチップで確認できます。セル幅に収まらない場合はellipsisで省略表示されます。">このテキストは非常に長いため省略されます。全文はツールチップで確認できます。セル幅に収まらない場合はellipsisで省略表示されます。</td>
+                </tr>
+                <tr>
+                  <td>佐藤 花子</td>
+                  <td>デザイン</td>
+                  <td class="col-truncate" title="UXデザインとUIデザインの両方を担当。プロトタイプの作成からユーザーテストの実施、結果分析まで幅広く対応しています。">UXデザインとUIデザインの両方を担当。プロトタイプの作成からユーザーテストの実施、結果分析まで幅広く対応しています。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- エッジケース3: 多くの列 -->
+        <div class="edge-case-item">
+          <div class="edge-case-label">列数が多い場合（横スクロールで対応）</div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <caption>詳細社員情報</caption>
+              <thead>
+                <tr>
+                  <th scope="col">社員番号</th>
+                  <th scope="col">名前</th>
+                  <th scope="col">部署</th>
+                  <th scope="col">役職</th>
+                  <th scope="col" class="col-number">入社年</th>
+                  <th scope="col" class="col-email">メールアドレス</th>
+                  <th scope="col">電話番号</th>
+                  <th scope="col">勤務地</th>
+                  <th scope="col">ステータス</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>EMP-001</td>
+                  <td>田中 太郎</td>
+                  <td>エンジニアリング</td>
+                  <td>シニアエンジニア</td>
+                  <td class="col-number">2018</td>
+                  <td class="col-email">tanaka.taro@example.com</td>
+                  <td>03-1234-5678</td>
+                  <td>東京本社</td>
+                  <td>在籍中</td>
+                </tr>
+                <tr>
+                  <td>EMP-002</td>
+                  <td>佐藤 花子</td>
+                  <td>デザイン</td>
+                  <td>リードデザイナー</td>
+                  <td class="col-number">2019</td>
+                  <td class="col-email">sato.hanako@example.com</td>
+                  <td>03-2345-6789</td>
+                  <td>大阪支社</td>
+                  <td>在籍中</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

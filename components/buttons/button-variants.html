@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ボタンバリエーション — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* 共通ベース */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      padding: 10px 20px;
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      line-height: 1;
+      border: 2px solid transparent;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--duration-fast);
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    /* プライマリ — 画面で最も重要な操作 */
+    .btn--primary {
+      color: white;
+      background-color: var(--color-brand-500);
+      border-color: var(--color-brand-500);
+    }
+    .btn--primary:hover {
+      background-color: var(--color-brand-600);
+      border-color: var(--color-brand-600);
+      box-shadow: 0 2px 8px hsla(222, 80%, 50%, 0.25);
+    }
+    .btn--primary:active { background-color: var(--color-brand-700); transform: scale(0.98); }
+
+    /* セカンダリ — 補助的な操作 */
+    .btn--secondary {
+      color: var(--color-brand-600);
+      background-color: transparent;
+      border-color: var(--color-brand-300);
+    }
+    .btn--secondary:hover {
+      background-color: var(--color-brand-50);
+      border-color: var(--color-brand-400);
+    }
+    .btn--secondary:active { background-color: var(--color-brand-100); }
+
+    /* ゴースト — 最も控えめな操作 */
+    .btn--ghost {
+      color: var(--color-neutral-600);
+      background-color: transparent;
+      border-color: transparent;
+    }
+    .btn--ghost:hover {
+      background-color: var(--color-neutral-100);
+      color: var(--color-neutral-800);
+    }
+    .btn--ghost:active { background-color: var(--color-neutral-200); }
+
+    /* デストラクティブ — 削除など危険な操作 */
+    .btn--danger {
+      color: white;
+      background-color: var(--color-state-error);
+      border-color: var(--color-state-error);
+    }
+    .btn--danger:hover {
+      background-color: hsl(0, 72%, 44%);
+      box-shadow: 0 2px 8px hsla(0, 72%, 51%, 0.25);
+    }
+    .btn--danger:active { background-color: hsl(0, 72%, 38%); transform: scale(0.98); }
+
+    /* 比較テーブル */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+      margin-top: var(--space-4);
+    }
+    .comparison-table th, .comparison-table td {
+      padding: var(--space-3) var(--space-4);
+      text-align: left;
+      border-bottom: 1px solid var(--color-neutral-200);
+    }
+    .comparison-table th {
+      font-weight: var(--font-semibold);
+      color: var(--color-neutral-600);
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .comparison-table td:first-child { font-weight: var(--font-medium); }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">ボタン</span>
+      <h1 class="component-title">ボタンバリエーション</h1>
+      <p class="component-description">
+        同じボタンでも「視覚的な重み」を変えることで、操作の重要度を直感的に伝えます。4つのバリエーションの使い分けを学びます。
+      </p>
+    </header>
+
+    <!-- プレビュー -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー — 4つの視覚的重み</h2>
+      <div class="preview-container">
+        <button class="btn btn--primary">プライマリ</button>
+        <button class="btn btn--secondary">セカンダリ</button>
+        <button class="btn btn--ghost">ゴースト</button>
+        <button class="btn btn--danger">削除する</button>
+      </div>
+    </section>
+
+    <!-- 実際の使用例 -->
+    <section class="component-section">
+      <h2 class="section-title">実際の使用例 — ダイアログ</h2>
+      <div class="preview-container" style="flex-direction: column; align-items: stretch; max-width: 400px; margin: 0 auto;">
+        <p style="font-weight: var(--font-semibold); color: var(--color-neutral-900);">この記事を削除しますか？</p>
+        <p style="font-size: var(--text-sm); color: var(--color-neutral-500);">この操作は取り消せません。</p>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px;">
+          <button class="btn btn--ghost">キャンセル</button>
+          <button class="btn btn--danger">削除する</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 設計の意図 -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>視覚的重みの階層</strong><br>
+        塗りつぶし（Primary） > 枠線あり（Secondary） > テキストのみ（Ghost）。背景色の面積が大きいほど目立ち、重要度が高いことを示します。</p>
+        <p><strong>色で危険度を示す</strong><br>
+        削除・解約など元に戻せない操作は赤系（Danger）で警告します。ブランドカラーとは別系統の色を使うことで、「通常の操作とは性質が違う」ことを伝えます。</p>
+      </div>
+    </section>
+
+    <!-- 使い分け表 -->
+    <section class="component-section">
+      <h2 class="section-title">使い分けガイド</h2>
+      <table class="comparison-table">
+        <thead>
+          <tr><th>種類</th><th>用途</th><th>例</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Primary</td><td>画面の主要アクション（1画面に1つ）</td><td>保存、送信、購入</td></tr>
+          <tr><td>Secondary</td><td>補助的だが重要な操作</td><td>下書き保存、詳細を見る</td></tr>
+          <tr><td>Ghost</td><td>控えめな操作・キャンセル</td><td>キャンセル、閉じる、戻る</td></tr>
+          <tr><td>Danger</td><td>破壊的・元に戻せない操作</td><td>削除、解約、リセット</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- コード -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="html">HTML</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* すべてのボタンの共通スタイル（ベース） */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  font-weight: 600;
+  /* border: 2px solid transparent → 枠線ありの時とサイズを揃えるため、
+     透明な枠線を常にセットしておく（枠線分のズレを防ぐ） */
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 150ms;
+}
+
+/* プライマリ — 塗りつぶしで最も目立つ */
+.btn--primary {
+  color: white;
+  /* background-colorで面を塗ることで視覚的な重みが最大になる */
+  background-color: var(--color-brand-500);
+  /* border-colorもbackgroundと同じにして統一感を出す */
+  border-color: var(--color-brand-500);
+}
+
+/* セカンダリ — 枠線のみで控えめに */
+.btn--secondary {
+  color: var(--color-brand-600);
+  /* 背景を透明にすることで、プライマリより視覚的重みが軽い */
+  background-color: transparent;
+  /* 枠線でボタンの形を認識させる */
+  border-color: var(--color-brand-300);
+}
+
+/* ゴースト — 枠線も背景もなく最も控えめ */
+.btn--ghost {
+  color: var(--color-neutral-600);
+  background-color: transparent;
+  /* 枠線も透明 → テキストリンクに近い軽さ */
+  border-color: transparent;
+}
+.btn--ghost:hover {
+  /* ホバーで薄い背景を出して「ボタンである」ことを示す */
+  background-color: var(--color-neutral-100);
+}
+
+/* デストラクティブ — 赤で危険を示す */
+.btn--danger {
+  color: white;
+  /* 赤系のerror色を使い、「通常操作とは違う」ことを視覚的に伝える */
+  background-color: var(--color-state-error);
+  border-color: var(--color-state-error);
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- クラスを付け替えるだけでバリエーションを切り替える -->
+<button class="btn btn--primary">プライマリ</button>
+<button class="btn btn--secondary">セカンダリ</button>
+<button class="btn btn--ghost">ゴースト</button>
+<button class="btn btn--danger">削除する</button>
+
+<!-- 実際の使用例：確認ダイアログのフッター -->
+<div style="display: flex; gap: 8px; justify-content: flex-end;">
+  <!-- キャンセルは控えめなゴースト -->
+  <button class="btn btn--ghost">キャンセル</button>
+  <!-- 削除は赤いデストラクティブ -->
+  <button class="btn btn--danger">削除する</button>
+</div></code></pre>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

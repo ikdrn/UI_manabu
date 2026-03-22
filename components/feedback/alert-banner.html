@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>アラートバナー — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       アラートバナー — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- アラートの基本スタイル ---
+       display: flex で アイコン・テキスト・閉じるボタンを横並びにする。
+       align-items: flex-start で、複数行テキストの場合でもアイコンが
+       上端に揃うようにする（centerだとアイコンが中央に来てしまう） */
+    .alert {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-md);
+
+      /* border-left: 4px solid — 左端に太い色付きボーダーを引く。
+         これはアラートの種類（情報・成功・警告・エラー）を
+         色で瞬時に判別させる定番パターン。
+         カスタムプロパティ --alert-color でバリアントごとに色を変える */
+      border-left: 4px solid var(--alert-color);
+
+      /* 背景色もカスタムプロパティで制御。
+         各バリアントで薄い背景色を設定する */
+      background-color: var(--alert-bg);
+
+      /* テキスト色は少し濃い色を使い、背景とのコントラストを確保 */
+      color: var(--alert-text, var(--color-text-primary));
+
+      /* 行の高さを読みやすい値にする */
+      line-height: 1.5;
+      font-size: var(--text-sm);
+
+      /* 複数アラートが並ぶ時のために下マージンを確保 */
+      margin-bottom: var(--space-3);
+    }
+
+    /* --- アラートのアイコン ---
+       flex-shrink: 0 で、テキストが長くてもアイコンが
+       縮まないようにする。アイコンは常に同じサイズを維持すべき */
+    .alert__icon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-base);
+      line-height: 1;
+      margin-top: 1px;
+    }
+
+    /* --- アラートの本文エリア ---
+       flex: 1 で残りの横幅をすべて占有する。
+       これによりアイコンと閉じるボタンの間のスペースを
+       テキストが最大限使える */
+    .alert__content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* --- アラートのメッセージテキスト --- */
+    .alert__message {
+      margin: 0;
+    }
+
+    /* --- アクションリンク ---
+       アラート内に「詳細を見る」などの操作リンクを置く場合のスタイル。
+       色はアラートのバリアント色を継承する */
+    .alert__action {
+      display: inline-block;
+      margin-top: var(--space-1);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      color: var(--alert-color);
+      text-decoration: underline;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+
+    .alert__action:hover {
+      text-decoration: none;
+    }
+
+    /* --- 閉じるボタン（Xボタン） ---
+       flex-shrink: 0 でボタンサイズを固定。
+       背景を透明にして、ホバー時だけ薄い背景を出す */
+    .alert__dismiss {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: none;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--alert-color);
+      font-size: var(--text-base);
+      line-height: 1;
+      padding: 0;
+      margin-top: -2px;
+      transition: background-color var(--duration-fast);
+    }
+
+    .alert__dismiss:hover {
+      /* ホバー時に薄い背景色を表示して「押せる」ことを伝える */
+      background-color: rgba(0, 0, 0, 0.08);
+    }
+
+    .alert__dismiss:focus-visible {
+      outline: 2px solid var(--alert-color);
+      outline-offset: 1px;
+    }
+
+    /* ===================================================================
+       バリアント定義 — CSSカスタムプロパティで色を切り替える
+       カスタムプロパティを使う利点：
+       1. バリアント追加時に色の値だけ変えればよい
+       2. 子要素（アイコン、ボタン）が親の色を自動的に参照できる
+       3. メンテナンス性が高い（色の定義が1箇所に集約）
+       =================================================================== */
+
+    /* 情報（Info）— 青系。一般的なお知らせに使用。
+       緊急度：低。ユーザーの行動を強制しない */
+    .alert--info {
+      --alert-color: #2563eb;
+      --alert-bg: #eff6ff;
+      --alert-text: #1e40af;
+    }
+
+    /* 成功（Success）— 緑系。操作の完了を知らせる。
+       緊急度：低。ポジティブな結果のフィードバック */
+    .alert--success {
+      --alert-color: #16a34a;
+      --alert-bg: #f0fdf4;
+      --alert-text: #166534;
+    }
+
+    /* 警告（Warning）— 琥珀色系。注意が必要な状態を知らせる。
+       緊急度：中。ユーザーに確認や対処を促す */
+    .alert--warning {
+      --alert-color: #d97706;
+      --alert-bg: #fffbeb;
+      --alert-text: #92400e;
+    }
+
+    /* エラー（Error）— 赤系。問題が発生し対処が必要な状態。
+       緊急度：高。ユーザーの操作を求める場合が多い */
+    .alert--error {
+      --alert-color: #dc2626;
+      --alert-bg: #fef2f2;
+      --alert-text: #991b1b;
+    }
+
+    /* ===================================================================
+       アニメーション — アラートが消える時のフェードアウト
+       =================================================================== */
+
+    /* アラートが閉じられる時に適用されるクラス。
+       opacity を 0 にしてフェードアウトさせ、
+       max-height で高さも縮めることで自然に消える演出を作る */
+    .alert--dismissing {
+      opacity: 0;
+      max-height: 0;
+      margin-bottom: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      overflow: hidden;
+      transition: opacity var(--duration-fast),
+                  max-height 300ms ease,
+                  margin-bottom 300ms ease,
+                  padding 300ms ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">通知・フィードバック</span>
+      <h1 class="component-title">アラートバナー</h1>
+      <p class="component-description">
+        ユーザーに重要な情報や状態の変化を伝えるバナー型の通知コンポーネント。情報・成功・警告・エラーの4段階の重大度レベルで、メッセージの緊急性を視覚的に区別します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col">
+
+        <!-- 情報アラート — role="status" を使用。
+             スクリーンリーダーに「状態の更新」として通知される。
+             緊急性が低い情報には role="status" が適切 -->
+        <div class="alert alert--info" role="status">
+          <span class="alert__icon" aria-hidden="true">&#8505;</span>
+          <div class="alert__content">
+            <p class="alert__message">システムメンテナンスを3月25日に実施します</p>
+            <button class="alert__action" type="button">詳細を確認</button>
+          </div>
+          <button class="alert__dismiss" type="button" aria-label="閉じる">&times;</button>
+        </div>
+
+        <!-- 成功アラート — 操作完了の確認に使用。
+             role="status" で穏やかに通知する -->
+        <div class="alert alert--success" role="status">
+          <span class="alert__icon" aria-hidden="true">&#10003;</span>
+          <div class="alert__content">
+            <p class="alert__message">プロフィールが正常に更新されました</p>
+          </div>
+          <button class="alert__dismiss" type="button" aria-label="閉じる">&times;</button>
+        </div>
+
+        <!-- 警告アラート — 注意を促す場合に使用。
+             role="alert" でスクリーンリーダーに即座に通知される。
+             警告は注意が必要なため role="alert" を使う -->
+        <div class="alert alert--warning" role="alert">
+          <span class="alert__icon" aria-hidden="true">&#9888;</span>
+          <div class="alert__content">
+            <p class="alert__message">ストレージ残量が10%を下回りました</p>
+            <button class="alert__action" type="button">プランをアップグレード</button>
+          </div>
+          <button class="alert__dismiss" type="button" aria-label="閉じる">&times;</button>
+        </div>
+
+        <!-- エラーアラート — 対処が必要な問題に使用。
+             role="alert" で緊急性を伝える。
+             エラーは閉じるボタンを付けないパターンもある
+             （問題が解決するまで表示し続けるべきケースがある） -->
+        <div class="alert alert--error" role="alert">
+          <span class="alert__icon" aria-hidden="true">&#10005;</span>
+          <div class="alert__content">
+            <p class="alert__message">お支払い情報の確認が必要です</p>
+            <button class="alert__action" type="button">支払い設定を確認</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜ4段階の重大度レベルがあるのか？</strong><br>
+        アラートの種類を「情報 &lt; 成功 &lt; 警告 &lt; エラー」の4段階に分けることで、ユーザーはメッセージの緊急度を色だけで瞬時に判断できます。青は穏やかな情報、赤は緊急の問題と、信号機のような直感的なマッピングを利用しています。</p>
+        <p><strong>左ボーダーによる視覚的カテゴリ分け</strong><br>
+        左端に太い色付きボーダー（<code>border-left: 4px solid</code>）を引くのは、アラートやカード型コンポーネントでよく使われるデザインパターンです。全体を塗りつぶすより控えめでありながら、ひと目で種類を区別できます。</p>
+        <p><strong>永続表示 vs 閉じられるアラート</strong><br>
+        エラーアラートは閉じるボタンを省略し、問題が解決されるまで表示し続けるべきです。一方、成功通知はユーザーが確認したら不要になるため、閉じられるようにします。この使い分けが、ユーザーの混乱や重要な通知の見落としを防ぎます。</p>
+        <p><strong>role="alert" と role="status" の使い分け</strong><br>
+        <code>role="alert"</code>はスクリーンリーダーに即座に読み上げられるため、緊急性の高い警告・エラーに適しています。一方、<code>role="status"</code>は控えめに通知され、情報や成功メッセージに使います。すべてに<code>role="alert"</code>を使うと、ユーザーが通知疲れを起こします。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- role="status" → スクリーンリーダーに「状態の更新」として通知。
+     情報や成功メッセージなど、緊急性が低い通知に使う -->
+<div class="alert alert--info" role="status">
+
+  <!-- aria-hidden="true" → アイコンはスクリーンリーダーに読み上げさせない。
+       装飾的な要素なので、読み上げると冗長になる -->
+  <span class="alert__icon" aria-hidden="true">&#8505;</span>
+
+  <!-- alert__content → メッセージとアクションリンクをまとめる領域 -->
+  <div class="alert__content">
+    <p class="alert__message">システムメンテナンスのお知らせ</p>
+
+    <!-- アクションリンク → アラートに関連する操作を提供 -->
+    <button class="alert__action" type="button">詳細を確認</button>
+  </div>
+
+  <!-- aria-label="閉じる" → ボタンに「×」しか表示されないため、
+       スクリーンリーダー用にラベルを付ける。
+       アクセシビリティ上、必須の指定 -->
+  <button class="alert__dismiss" type="button"
+          aria-label="閉じる">&times;</button>
+</div>
+
+<!-- role="alert" → スクリーンリーダーに「緊急な通知」として即座に読み上げ。
+     エラーや警告など、すぐに注意を向けるべき通知に使う -->
+<div class="alert alert--error" role="alert">
+  <span class="alert__icon" aria-hidden="true">&#10005;</span>
+  <div class="alert__content">
+    <p class="alert__message">エラーが発生しました</p>
+    <button class="alert__action" type="button">対処方法を見る</button>
+  </div>
+  <!-- エラーの場合は閉じるボタンを置かないことで、
+       問題が解決するまでアラートを表示し続ける -->
+</div></code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- アラートの基本レイアウト --- */
+.alert {
+  /* display: flex → アイコン・テキスト・閉じるボタンを横並びにする。
+     Flexboxは1次元（横or縦）のレイアウトに最適 */
+  display: flex;
+
+  /* align-items: flex-start → 子要素を上端に揃える。
+     center にすると複数行テキストの場合にアイコンが
+     縦中央に来てしまい、不自然に見える */
+  align-items: flex-start;
+
+  /* gap → アイコン・テキスト・ボタン間のスペース。
+     marginで個別指定するより、gapの方がシンプルで保守しやすい */
+  gap: 12px;
+
+  padding: 12px 16px;
+  border-radius: 8px;
+
+  /* border-left: 4px solid → 左端に太い色付きボーダー。
+     var(--alert-color) でバリアントごとに色を変える。
+     CSSカスタムプロパティを使うことで、親のクラスを変えるだけで
+     子要素の色もすべて連動して切り替わる */
+  border-left: 4px solid var(--alert-color);
+
+  /* 背景色もカスタムプロパティで管理 */
+  background-color: var(--alert-bg);
+  color: var(--alert-text);
+}
+
+/* --- CSSカスタムプロパティによるバリアント定義 ---
+   カスタムプロパティ（CSS変数）の利点:
+   ・色の定義が1箇所に集約されメンテナンスが容易
+   ・新しいバリアントの追加が3行で完了
+   ・子要素が var(--alert-color) を参照するだけで自動的に色が変わる */
+
+.alert--info {
+  --alert-color: #2563eb;   /* 青 — 情報、お知らせ */
+  --alert-bg: #eff6ff;      /* 薄い青の背景 */
+  --alert-text: #1e40af;    /* 濃い青のテキスト */
+}
+
+.alert--success {
+  --alert-color: #16a34a;   /* 緑 — 成功、完了 */
+  --alert-bg: #f0fdf4;
+  --alert-text: #166534;
+}
+
+.alert--warning {
+  --alert-color: #d97706;   /* 琥珀色 — 警告、注意 */
+  --alert-bg: #fffbeb;
+  --alert-text: #92400e;
+}
+
+.alert--error {
+  --alert-color: #dc2626;   /* 赤 — エラー、問題 */
+  --alert-bg: #fef2f2;
+  --alert-text: #991b1b;
+}
+
+/* --- アイコン --- */
+.alert__icon {
+  /* flex-shrink: 0 → テキストが長くてもアイコンが縮まないようにする。
+     デフォルトではflex子要素は縮小するため、明示的に固定する */
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+/* --- テキストエリア --- */
+.alert__content {
+  /* flex: 1 → 残りの横幅をすべて占有する。
+     アイコンと閉じるボタンの間のスペースを最大限使う */
+  flex: 1;
+  min-width: 0; /* flexの子要素のオーバーフローを防ぐ */
+}
+
+/* --- 閉じるボタン --- */
+.alert__dismiss {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--alert-color);
+  border-radius: 4px;
+  transition: background-color 150ms;
+}
+
+.alert__dismiss:hover {
+  /* 半透明の背景でホバーフィードバックを出す */
+  background-color: rgba(0, 0, 0, 0.08);
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// --- アラートの閉じる（dismiss）処理 ---
+
+// querySelectorAll → ページ内のすべての閉じるボタンを取得
+// '.alert__dismiss' というCSSセレクタに一致する要素をすべて選ぶ
+document.querySelectorAll('.alert__dismiss').forEach(function(btn) {
+
+  // addEventListener('click', ...) → クリックイベントを監視する。
+  // ボタンが押されたら中の関数が実行される
+  btn.addEventListener('click', function() {
+
+    // closest('.alert') → ボタンから最も近い親の .alert 要素を探す。
+    // これにより、どのアラートの閉じるボタンが押されたかを特定できる。
+    // closest() は自分自身→親→祖父母...と上方向に検索する便利なメソッド
+    var alert = btn.closest('.alert');
+    if (!alert) return;
+
+    // --- アニメーション付きで閉じる ---
+    // 1. まず現在の高さを取得して max-height に設定
+    //    （CSSトランジションは auto → 0 を補間できないため、
+    //    具体的なpx値が必要）
+    alert.style.maxHeight = alert.offsetHeight + 'px';
+
+    // 2. ブラウザに現在の状態を描画させる（リフロー強制）
+    //    これがないと、maxHeightの設定と dismissing クラスの追加が
+    //    同じフレームで処理され、アニメーションが発生しない
+    alert.offsetHeight; // リフローを強制するためのトリック
+
+    // 3. dismissing クラスを追加してCSSアニメーションを開始
+    alert.classList.add('alert--dismissing');
+
+    // 4. アニメーション完了後にDOMから要素を削除する。
+    //    setTimeout の 300ms は CSS transition の duration と合わせる。
+    //    要素を非表示（display: none）ではなく完全に削除（remove）する
+    //    ことで、DOMをクリーンに保つ
+    setTimeout(function() {
+      alert.remove();
+    }, 300);
+  });
+});</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+
+        <div class="edge-case-item">
+          <div class="edge-case-label">長いメッセージ（テキストが折り返される場合）</div>
+          <div class="alert alert--warning" role="alert">
+            <span class="alert__icon" aria-hidden="true">&#9888;</span>
+            <div class="alert__content">
+              <p class="alert__message">お客様のアカウントに不審なログイン試行が検出されました。心当たりのないログインがある場合は、速やかにパスワードを変更し、二段階認証を設定してください。セキュリティの詳細についてはヘルプセンターをご確認ください。</p>
+              <button class="alert__action" type="button">パスワードを変更する</button>
+            </div>
+            <button class="alert__dismiss" type="button" aria-label="閉じる">&times;</button>
+          </div>
+        </div>
+
+        <div class="edge-case-item">
+          <div class="edge-case-label">複数アラートの積み重ね（スタッキング）</div>
+          <div>
+            <div class="alert alert--error" role="alert" style="margin-bottom: var(--space-2);">
+              <span class="alert__icon" aria-hidden="true">&#10005;</span>
+              <div class="alert__content">
+                <p class="alert__message">クレジットカードの有効期限が切れています</p>
+              </div>
+            </div>
+            <div class="alert alert--warning" role="alert" style="margin-bottom: var(--space-2);">
+              <span class="alert__icon" aria-hidden="true">&#9888;</span>
+              <div class="alert__content">
+                <p class="alert__message">プランの更新が保留中です</p>
+              </div>
+              <button class="alert__dismiss" type="button" aria-label="閉じる">&times;</button>
+            </div>
+            <div class="alert alert--info" role="status" style="margin-bottom: 0;">
+              <span class="alert__icon" aria-hidden="true">&#8505;</span>
+              <div class="alert__content">
+                <p class="alert__message">新機能が追加されました</p>
+              </div>
+              <button class="alert__dismiss" type="button" aria-label="閉じる">&times;</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="edge-case-item">
+          <div class="edge-case-label">アクションボタン付きアラート</div>
+          <div class="alert alert--info" role="status">
+            <span class="alert__icon" aria-hidden="true">&#8505;</span>
+            <div class="alert__content">
+              <p class="alert__message">新しいバージョン（v2.4.0）が利用可能です</p>
+              <button class="alert__action" type="button">今すぐ更新する</button>
+            </div>
+            <button class="alert__dismiss" type="button" aria-label="閉じる">&times;</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    /* ===================================================================
+       アラートバナー — インタラクション制御
+       =================================================================== */
+
+    // --- 閉じるボタンの処理 ---
+    // イベント委任（Event Delegation）を使用する方法もあるが、
+    // ここではシンプルに各ボタンにイベントリスナーを設定する
+    document.querySelectorAll('.alert__dismiss').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        // closest() → DOMツリーを上方向に検索して、
+        // 最も近い .alert 要素を見つける。
+        // これにより「この閉じるボタンはどのアラートに属しているか」が分かる
+        var alert = btn.closest('.alert');
+        if (!alert) return;
+
+        // --- フェードアウトアニメーションの実装 ---
+
+        // 現在の高さを取得して明示的に設定する。
+        // CSSの transition は height: auto → 0 を補間できないため、
+        // 具体的なピクセル値を設定する必要がある
+        alert.style.maxHeight = alert.offsetHeight + 'px';
+
+        // リフロー（再レイアウト）を強制する。
+        // この行がないと、ブラウザが maxHeight の設定と
+        // クラス追加を同じ描画フレームでまとめて処理してしまい、
+        // トランジションが発生しない
+        alert.offsetHeight;
+
+        // dismissing クラスを追加して CSS トランジションを開始。
+        // opacity: 0 と max-height: 0 への変化がアニメーションされる
+        alert.classList.add('alert--dismissing');
+
+        // アニメーション完了後に DOM から要素を完全に削除する。
+        // display: none で隠すのではなく remove() で削除することで、
+        // 不要な DOM 要素が残らずメモリ効率が良い
+        setTimeout(function() {
+          alert.remove();
+        }, 300);
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>シンプルリスト — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       メール受信箱風リスト — コンポーネントスタイル
+       =================================================================== */
+
+    /* リスト全体のコンテナ */
+    .inbox-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      max-width: 600px;
+    }
+
+    /* 各リストアイテム */
+    .inbox-item {
+      display: grid;
+      grid-template-columns: 8px 1fr auto;
+      align-items: center;
+      gap: var(--space-3, 12px);
+      padding: var(--space-3, 12px) var(--space-4, 16px);
+      border-bottom: 1px solid var(--color-border, #e2e8f0);
+      cursor: pointer;
+      transition: background-color var(--duration-fast, 150ms);
+      position: relative;
+      outline: none;
+    }
+
+    .inbox-item:last-child {
+      border-bottom: none;
+    }
+
+    /* ホバー時のハイライト */
+    .inbox-item:hover {
+      background-color: var(--color-surface-hover, #f7fafc);
+    }
+
+    /* キーボードフォーカス時 */
+    .inbox-item:focus-visible {
+      background-color: var(--color-surface-hover, #f1f5f9);
+      box-shadow: inset 3px 0 0 var(--color-brand-500, #3b82f6);
+    }
+
+    /* 選択状態 */
+    .inbox-item[aria-selected="true"] {
+      background-color: var(--color-brand-50, #eff6ff);
+    }
+
+    .inbox-item[aria-selected="true"]:hover {
+      background-color: var(--color-brand-100, #dbeafe);
+    }
+
+    /* 未読インジケーター（青い丸） */
+    .inbox-unread-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: transparent;
+      flex-shrink: 0;
+    }
+
+    .inbox-item[data-unread="true"] .inbox-unread-dot {
+      background-color: var(--color-brand-500, #3b82f6);
+    }
+
+    /* 未読アイテムのテキストを太字に */
+    .inbox-item[data-unread="true"] .inbox-sender,
+    .inbox-item[data-unread="true"] .inbox-subject {
+      font-weight: var(--font-semibold, 600);
+    }
+
+    /* メール内容部分 */
+    .inbox-content {
+      min-width: 0;
+    }
+
+    .inbox-sender {
+      font-size: var(--text-sm, 14px);
+      color: var(--color-text-primary, #1a202c);
+      margin-bottom: 2px;
+    }
+
+    .inbox-subject {
+      font-size: var(--text-xs, 12px);
+      color: var(--color-text-secondary, #64748b);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 日付 */
+    .inbox-date {
+      font-size: var(--text-xs, 12px);
+      color: var(--color-text-tertiary, #94a3b8);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* 選択カウンター */
+    .selection-info {
+      margin-top: var(--space-3, 12px);
+      font-size: var(--text-sm, 14px);
+      color: var(--color-text-secondary, #64748b);
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">リスト</span>
+      <h1 class="component-title">シンプルリスト</h1>
+      <p class="component-description">
+        メール受信箱のようなインタラクティブなリスト。クリックで選択切り替え、ホバーでハイライト、矢印キーで上下移動できます。未読インジケーターやテキスト省略も含む実践的なパターンです。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col">
+        <ul class="inbox-list" role="listbox" aria-label="受信メール一覧" id="inbox">
+          <li class="inbox-item" role="option" aria-selected="false" data-unread="true" tabindex="0">
+            <span class="inbox-unread-dot" aria-hidden="true"></span>
+            <div class="inbox-content">
+              <div class="inbox-sender">田中 太郎</div>
+              <div class="inbox-subject">プロジェクトの進捗報告について</div>
+            </div>
+            <span class="inbox-date">3月22日</span>
+          </li>
+          <li class="inbox-item" role="option" aria-selected="false" data-unread="true" tabindex="-1">
+            <span class="inbox-unread-dot" aria-hidden="true"></span>
+            <div class="inbox-content">
+              <div class="inbox-sender">佐藤 花子</div>
+              <div class="inbox-subject">【重要】来週のミーティング日程変更のお知らせ</div>
+            </div>
+            <span class="inbox-date">3月21日</span>
+          </li>
+          <li class="inbox-item" role="option" aria-selected="false" data-unread="false" tabindex="-1">
+            <span class="inbox-unread-dot" aria-hidden="true"></span>
+            <div class="inbox-content">
+              <div class="inbox-sender">鈴木 一郎</div>
+              <div class="inbox-subject">デザインレビューのフィードバック</div>
+            </div>
+            <span class="inbox-date">3月20日</span>
+          </li>
+          <li class="inbox-item" role="option" aria-selected="false" data-unread="true" tabindex="-1">
+            <span class="inbox-unread-dot" aria-hidden="true"></span>
+            <div class="inbox-content">
+              <div class="inbox-sender">山田 美咲</div>
+              <div class="inbox-subject">新しいUIコンポーネントライブラリの提案書を添付します</div>
+            </div>
+            <span class="inbox-date">3月19日</span>
+          </li>
+          <li class="inbox-item" role="option" aria-selected="false" data-unread="false" tabindex="-1">
+            <span class="inbox-unread-dot" aria-hidden="true"></span>
+            <div class="inbox-content">
+              <div class="inbox-sender">高橋 健</div>
+              <div class="inbox-subject">月次レポートの確認お願いします</div>
+            </div>
+            <span class="inbox-date">3月18日</span>
+          </li>
+          <li class="inbox-item" role="option" aria-selected="false" data-unread="false" tabindex="-1">
+            <span class="inbox-unread-dot" aria-hidden="true"></span>
+            <div class="inbox-content">
+              <div class="inbox-sender">伊藤 さくら</div>
+              <div class="inbox-subject">チームビルディングイベントの参加確認</div>
+            </div>
+            <span class="inbox-date">3月17日</span>
+          </li>
+        </ul>
+        <div class="selection-info" id="selectionInfo">選択中: 0件</div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜ未読インジケーターは青い丸なのか？</strong><br>
+        小さな青い丸は、最小限のスペースで「まだ読んでいない」ことを効果的に伝えます。テキストを太字にすることで、スキャン時にも未読メールが一目でわかります。</p>
+        <p><strong>キーボードナビゲーションの重要性</strong><br>
+        リストはマウスだけでなく、ArrowUp/Downキーで移動できるべきです。role="listbox"とaria-selected属性により、スクリーンリーダーでも選択状態が正しく伝わります。</p>
+        <p><strong>text-overflow: ellipsis でテキスト省略</strong><br>
+        件名が長い場合、折り返すと各アイテムの高さがバラバラになります。省略記号（...）で切ることで、一覧性を保ちつつ内容の手がかりを提供します。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- role="listbox" → 選択可能なリストであることをスクリーンリーダーに伝える --&gt;
+&lt;ul class="inbox-list" role="listbox" aria-label="受信メール一覧"&gt;
+
+  &lt;!-- role="option" → リスト内の選択可能な項目 --&gt;
+  &lt;!-- aria-selected → 選択状態をアクセシビリティツールに伝える --&gt;
+  &lt;!-- data-unread → 未読/既読の状態をCSSで切り替えるためのカスタム属性 --&gt;
+  &lt;!-- tabindex="0" → 最初のアイテムのみフォーカス可能にする --&gt;
+  &lt;li class="inbox-item" role="option" aria-selected="false"
+      data-unread="true" tabindex="0"&gt;
+
+    &lt;!-- 未読インジケーター（青い丸） --&gt;
+    &lt;span class="inbox-unread-dot" aria-hidden="true"&gt;&lt;/span&gt;
+
+    &lt;div class="inbox-content"&gt;
+      &lt;div class="inbox-sender"&gt;田中 太郎&lt;/div&gt;
+      &lt;div class="inbox-subject"&gt;プロジェクトの進捗報告&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;span class="inbox-date"&gt;3月22日&lt;/span&gt;
+  &lt;/li&gt;
+
+  &lt;!-- 2番目以降は tabindex="-1" → Tabでは飛ばし、矢印キーで移動 --&gt;
+  &lt;li class="inbox-item" role="option" aria-selected="false"
+      data-unread="false" tabindex="-1"&gt;
+    ...
+  &lt;/li&gt;
+&lt;/ul&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* リスト全体のコンテナ */
+.inbox-list {
+  list-style: none;        /* デフォルトの黒丸を消す */
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;        /* 角丸からはみ出さないようにする */
+}
+
+/* 各リストアイテム — grid で3列構成 */
+.inbox-item {
+  /* grid-template-columns → 未読丸(8px) / 内容(残り) / 日付(自動) */
+  display: grid;
+  grid-template-columns: 8px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: background-color 150ms;
+  outline: none;           /* デフォルトのフォーカス枠を消す（独自スタイルで代替） */
+}
+
+/* ホバー時の背景色変更 — マウスが乗っていることを視覚的に伝える */
+.inbox-item:hover {
+  background-color: #f7fafc;
+}
+
+/* キーボードフォーカス時 — 左端に青い線を表示 */
+.inbox-item:focus-visible {
+  background-color: #f1f5f9;
+  box-shadow: inset 3px 0 0 #3b82f6;  /* inset → 内側に影を描く */
+}
+
+/* 選択状態 — 薄い青背景で「選択中」を示す */
+.inbox-item[aria-selected="true"] {
+  background-color: #eff6ff;
+}
+
+/* 未読インジケーター — data属性で表示を切り替え */
+.inbox-item[data-unread="true"] .inbox-unread-dot {
+  background-color: #3b82f6;  /* 青い丸を表示 */
+}
+
+/* 未読アイテムのテキストを太字にして目立たせる */
+.inbox-item[data-unread="true"] .inbox-sender,
+.inbox-item[data-unread="true"] .inbox-subject {
+  font-weight: 600;
+}
+
+/* 件名の省略表示 */
+.inbox-subject {
+  white-space: nowrap;       /* 折り返さない */
+  overflow: hidden;          /* はみ出し部分を隠す */
+  text-overflow: ellipsis;   /* 省略記号（...）を表示 */
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// リスト要素と全アイテムを取得
+const list = document.getElementById('inbox');
+const items = [...list.querySelectorAll('.inbox-item')];
+
+// --- クリックで選択をトグル ---
+list.addEventListener('click', (e) => {
+  // closest() → クリック位置から最も近い.inbox-itemを探す
+  const item = e.target.closest('.inbox-item');
+  if (!item) return;
+
+  // 現在の選択状態を反転する
+  const isSelected = item.getAttribute('aria-selected') === 'true';
+  item.setAttribute('aria-selected', String(!isSelected));
+
+  // フォーカスを移動
+  setFocusToItem(item);
+  updateSelectionCount();
+});
+
+// --- キーボードナビゲーション ---
+list.addEventListener('keydown', (e) => {
+  const current = document.activeElement;
+  const idx = items.indexOf(current);
+  if (idx === -1) return;
+
+  let next;
+  switch (e.key) {
+    case 'ArrowDown':
+      e.preventDefault();  // ページスクロールを防ぐ
+      next = items[idx + 1] || items[0];  // 末尾→先頭にループ
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      next = items[idx - 1] || items[items.length - 1];  // 先頭→末尾にループ
+      break;
+    case ' ':
+    case 'Enter':
+      e.preventDefault();
+      current.click();  // スペース/Enterで選択トグル
+      return;
+    default:
+      return;
+  }
+
+  setFocusToItem(next);
+});
+
+// --- ロービングタブインデックス（フォーカス管理） ---
+function setFocusToItem(item) {
+  // 全アイテムのtabindexを-1にリセット
+  items.forEach(i => i.setAttribute('tabindex', '-1'));
+  // 対象だけを0にしてフォーカスを当てる
+  item.setAttribute('tabindex', '0');
+  item.focus();
+}
+
+// --- 選択件数の表示を更新 ---
+function updateSelectionCount() {
+  const count = items.filter(
+    i => i.getAttribute('aria-selected') === 'true'
+  ).length;
+  document.getElementById('selectionInfo').textContent =
+    '選択中: ' + count + '件';
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">長い件名（text-overflow: ellipsis）</div>
+          <ul class="inbox-list" style="max-width: 300px;">
+            <li class="inbox-item" role="option" aria-selected="false" data-unread="true" tabindex="-1">
+              <span class="inbox-unread-dot" aria-hidden="true"></span>
+              <div class="inbox-content">
+                <div class="inbox-sender">田中 太郎</div>
+                <div class="inbox-subject">これはとても長い件名のテストです。リストアイテムの幅を超えた場合に省略記号が正しく表示されるか確認します。</div>
+              </div>
+              <span class="inbox-date">3月22日</span>
+            </li>
+          </ul>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">空のリスト状態</div>
+          <div class="inbox-list" style="padding: 32px; text-align: center; color: var(--color-text-tertiary, #94a3b8); font-size: var(--text-sm, 14px);">
+            受信メールはありません
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">全アイテム選択時</div>
+          <p style="font-size: var(--text-sm, 14px); color: var(--color-text-secondary, #64748b);">
+            上のプレビューで全アイテムをクリックして選択し、カウンターが正しく更新されるか確認してください。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    // ===================================================================
+    // メール受信箱リスト — インタラクション制御
+    // ===================================================================
+
+    (() => {
+      // リスト要素と全アイテムを取得
+      const list = document.getElementById('inbox');
+      const items = [...list.querySelectorAll('.inbox-item')];
+
+      // --- クリックで選択をトグル ---
+      list.addEventListener('click', (e) => {
+        const item = e.target.closest('.inbox-item');
+        if (!item) return;
+
+        const isSelected = item.getAttribute('aria-selected') === 'true';
+        item.setAttribute('aria-selected', String(!isSelected));
+
+        setFocusToItem(item);
+        updateSelectionCount();
+      });
+
+      // --- キーボードナビゲーション ---
+      list.addEventListener('keydown', (e) => {
+        const current = document.activeElement;
+        const idx = items.indexOf(current);
+        if (idx === -1) return;
+
+        let next;
+        switch (e.key) {
+          case 'ArrowDown':
+            e.preventDefault();
+            next = items[idx + 1] || items[0];
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            next = items[idx - 1] || items[items.length - 1];
+            break;
+          case ' ':
+          case 'Enter':
+            e.preventDefault();
+            current.click();
+            return;
+          default:
+            return;
+        }
+
+        setFocusToItem(next);
+      });
+
+      // --- ロービングタブインデックス ---
+      function setFocusToItem(item) {
+        items.forEach(i => i.setAttribute('tabindex', '-1'));
+        item.setAttribute('tabindex', '0');
+        item.focus();
+      }
+
+      // --- 選択件数の表示を更新 ---
+      function updateSelectionCount() {
+        const count = items.filter(
+          i => i.getAttribute('aria-selected') === 'true'
+        ).length;
+        document.getElementById('selectionInfo').textContent =
+          '選択中: ' + count + '件';
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ゲージメーター — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       ゲージメーター — コンポーネントスタイル
+       =================================================================== */
+
+    /* ゲージコンテナ */
+    .gauge {
+      --gauge-value: 72;
+      width: 240px;
+      height: 130px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 半円の背景（色ゾーン付き） */
+    .gauge-bg {
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      /* conic-gradient → 半円に3色ゾーンを配置 */
+      background: conic-gradient(
+        from 180deg,
+        #22c55e 0deg 60deg,    /* 緑ゾーン: 良好 (0-33%) */
+        #eab308 60deg 120deg,  /* 黄ゾーン: 注意 (33-66%) */
+        #ef4444 120deg 180deg, /* 赤ゾーン: 危険 (66-100%) */
+        transparent 180deg 360deg
+      );
+      position: absolute;
+      bottom: 0;
+      left: 0;
+    }
+
+    /* ゲージ内側の白い円（メーター部分だけ見せるマスク） */
+    .gauge-bg::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 70%;
+      height: 70%;
+      border-radius: 50%;
+      background: var(--color-bg-primary);
+    }
+
+    /* 下半分を隠すマスク */
+    .gauge-mask {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: var(--color-bg-primary);
+      z-index: 2;
+    }
+
+    /* ニードル（針） */
+    .gauge-needle {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 3px;
+      height: 95px;
+      background: var(--color-text-primary);
+      transform-origin: bottom center;
+      /* 左端（0度=0%）からスタートし、値に応じた角度に回転 */
+      transform: translateX(-50%) rotate(calc(-90deg + (var(--gauge-value) * 1.8deg)));
+      border-radius: 2px 2px 0 0;
+      z-index: 3;
+      transition: transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* ニードルの中心円 */
+    .gauge-needle::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--color-text-primary);
+    }
+
+    /* 値の表示 */
+    .gauge-value {
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      z-index: 4;
+    }
+
+    .gauge-value-number {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      color: var(--color-text-primary);
+      line-height: 1;
+    }
+
+    .gauge-value-unit {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+    }
+
+    /* 目盛りラベル */
+    .gauge-labels {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+      padding: 0 4px;
+      z-index: 4;
+    }
+
+    /* ゲージのタイトル */
+    .gauge-title {
+      text-align: center;
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      margin-top: var(--space-4);
+    }
+
+    /* 複数ゲージの横並び */
+    .gauge-grid {
+      display: flex;
+      gap: var(--space-8);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .gauge-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">チャート・データ可視化</span>
+      <h1 class="component-title">ゲージメーター</h1>
+      <p class="component-description">
+        半円形のゲージメーター。色分けされたゾーン（緑・黄・赤）と針のアニメーションで、現在の値を視覚的に表示します。パフォーマンス指標やスコア表示に最適です。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col" style="align-items: center;">
+        <div class="gauge-grid">
+          <div class="gauge-card">
+            <div class="gauge" style="--gauge-value: 28;">
+              <div class="gauge-bg"></div>
+              <div class="gauge-mask"></div>
+              <div class="gauge-needle"></div>
+              <div class="gauge-value">
+                <span class="gauge-value-number">28</span>
+                <span class="gauge-value-unit">%</span>
+              </div>
+              <div class="gauge-labels">
+                <span>0</span>
+                <span>100</span>
+              </div>
+            </div>
+            <div class="gauge-title">CPU使用率</div>
+          </div>
+
+          <div class="gauge-card">
+            <div class="gauge" style="--gauge-value: 72;">
+              <div class="gauge-bg"></div>
+              <div class="gauge-mask"></div>
+              <div class="gauge-needle"></div>
+              <div class="gauge-value">
+                <span class="gauge-value-number">72</span>
+                <span class="gauge-value-unit">%</span>
+              </div>
+              <div class="gauge-labels">
+                <span>0</span>
+                <span>100</span>
+              </div>
+            </div>
+            <div class="gauge-title">メモリ使用率</div>
+          </div>
+
+          <div class="gauge-card">
+            <div class="gauge" style="--gauge-value: 91;">
+              <div class="gauge-bg"></div>
+              <div class="gauge-mask"></div>
+              <div class="gauge-needle"></div>
+              <div class="gauge-value">
+                <span class="gauge-value-number">91</span>
+                <span class="gauge-value-unit">%</span>
+              </div>
+              <div class="gauge-labels">
+                <span>0</span>
+                <span>100</span>
+              </div>
+            </div>
+            <div class="gauge-title">ディスク使用率</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>conic-gradientで色ゾーンを表現</strong><br>
+        conic-gradientで180度（半円分）に3つの色ゾーンを配置します。緑（良好）→黄（注意）→赤（危険）の直感的な色分けで、数値を読まなくても状態を瞬時に把握できます。</p>
+        <p><strong>transform: rotateによる針のアニメーション</strong><br>
+        CSS変数--gauge-valueに応じてrotateの角度を計算します。0%が-90度（左端）、100%が90度（右端）に対応し、calc()で動的に角度を算出します。</p>
+        <p><strong>cubic-bezierでバネのような動き</strong><br>
+        transition-timing-functionにcubic-bezier(0.34, 1.56, 0.64, 1)を指定することで、針が目標値を少し通り過ぎてから戻る「オーバーシュート」効果を実現します。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- ゲージコンテナ → --gauge-valueで値を設定 --&gt;
+&lt;div class="gauge" style="--gauge-value: 72;"&gt;
+
+  &lt;!-- 色ゾーンの背景（半円） --&gt;
+  &lt;div class="gauge-bg"&gt;&lt;/div&gt;
+
+  &lt;!-- 下半分を隠すマスク --&gt;
+  &lt;div class="gauge-mask"&gt;&lt;/div&gt;
+
+  &lt;!-- ニードル（針）→ CSS変数に応じて回転 --&gt;
+  &lt;div class="gauge-needle"&gt;&lt;/div&gt;
+
+  &lt;!-- 値の表示 --&gt;
+  &lt;div class="gauge-value"&gt;
+    &lt;span class="gauge-value-number"&gt;72&lt;/span&gt;
+    &lt;span class="gauge-value-unit"&gt;%&lt;/span&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 目盛りラベル --&gt;
+  &lt;div class="gauge-labels"&gt;
+    &lt;span&gt;0&lt;/span&gt;
+    &lt;span&gt;100&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* ゲージコンテナ → overflow:hiddenで下半分を切り取る */
+.gauge {
+  --gauge-value: 72; /* CSS変数 → JSから変更可能 */
+  width: 240px;
+  height: 130px; /* 半円分の高さ */
+  position: relative;
+  overflow: hidden; /* 下半分を隠す */
+}
+
+/* 色ゾーンの背景 → conic-gradientで3色の半円 */
+.gauge-bg {
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+
+  /* conic-gradient(from 180deg, ...) → 180度（下）から開始
+     0-60deg: 緑(良好), 60-120deg: 黄(注意), 120-180deg: 赤(危険)
+     180-360deg: transparent（下半分は非表示） */
+  background: conic-gradient(
+    from 180deg,
+    #22c55e 0deg 60deg,
+    #eab308 60deg 120deg,
+    #ef4444 120deg 180deg,
+    transparent 180deg 360deg
+  );
+}
+
+/* 内側の白い円 → ドーナツ状に見せるマスク */
+.gauge-bg::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70%; /* 外径の70% → 残り30%がゲージ部分 */
+  height: 70%;
+  border-radius: 50%;
+  background: var(--color-bg-primary);
+}
+
+/* ニードル（針） → CSS変数で回転角度を制御 */
+.gauge-needle {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  height: 95px;
+  background: var(--color-text-primary);
+
+  /* transform-origin: bottom center → 底辺中央を回転軸にする */
+  transform-origin: bottom center;
+
+  /* calc(-90deg + ...) → 0%が左端(-90度)、100%が右端(90度)
+     1.8deg = 180度/100 → 1%あたり1.8度 */
+  transform: translateX(-50%)
+    rotate(calc(-90deg + (var(--gauge-value) * 1.8deg)));
+
+  /* cubic-bezier → オーバーシュートするバネのような動き */
+  transition: transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">最小値（0%）と最大値（100%）</div>
+          <div style="display: flex; gap: 32px; flex-wrap: wrap;">
+            <div class="gauge-card">
+              <div class="gauge" style="--gauge-value: 0; width: 160px; height: 86px;">
+                <div class="gauge-bg" style="width: 160px; height: 160px;"></div>
+                <div class="gauge-mask"></div>
+                <div class="gauge-needle" style="height: 62px;"></div>
+                <div class="gauge-value">
+                  <span class="gauge-value-number" style="font-size: var(--text-base);">0</span>
+                  <span class="gauge-value-unit">%</span>
+                </div>
+                <div class="gauge-labels"><span>0</span><span>100</span></div>
+              </div>
+              <div class="gauge-title">最小値</div>
+            </div>
+            <div class="gauge-card">
+              <div class="gauge" style="--gauge-value: 100; width: 160px; height: 86px;">
+                <div class="gauge-bg" style="width: 160px; height: 160px;"></div>
+                <div class="gauge-mask"></div>
+                <div class="gauge-needle" style="height: 62px;"></div>
+                <div class="gauge-value">
+                  <span class="gauge-value-number" style="font-size: var(--text-base);">100</span>
+                  <span class="gauge-value-unit">%</span>
+                </div>
+                <div class="gauge-labels"><span>0</span><span>100</span></div>
+              </div>
+              <div class="gauge-title">最大値</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

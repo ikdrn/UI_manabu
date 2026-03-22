@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プライマリボタン — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       プライマリボタン — コンポーネントスタイル
+       =================================================================== */
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      padding: 10px 20px;
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      line-height: 1;
+      color: white;
+      background-color: var(--color-brand-500);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background-color var(--duration-fast),
+                  box-shadow var(--duration-fast),
+                  transform var(--duration-fast);
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background-color: var(--color-brand-600);
+      box-shadow: 0 2px 8px hsla(222, 80%, 50%, 0.3);
+    }
+
+    .btn:active {
+      background-color: var(--color-brand-700);
+      transform: scale(0.98);
+      box-shadow: none;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--color-brand-500);
+      outline-offset: 2px;
+    }
+
+    .btn:disabled {
+      background-color: var(--color-action-disabled);
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* サイズバリエーション */
+    .btn--sm {
+      padding: 6px 14px;
+      font-size: var(--text-xs);
+    }
+
+    .btn--lg {
+      padding: 14px 28px;
+      font-size: var(--text-base);
+    }
+
+    .btn--full {
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">ボタン</span>
+      <h1 class="component-title">プライマリボタン</h1>
+      <p class="component-description">
+        画面の中で最も重要な操作を示すボタン。1画面に1つだけ置くのが原則で、ユーザーの視線と行動を導く「主役」です。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container">
+        <button class="btn btn--sm">小さいボタン</button>
+        <button class="btn">標準ボタン</button>
+        <button class="btn btn--lg">大きいボタン</button>
+        <button class="btn" disabled>無効状態</button>
+      </div>
+    </section>
+
+    <!-- ========== 全幅ボタン ========== -->
+    <section class="component-section">
+      <h2 class="section-title">全幅ボタン</h2>
+      <div class="preview-container preview-container--col" style="max-width: 400px; margin: 0 auto;">
+        <button class="btn btn--full">アカウントを作成する</button>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜプライマリボタンはブランドカラーを使うのか？</strong><br>
+        プライマリボタンは「次にしてほしい操作」を示します。ブランドカラーを使うことで、ページ内の他の要素と明確に差別化し、ユーザーの視線を自然に誘導します。</p>
+        <p><strong>「1画面に1つだけ」の原則</strong><br>
+        プライマリボタンが複数あると、どれが最も重要かユーザーが判断できなくなります。主要な操作以外は、後で学ぶ「セカンダリ」や「ゴースト」スタイルのボタンを使います。</p>
+        <p><strong>hover → active の段階的フィードバック</strong><br>
+        「乗せた」「押した」「離した」を色の変化とわずかな縮小で伝えます。この触覚的なフィードバックが、物理的なボタンを押す感覚を画面上で再現します。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- button要素 → クリックできる操作ボタンを作るHTMLタグ -->
+<!-- type="button" → フォーム送信を防ぐ。formの中で使う場合に重要 -->
+<button type="button" class="btn">
+  保存する
+</button>
+
+<!-- disabled属性 → ボタンを無効化。クリックできなくなる -->
+<button type="button" class="btn" disabled>
+  無効状態
+</button>
+
+<!-- サイズ違い → クラスを追加して見た目を変える -->
+<button type="button" class="btn btn--sm">小</button>
+<button type="button" class="btn btn--lg">大</button>
+
+<!-- 全幅ボタン → 親要素の横幅いっぱいに広がる -->
+<button type="button" class="btn btn--full">
+  アカウントを作成する
+</button></code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">.btn {
+  /* display: inline-flex → 横並びにしつつ、中身を柔軟に配置できる箱にする。
+     後でアイコン+テキストを並べる時にも使える万能な指定 */
+  display: inline-flex;
+
+  /* align-items: center → flexの子要素を縦方向の中央に揃える。
+     テキストの高さが違っても中心が揃う */
+  align-items: center;
+
+  /* justify-content: center → flexの子要素を横方向の中央に揃える。
+     全幅ボタンでテキストが真ん中にくる */
+  justify-content: center;
+
+  /* gap: 8px → flex内の子要素間のスペース。
+     アイコンとテキストの間隔を確保する */
+  gap: var(--space-2);
+
+  /* padding: 10px 20px → 上下10px、左右20pxの内側余白。
+     クリックできる領域を確保する（最低44px以上が推奨） */
+  padding: 10px 20px;
+
+  /* font-size → 文字の大きさ。14px相当 */
+  font-size: var(--text-sm);
+
+  /* font-weight: 600 → やや太字。ボタンのテキストは通常より太くして
+     「これは操作できる要素だ」と視覚的に伝える */
+  font-weight: var(--font-semibold);
+
+  /* line-height: 1 → 行間をなくす。ボタン内のテキストは1行なので、
+     余分な上下スペースを消す */
+  line-height: 1;
+
+  /* color: white → テキストを白に。濃い背景色との対比で読みやすくする */
+  color: white;
+
+  /* background-color → ブランドカラーで塗りつぶし。
+     これが「主役のボタン」であることを示す */
+  background-color: var(--color-brand-500);
+
+  /* border: none → ブラウザデフォルトの枠線を消す */
+  border: none;
+
+  /* border-radius: 8px → 角を丸くする。角丸は「クリックできる」印象を与え、
+     直角より親しみやすい見た目になる */
+  border-radius: var(--radius-md);
+
+  /* cursor: pointer → マウスカーソルを指マークにする。
+     「これは押せますよ」とユーザーに伝える */
+  cursor: pointer;
+
+  /* transition → 色や影の変化をなめらかにする。150msは瞬時だけど
+     カクカクしない絶妙な速さ */
+  transition: background-color 150ms,
+              box-shadow 150ms,
+              transform 150ms;
+
+  /* user-select: none → テキストを選択できなくする。
+     ボタンのテキストを誤って選択するのを防ぐ */
+  user-select: none;
+
+  /* white-space: nowrap → テキストを折り返さない。
+     ボタンのテキストが2行になるのを防ぐ */
+  white-space: nowrap;
+}
+
+/* :hover → マウスを乗せた時のスタイル */
+.btn:hover {
+  /* より濃い色に変えて「反応している」ことを示す */
+  background-color: var(--color-brand-600);
+
+  /* box-shadow → ボタンの下に影を落として「浮き上がった」感覚を出す。
+     hslaのaは透明度（0.3 = 30%の不透明度） */
+  box-shadow: 0 2px 8px hsla(222, 80%, 50%, 0.3);
+}
+
+/* :active → クリックした瞬間のスタイル */
+.btn:active {
+  /* さらに濃い色にして「押し込まれた」感覚を出す */
+  background-color: var(--color-brand-700);
+
+  /* transform: scale(0.98) → わずかに縮小して「押された」触感を再現 */
+  transform: scale(0.98);
+
+  /* 影を消して「沈み込んだ」表現に */
+  box-shadow: none;
+}
+
+/* :focus-visible → キーボード操作時のフォーカス表示。
+   マウスクリック時には出ないが、Tabキーで移動した時に出る */
+.btn:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px; /* ボタンから2px離して見やすくする */
+}
+
+/* :disabled → 無効状態。グレーにして操作不可を伝える */
+.btn:disabled {
+  background-color: var(--color-action-disabled);
+  cursor: not-allowed; /* 禁止カーソルで「押せない」ことを強調 */
+  box-shadow: none;
+  transform: none;
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">長いテキスト</div>
+          <button class="btn">この操作は取り消すことができません。本当に実行しますか？</button>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">短いテキスト</div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn">OK</button>
+            <button class="btn">送信</button>
+            <button class="btn">はい</button>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">連続するボタン（flexコンテナ内）</div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn">プライマリ</button>
+            <button class="btn" style="background: transparent; color: var(--color-brand-500); border: 1px solid var(--color-brand-300);">セカンダリ</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

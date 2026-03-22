@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ページネーション — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       ページネーション — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- ページネーション全体のコンテナ ---
+       display: flex → 子要素（ボタン群）を横一列に並べる
+       gap: 4px → ボタン同士の間隔。狭すぎると誤タップ、広すぎると散漫になる */
+    .pagination {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    /* --- 共通のページネーションボタン ---
+       min-width: 36px → すべてのボタンを同じ最小幅にして、
+       「1」も「10」も同じサイズのボタンになるようにする。
+       見た目の統一感とクリック領域の確保が目的 */
+    .pagination__btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 36px;
+      padding: 0 8px;
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      line-height: 1;
+      color: var(--color-text-secondary);
+      background: transparent;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background-color var(--duration-fast),
+                  color var(--duration-fast),
+                  border-color var(--duration-fast);
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    /* --- ホバー時 → 薄い背景色で反応を示す --- */
+    .pagination__btn:hover:not(.pagination__btn--active):not(.pagination__btn--disabled) {
+      background-color: var(--color-bg-hover);
+      border-color: var(--color-brand-300);
+      color: var(--color-brand-600);
+    }
+
+    /* --- キーボードフォーカス時 → アクセシビリティのために明確なフォーカスリングを表示 --- */
+    .pagination__btn:focus-visible {
+      outline: 2px solid var(--color-brand-500);
+      outline-offset: 2px;
+    }
+
+    /* --- アクティブ（現在のページ）状態 ---
+       背景を塗りつぶしにすることで、他のアウトライン（枠線のみ）ボタンと
+       明確に区別する。aria-current="page" と視覚的な強調を一致させる */
+    .pagination__btn--active {
+      background-color: var(--color-brand-500);
+      border-color: var(--color-brand-500);
+      color: white;
+      font-weight: var(--font-semibold);
+      cursor: default;
+    }
+
+    /* アクティブ状態のホバーは色を少し濃くする程度にとどめる */
+    .pagination__btn--active:hover {
+      background-color: var(--color-brand-600);
+      border-color: var(--color-brand-600);
+    }
+
+    /* --- 無効状態（前へ/次へボタンの端） ---
+       pointer-events: none → クリックイベントを完全に無効化する。
+       JavaScriptでのイベント発火も防げるため、disabled属性と合わせて使うと堅牢。
+       opacity: 0.4 → 半透明にして「操作できない」ことを視覚的に伝える */
+    .pagination__btn--disabled {
+      pointer-events: none;
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* --- 前へ/次へボタン → ページ番号より少し横幅を広くする --- */
+    .pagination__btn--prev,
+    .pagination__btn--next {
+      padding: 0 12px;
+      gap: 4px;
+    }
+
+    /* --- 省略記号（...）---
+       ボタンではなくテキスト表示。クリック不可にするため
+       cursor: default にして、ホバーエフェクトも無効 */
+    .pagination__ellipsis {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 36px;
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      cursor: default;
+      user-select: none;
+    }
+
+    /* --- プレビュー内の配置調整 --- */
+    .preview-container--pagination {
+      flex-direction: column;
+      gap: 32px;
+      align-items: center;
+    }
+
+    /* --- ページネーションのラベル --- */
+    .pagination-label {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-bottom: 4px;
+      text-align: center;
+    }
+
+    .pagination-demo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* --- ページ情報テキスト --- */
+    .pagination__info {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      margin-top: 8px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">ナビゲーション</span>
+      <h1 class="component-title">ページネーション</h1>
+      <p class="component-description">
+        コンテンツを複数ページに分割し、ユーザーが任意のページへ移動できるナビゲーション。無限スクロールや「もっと読む」ボタンと違い、ユーザーが自分の位置を常に把握できる予測可能なUIです。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--pagination">
+
+        <!-- インタラクティブなページネーション -->
+        <div class="pagination-demo">
+          <div class="pagination-label">ページをクリックして操作できます（全10ページ）</div>
+          <nav class="pagination" id="pagination-main" aria-label="ページネーション"></nav>
+          <div class="pagination__info" id="pagination-info"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">1ページのみ（ページネーション非表示）</div>
+          <nav class="pagination" id="pagination-single" aria-label="ページネーション"></nav>
+          <p style="font-size: var(--text-xs); color: var(--color-text-tertiary); margin-top: 4px;">
+            → 1ページしかない場合、ページネーション自体を非表示にする
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">3ページ（省略記号なし）</div>
+          <nav class="pagination" id="pagination-few" aria-label="ページネーション"></nav>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">100ページ（大量ページ）</div>
+          <nav class="pagination" id="pagination-many" aria-label="ページネーション"></nav>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>ページネーション vs 無限スクロール vs 「もっと読む」ボタン</strong><br>
+        ページネーションは、ユーザーが自分の位置を常に把握できるため、検索結果や管理画面の一覧表示に適しています。無限スクロールはSNSフィードのような「流し見」に向き、「もっと読む」はその中間です。ページネーションの強みは「3ページ目の結果をもう一度見たい」という再訪が容易な点です。</p>
+        <p><strong>先頭・末尾ページを常に表示する理由</strong><br>
+        最初と最後のページ番号を常に見せることで、全体のボリューム感をユーザーに伝えます。「100ページ中の50ページ目にいる」という文脈情報が、現在位置の理解を助けます。</p>
+        <p><strong>省略記号（...）の役割</strong><br>
+        すべてのページ番号を表示すると、100ページの場合は100個のボタンが並んでしまいます。省略記号で間を省略し、現在ページの前後と先頭・末尾だけを表示することで、コンパクトかつ実用的なUIを保ちます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- nav要素 → ナビゲーション用のランドマーク。
+     aria-label でスクリーンリーダーに「これはページネーションです」と伝える --&gt;
+&lt;nav class="pagination" aria-label="ページネーション"&gt;
+
+  &lt;!-- 「前へ」ボタン → 1ページ目のときは disabled にする
+       aria-label で「前のページへ」と明示し、「&lt;」だけでも意味が伝わるようにする --&gt;
+  &lt;button class="pagination__btn pagination__btn--prev pagination__btn--disabled"
+          aria-label="前のページへ" disabled&gt;
+    &amp;lt; 前へ
+  &lt;/button&gt;
+
+  &lt;!-- ページ番号ボタン → aria-label="ページ 1" で各ボタンの意味を明示 --&gt;
+  &lt;button class="pagination__btn pagination__btn--active"
+          aria-current="page" aria-label="ページ 1"&gt;1&lt;/button&gt;
+
+  &lt;button class="pagination__btn" aria-label="ページ 2"&gt;2&lt;/button&gt;
+  &lt;button class="pagination__btn" aria-label="ページ 3"&gt;3&lt;/button&gt;
+
+  &lt;!-- 省略記号 → span で表示。ボタンではないのでクリック不可 --&gt;
+  &lt;span class="pagination__ellipsis" aria-hidden="true"&gt;&amp;hellip;&lt;/span&gt;
+
+  &lt;button class="pagination__btn" aria-label="ページ 10"&gt;10&lt;/button&gt;
+
+  &lt;!-- 「次へ」ボタン → 最終ページでは disabled にする --&gt;
+  &lt;button class="pagination__btn pagination__btn--next"
+          aria-label="次のページへ"&gt;
+    次へ &amp;gt;
+  &lt;/button&gt;
+&lt;/nav&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">.pagination {
+  /* display: flex → ボタンを横一列に並べる。
+     Flexboxはこのような「一次元の並び」に最適 */
+  display: flex;
+  align-items: center;
+
+  /* gap: 4px → ボタン間の余白。
+     margin を各ボタンに付ける代わりに gap で一括管理する。
+     4pxは隣同士が近すぎず離れすぎない絶妙な間隔 */
+  gap: 4px;
+
+  /* flex-wrap: wrap → 画面幅が狭い時に折り返す。
+     モバイルでボタンがはみ出すのを防ぐ */
+  flex-wrap: wrap;
+}
+
+.pagination__btn {
+  /* min-width: 36px → 「1」でも「10」でも同じ最小幅を保つ。
+     数字の桁数が変わってもボタンサイズがガタつかない */
+  min-width: 36px;
+  height: 36px;
+
+  /* padding: 0 8px → 上下は height で確保済みなので 0。
+     左右に余裕を持たせて「10」などの2桁数字も窮屈にならない */
+  padding: 0 8px;
+
+  /* border: 1px solid → 枠線ありのアウトラインスタイル。
+     アクティブページの塗りつぶしと対比させることで、
+     現在ページがどこか一目でわかる */
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+
+  transition: background-color 150ms,
+              color 150ms,
+              border-color 150ms;
+}
+
+/* --- アクティブ（現在のページ） ---
+   背景をブランドカラーで塗りつぶし、他のアウトラインボタンと差別化する。
+   この「塗り vs 枠線のみ」のコントラストが視認性のカギ */
+.pagination__btn--active {
+  background-color: var(--color-brand-500);
+  border-color: var(--color-brand-500);
+  color: white;
+  font-weight: 600;
+  cursor: default;
+}
+
+/* --- 無効状態（最初/最後のページで前へ/次へを無効化） ---
+   pointer-events: none → CSSレベルでクリックを完全に無効化する。
+   HTML の disabled 属性と組み合わせることで二重にガードする。
+   opacity: 0.4 → 半透明にして「操作不可」を視覚的に伝える */
+.pagination__btn--disabled {
+  pointer-events: none;
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* --- 省略記号（...）→ ボタンではなくテキスト表示 ---
+   クリックできないことを明確にするため、
+   button ではなく span で実装する */
+.pagination__ellipsis {
+  min-width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+  cursor: default;
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">/**
+ * ページネーションを生成する関数
+ *
+ * 省略記号（...）のロジック:
+ * - 常に表示するもの: 最初のページ、最後のページ、現在ページの前後1ページ
+ * - それ以外は省略記号で省く
+ * - 例: 現在5ページ目 → [1] ... [4] [5] [6] ... [10]
+ */
+function generatePageNumbers(currentPage, totalPages) {
+  const pages = [];
+
+  // === ページ数が7以下なら全ページ表示（省略不要） ===
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
+
+  // === 常に最初のページを追加 ===
+  pages.push(1);
+
+  // === 現在ページが最初から離れていたら省略記号を挿入 ===
+  // currentPage > 3 なら [1] の次に ... が必要
+  if (currentPage > 3) {
+    pages.push('...');
+  }
+
+  // === 現在ページの前後1ページを追加（隣接ページ） ===
+  // Math.max/min で配列の範囲が 2〜(totalPages-1) に収まるようにする
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(totalPages - 1, currentPage + 1);
+
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+
+  // === 現在ページが最後から離れていたら省略記号を挿入 ===
+  if (currentPage < totalPages - 2) {
+    pages.push('...');
+  }
+
+  // === 常に最後のページを追加 ===
+  pages.push(totalPages);
+
+  return pages;
+}
+
+/**
+ * ページネーションのHTMLを描画する
+ *
+ * @param {HTMLElement} container - ページネーションを入れるnav要素
+ * @param {number} currentPage - 現在のページ番号
+ * @param {number} totalPages - 総ページ数
+ * @param {function} onPageChange - ページ変更時のコールバック関数
+ */
+function renderPagination(container, currentPage, totalPages, onPageChange) {
+  // === 1ページのみの場合はページネーション自体を非表示 ===
+  if (totalPages <= 1) {
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = 'flex';
+
+  // === HTMLを組み立てる ===
+  let html = '';
+
+  // --- 「前へ」ボタン ---
+  // 1ページ目なら disabled クラスと disabled 属性を付与
+  const prevDisabled = currentPage === 1;
+  html += `&lt;button class="pagination__btn pagination__btn--prev${
+    prevDisabled ? ' pagination__btn--disabled' : ''
+  }" aria-label="前のページへ"${
+    prevDisabled ? ' disabled' : ''
+  }>&amp;lt; 前へ&lt;/button>`;
+
+  // --- ページ番号 ---
+  const pages = generatePageNumbers(currentPage, totalPages);
+
+  pages.forEach(page => {
+    if (page === '...') {
+      // 省略記号 → aria-hidden="true" でスクリーンリーダーから隠す
+      html += '&lt;span class="pagination__ellipsis" aria-hidden="true">&amp;hellip;&lt;/span>';
+    } else {
+      // ページ番号ボタン → 現在ページには aria-current="page" を付与
+      const isActive = page === currentPage;
+      html += `&lt;button class="pagination__btn${
+        isActive ? ' pagination__btn--active' : ''
+      }" aria-label="ページ ${page}"${
+        isActive ? ' aria-current="page"' : ''
+      }>${page}&lt;/button>`;
+    }
+  });
+
+  // --- 「次へ」ボタン ---
+  const nextDisabled = currentPage === totalPages;
+  html += `&lt;button class="pagination__btn pagination__btn--next${
+    nextDisabled ? ' pagination__btn--disabled' : ''
+  }" aria-label="次のページへ"${
+    nextDisabled ? ' disabled' : ''
+  }>次へ &amp;gt;&lt;/button>`;
+
+  container.innerHTML = html;
+
+  // === クリックイベントを設定 ===
+  container.querySelectorAll('.pagination__btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+
+      if (btn.classList.contains('pagination__btn--prev')) {
+        onPageChange(currentPage - 1);
+      } else if (btn.classList.contains('pagination__btn--next')) {
+        onPageChange(currentPage + 1);
+      } else if (!btn.classList.contains('pagination__btn--active')) {
+        // ページ番号ボタン → aria-label から番号を取得
+        const pageNum = parseInt(btn.textContent, 10);
+        onPageChange(pageNum);
+      }
+    });
+  });
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    /* ===================================================================
+       ページネーション — インタラクティブデモ用スクリプト
+       =================================================================== */
+
+    /**
+     * 表示するページ番号の配列を生成する
+     *
+     * 省略記号（...）のアルゴリズム:
+     * 1. 総ページ数が7以下 → 全ページ番号を表示（省略なし）
+     * 2. 7ページ超の場合:
+     *    - 最初のページ（1）は常に表示
+     *    - 最後のページも常に表示
+     *    - 現在ページの前後1ページ（隣接ページ）を表示
+     *    - その間を '...' で埋める
+     *
+     * 例（全10ページ）:
+     *   現在1 → [1] [2] [3] ... [10]
+     *   現在5 → [1] ... [4] [5] [6] ... [10]
+     *   現在10 → [1] ... [8] [9] [10]
+     */
+    function generatePageNumbers(currentPage, totalPages) {
+      const pages = [];
+
+      /* ページ数が少ない場合は省略不要 → 全ページ表示 */
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+        return pages;
+      }
+
+      /* 常に最初のページを追加 */
+      pages.push(1);
+
+      /* 現在ページが3より大きい場合、1と現在ページの間に省略記号が必要
+         （例: 現在5 → [1] ... [4] [5] ...） */
+      if (currentPage > 3) {
+        pages.push('...');
+      }
+
+      /* 現在ページの前後1ページを追加
+         Math.max(2, ...) → 最初のページ(1)と重複しないように2以上にする
+         Math.min(totalPages - 1, ...) → 最後のページと重複しないようにする */
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      /* 現在ページが最後から2ページ以上離れていたら省略記号を追加 */
+      if (currentPage < totalPages - 2) {
+        pages.push('...');
+      }
+
+      /* 常に最後のページを追加 */
+      pages.push(totalPages);
+
+      return pages;
+    }
+
+    /**
+     * ページネーションUIを描画する
+     *
+     * @param {HTMLElement} container - nav要素（ページネーションの親）
+     * @param {number} currentPage - 現在表示中のページ番号
+     * @param {number} totalPages - 全ページ数
+     * @param {function|null} onPageChange - ページ変更時のコールバック（nullなら操作不可）
+     */
+    function renderPagination(container, currentPage, totalPages, onPageChange) {
+      /* === 1ページのみ → ページネーション自体を非表示にする ===
+         ページが1つしかないのにページネーションを表示するのは冗長。
+         ユーザーに「他にページがある」と誤解させてしまう */
+      if (totalPages <= 1) {
+        container.style.display = 'none';
+        return;
+      }
+      container.style.display = 'flex';
+
+      let html = '';
+
+      /* --- 「前へ」ボタン ---
+         1ページ目にいるとき → disabled にする
+         disabled属性: HTMLレベルでフォーム送信やクリックを無効化
+         pagination__btn--disabled クラス: CSSで pointer-events: none と opacity を適用 */
+      const prevDisabled = currentPage === 1;
+      html += `<button class="pagination__btn pagination__btn--prev${prevDisabled ? ' pagination__btn--disabled' : ''}"
+        aria-label="前のページへ"${prevDisabled ? ' disabled' : ''}>&#60; 前へ</button>`;
+
+      /* --- ページ番号ボタン群 --- */
+      const pages = generatePageNumbers(currentPage, totalPages);
+
+      pages.forEach(function(page) {
+        if (page === '...') {
+          /* 省略記号 → button ではなく span を使う。
+             aria-hidden="true" → スクリーンリーダーには読み上げ不要
+             （「ドットドットドット」と読み上げられても意味がないため） */
+          html += '<span class="pagination__ellipsis" aria-hidden="true">&hellip;</span>';
+        } else {
+          /* ページ番号ボタン
+             aria-label="ページ 3" → スクリーンリーダーが「ページ3」と読み上げる
+             aria-current="page" → 現在ページを示すWAI-ARIA属性。
+             スクリーンリーダーが「現在のページ」と通知してくれる */
+          const isActive = page === currentPage;
+          html += `<button class="pagination__btn${isActive ? ' pagination__btn--active' : ''}"
+            aria-label="ページ ${page}"${isActive ? ' aria-current="page"' : ''}>${page}</button>`;
+        }
+      });
+
+      /* --- 「次へ」ボタン ---
+         最終ページにいるとき → disabled にする */
+      const nextDisabled = currentPage === totalPages;
+      html += `<button class="pagination__btn pagination__btn--next${nextDisabled ? ' pagination__btn--disabled' : ''}"
+        aria-label="次のページへ"${nextDisabled ? ' disabled' : ''}>次へ &#62;</button>`;
+
+      /* === コンテナにHTMLを反映 === */
+      container.innerHTML = html;
+
+      /* === クリックイベントの登録 ===
+         イベント委譲（event delegation）ではなく各ボタンに直接付ける方式。
+         ページネーションのボタン数は少ないので、パフォーマンスの問題はない */
+      if (onPageChange) {
+        container.querySelectorAll('.pagination__btn').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            /* disabled なボタンは念のためガード */
+            if (btn.disabled) return;
+
+            if (btn.classList.contains('pagination__btn--prev')) {
+              onPageChange(currentPage - 1);
+            } else if (btn.classList.contains('pagination__btn--next')) {
+              onPageChange(currentPage + 1);
+            } else if (!btn.classList.contains('pagination__btn--active')) {
+              /* ボタンのテキスト内容からページ番号を取得
+                 parseInt(text, 10) → 10進数として解析する */
+              const pageNum = parseInt(btn.textContent, 10);
+              onPageChange(pageNum);
+            }
+          });
+        });
+      }
+    }
+
+    /* ===================================================================
+       デモの初期化
+       =================================================================== */
+
+    /* --- メインのインタラクティブデモ（全10ページ） --- */
+    (function() {
+      var currentPage = 1;
+      var totalPages = 10;
+      var container = document.getElementById('pagination-main');
+      var info = document.getElementById('pagination-info');
+
+      function update() {
+        renderPagination(container, currentPage, totalPages, function(newPage) {
+          currentPage = newPage;
+          update();
+        });
+        /* ページ情報テキストを更新 */
+        info.textContent = '現在 ' + currentPage + ' / ' + totalPages + ' ページ';
+      }
+
+      update();
+    })();
+
+    /* --- エッジケース: 1ページのみ（非表示になる） --- */
+    renderPagination(
+      document.getElementById('pagination-single'),
+      1, 1, null
+    );
+
+    /* --- エッジケース: 3ページ（省略記号なし） --- */
+    (function() {
+      var currentPage = 2;
+      var container = document.getElementById('pagination-few');
+
+      function update() {
+        renderPagination(container, currentPage, 3, function(newPage) {
+          currentPage = newPage;
+          update();
+        });
+      }
+
+      update();
+    })();
+
+    /* --- エッジケース: 100ページ（大量ページ） --- */
+    (function() {
+      var currentPage = 50;
+      var container = document.getElementById('pagination-many');
+
+      function update() {
+        renderPagination(container, currentPage, 100, function(newPage) {
+          currentPage = newPage;
+          update();
+        });
+      }
+
+      update();
+    })();
+  </script>
+</body>
+</html>

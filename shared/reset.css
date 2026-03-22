@@ -1,0 +1,118 @@
+/* ===================================================================
+   CSSリセット — ブラウザのデフォルトスタイルを統一する
+
+   ブラウザにはそれぞれ独自のデフォルトスタイルがあります。
+   このファイルでそれらをリセットし、全ブラウザで同じ見た目にします。
+   =================================================================== */
+
+/* すべての要素のサイズ計算を border-box にする。
+   border-box を使うと、paddingやborderを含めた合計サイズが
+   width/heightで指定した値になる（直感的で計算しやすい） */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* すべての要素のmarginとpaddingをゼロにリセット */
+* {
+  margin: 0;
+  padding: 0;
+}
+
+/* HTMLのルート要素にスムーズスクロールを設定。
+   ただし、ユーザーが「動きを減らす」設定をしている場合は無効化 */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* body の基本設定 */
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--color-neutral-800);
+  background-color: var(--color-surface-base);
+  -webkit-font-smoothing: antialiased;  /* macOSでフォントを滑らかに */
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;   /* 文字の読みやすさを優先 */
+}
+
+/* 見出しのフォントサイズをリセット（あとで個別に設定する） */
+h1, h2, h3, h4, h5, h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* リストのデフォルト装飾（・や数字）を消す */
+ul, ol {
+  list-style: none;
+}
+
+/* 画像・動画をレスポンシブに（親要素からはみ出さない） */
+img, video, svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* フォーム要素にも親のフォント設定を継承させる
+   （デフォルトではブラウザ独自のフォントが使われる） */
+input, button, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+
+/* テキストエリアの縦方向のみリサイズを許可 */
+textarea {
+  resize: vertical;
+}
+
+/* テーブルのセル間の隙間をなくす */
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* リンクのデフォルトスタイルを調整 */
+a {
+  color: var(--color-action-default);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* ボタンのデフォルトスタイルをリセット */
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* フォーカスが見えるスタイル（アクセシビリティ対応）
+   :focus-visible はキーボード操作時のみフォーカスリングを表示 */
+:focus-visible {
+  outline: 2px solid var(--color-action-default);
+  outline-offset: 2px;
+}
+
+/* スクリーンリーダー専用テキスト（視覚的に隠すが読み上げは可能） */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

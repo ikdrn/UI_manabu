@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>フルスクリーンモーダル — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       フルスクリーンモーダル — コンポーネントスタイル
+       =================================================================== */
+
+    /* ダイアログ本体 — 画面全体を覆う */
+    .fullscreen-dialog {
+      border: none;
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      height: 100dvh;
+      max-width: 100%;
+      max-height: 100dvh;
+      background: var(--color-surface, #fff);
+      animation: slide-up 300ms ease-out;
+    }
+
+    /* 下からスライドアップするアニメーション */
+    @keyframes slide-up {
+      from {
+        transform: translateY(100%);
+      }
+      to {
+        transform: translateY(0);
+      }
+    }
+
+    .fullscreen-dialog::backdrop {
+      background: rgba(0, 0, 0, 0.5);
+      animation: fullscreen-backdrop-fade 200ms ease-out;
+    }
+
+    @keyframes fullscreen-backdrop-fade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* レイアウト — ヘッダー・コンテンツ・フッターを縦に配置 */
+    .fullscreen-dialog__layout {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+    }
+
+    /* ヘッダー — 固定 */
+    .fullscreen-dialog__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--color-border, #e5e7eb);
+      flex-shrink: 0;
+    }
+
+    .fullscreen-dialog__title {
+      font-size: var(--text-lg, 18px);
+      font-weight: var(--font-semibold, 600);
+      color: var(--color-text-primary, #1a1a2e);
+    }
+
+    /* 閉じるボタン（✕） */
+    .fullscreen-dialog__close {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      color: var(--color-text-secondary, #6b7280);
+      font-size: 22px;
+      cursor: pointer;
+      border-radius: var(--radius-full, 9999px);
+      transition: background-color var(--duration-fast, 150ms);
+    }
+
+    .fullscreen-dialog__close:hover {
+      background: var(--color-surface-alt, #f3f4f6);
+    }
+
+    /* スクロール可能なコンテンツ領域 */
+    .fullscreen-dialog__content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 20px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* コンテンツ内の最大幅制限 */
+    .fullscreen-dialog__inner {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .fullscreen-dialog__inner h2 {
+      font-size: var(--text-xl, 20px);
+      font-weight: var(--font-bold, 700);
+      color: var(--color-text-primary, #1a1a2e);
+      margin-bottom: 16px;
+    }
+
+    .fullscreen-dialog__inner p {
+      font-size: var(--text-base, 16px);
+      color: var(--color-text-secondary, #6b7280);
+      line-height: 1.8;
+      margin-bottom: 16px;
+    }
+
+    .fullscreen-dialog__inner h3 {
+      font-size: var(--text-lg, 18px);
+      font-weight: var(--font-semibold, 600);
+      color: var(--color-text-primary, #1a1a2e);
+      margin-top: 24px;
+      margin-bottom: 12px;
+    }
+
+    /* フッター — 固定 */
+    .fullscreen-dialog__footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--color-border, #e5e7eb);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-shrink: 0;
+      background: var(--color-surface, #fff);
+    }
+
+    .fullscreen-dialog__btn {
+      padding: 10px 24px;
+      font-size: var(--text-sm, 14px);
+      font-weight: var(--font-semibold, 600);
+      border-radius: var(--radius-md, 8px);
+      cursor: pointer;
+      transition: background-color var(--duration-fast, 150ms);
+      border: 1px solid var(--color-border, #e5e7eb);
+      background: white;
+      color: var(--color-text-primary, #1a1a2e);
+    }
+
+    .fullscreen-dialog__btn:hover {
+      background: var(--color-surface-alt, #f9fafb);
+    }
+
+    .fullscreen-dialog__btn--primary {
+      background: var(--color-brand-500, #4f6ef7);
+      color: white;
+      border-color: var(--color-brand-500, #4f6ef7);
+    }
+
+    .fullscreen-dialog__btn--primary:hover {
+      background: var(--color-brand-600, #3b5de7);
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">モーダル</span>
+      <h1 class="component-title">フルスクリーンモーダル</h1>
+      <p class="component-description">
+        画面全体を覆うモーダル。長文の利用規約やプレビュー画面など、ユーザーの注意を完全に集中させたい場面で使います。下からスライドアップするアニメーションで画面遷移のような体験を提供します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container">
+        <button type="button" style="
+          padding: 10px 20px;
+          font-size: 14px;
+          font-weight: 600;
+          color: white;
+          background: var(--color-brand-500, #4f6ef7);
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+        " onclick="openFullscreenDialog()">
+          フルスクリーンモーダルを開く
+        </button>
+      </div>
+
+      <dialog id="fullscreenDialog" class="fullscreen-dialog">
+        <div class="fullscreen-dialog__layout">
+          <header class="fullscreen-dialog__header">
+            <h3 class="fullscreen-dialog__title">利用規約</h3>
+            <button type="button" class="fullscreen-dialog__close" onclick="closeFullscreenDialog()" aria-label="閉じる">✕</button>
+          </header>
+
+          <div class="fullscreen-dialog__content">
+            <div class="fullscreen-dialog__inner">
+              <h2>サービス利用規約</h2>
+              <p>本利用規約（以下「本規約」といいます）は、当社が提供するサービス（以下「本サービス」といいます）の利用条件を定めるものです。ご利用にあたっては、本規約に同意いただく必要があります。</p>
+
+              <h3>第1条（適用）</h3>
+              <p>本規約は、ユーザーと当社との間の本サービスの利用に関わる一切の関係に適用されるものとします。当社が本サービス上で随時掲載する個別の定め（以下「個別規定」といいます）も、本規約の一部を構成するものとします。</p>
+
+              <h3>第2条（利用登録）</h3>
+              <p>登録希望者が当社の定める方法によって利用登録を申請し、当社がこれを承認することによって、利用登録が完了するものとします。当社は、利用登録の申請者に以下の事由があると判断した場合、利用登録の申請を承認しないことがあります。</p>
+
+              <h3>第3条（ユーザーIDおよびパスワードの管理）</h3>
+              <p>ユーザーは、自己の責任において、本サービスのユーザーIDおよびパスワードを適切に管理するものとします。ユーザーは、いかなる場合にも、ユーザーIDおよびパスワードを第三者に譲渡または貸与し、もしくは第三者と共用することはできません。</p>
+
+              <h3>第4条（禁止事項）</h3>
+              <p>ユーザーは、本サービスの利用にあたり、以下の行為をしてはなりません。法令または公序良俗に違反する行為、犯罪行為に関連する行為、本サービスの内容等を不正に改ざんする行為、その他当社が不適切と判断する行為。</p>
+
+              <h3>第5条（本サービスの提供の停止等）</h3>
+              <p>当社は、以下のいずれかの事由があると判断した場合、ユーザーに事前に通知することなく本サービスの全部または一部の提供を停止または中断することができるものとします。</p>
+
+              <h3>第6条（免責事項）</h3>
+              <p>当社は、本サービスに事実上または法律上の瑕疵（安全性、信頼性、正確性、完全性、有効性、特定の目的への適合性、セキュリティなどに関する欠陥、エラーやバグ、権利侵害などを含みます）がないことを明示的にも黙示的にも保証しておりません。</p>
+            </div>
+          </div>
+
+          <footer class="fullscreen-dialog__footer">
+            <button type="button" class="fullscreen-dialog__btn" onclick="closeFullscreenDialog()">閉じる</button>
+            <button type="button" class="fullscreen-dialog__btn fullscreen-dialog__btn--primary" onclick="closeFullscreenDialog()">同意する</button>
+          </footer>
+        </div>
+      </dialog>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜdvh単位を使うのか？</strong><br>
+        dvh（Dynamic Viewport Height）はモバイルブラウザのアドレスバーの表示・非表示を考慮した高さ単位です。vhだと、モバイルでアドレスバーが表示されている時に画面の下部が隠れてしまいますが、dvhなら常に正しい表示領域の高さを取得できます。</p>
+        <p><strong>下からのスライドアップアニメーション</strong><br>
+        translateY(100%)から0への遷移は、「新しい画面が下から現れる」というモバイルアプリでお馴染みのパターンです。通常のモーダルのフェード＋スケールとは異なり、「別の画面に移動した」感覚を与えます。</p>
+        <p><strong>背景スクロールの防止</strong><br>
+        &lt;dialog&gt;のshowModal()はブラウザが自動的に背景のスクロールを防止します。divで作ったモーダルの場合はbody { overflow: hidden }を手動で制御する必要がありますが、dialog要素ならその心配がありません。</p>
+        <p><strong>コンテンツの最大幅制限</strong><br>
+        フルスクリーンでも本文の幅は640px程度に制限しています。1行が長すぎると読みにくくなるため（最適な行長は50〜75文字）、大画面でもコンテンツに集中しやすい幅に抑えます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- dialog → フルスクリーンで使う場合もdialog要素が最適 --&gt;
+&lt;dialog id="fullscreenDialog" class="fullscreen-dialog"&gt;
+  &lt;!-- layout → flexで縦に3分割（ヘッダー・コンテンツ・フッター） --&gt;
+  &lt;div class="fullscreen-dialog__layout"&gt;
+
+    &lt;!-- ヘッダー — flex-shrink: 0で固定高さ --&gt;
+    &lt;header class="fullscreen-dialog__header"&gt;
+      &lt;h3 class="fullscreen-dialog__title"&gt;利用規約&lt;/h3&gt;
+      &lt;!-- 閉じるボタン → aria-labelでスクリーンリーダーに意味を伝える --&gt;
+      &lt;button type="button" class="fullscreen-dialog__close"
+              aria-label="閉じる"&gt;✕&lt;/button&gt;
+    &lt;/header&gt;
+
+    &lt;!-- コンテンツ — flex: 1 + overflow-y: autoでスクロール --&gt;
+    &lt;div class="fullscreen-dialog__content"&gt;
+      &lt;div class="fullscreen-dialog__inner"&gt;
+        &lt;h2&gt;サービス利用規約&lt;/h2&gt;
+        &lt;p&gt;本利用規約は...&lt;/p&gt;
+        &lt;!-- 長いコンテンツ --&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;!-- フッター — flex-shrink: 0で固定高さ --&gt;
+    &lt;footer class="fullscreen-dialog__footer"&gt;
+      &lt;button type="button" class="fullscreen-dialog__btn"&gt;
+        閉じる
+      &lt;/button&gt;
+      &lt;button type="button"
+              class="fullscreen-dialog__btn fullscreen-dialog__btn--primary"&gt;
+        同意する
+      &lt;/button&gt;
+    &lt;/footer&gt;
+
+  &lt;/div&gt;
+&lt;/dialog&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* フルスクリーンダイアログ */
+.fullscreen-dialog {
+  border: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  /* dvh → Dynamic Viewport Height。
+     モバイルのアドレスバーの高さ変化に対応する単位。
+     vhだとアドレスバー分の誤差が出る */
+  height: 100dvh;
+  /* max-width/max-height → dialogのデフォルト制限を解除 */
+  max-width: 100%;
+  max-height: 100dvh;
+  background: #fff;
+
+  /* 下からスライドアップ */
+  animation: slide-up 300ms ease-out;
+}
+
+@keyframes slide-up {
+  from {
+    /* translateY(100%) → 画面の高さ分だけ下にずらす（画面外） */
+    transform: translateY(100%);
+  }
+  to {
+    /* translateY(0) → 元の位置に戻す（画面内） */
+    transform: translateY(0);
+  }
+}
+
+/* レイアウト — 縦方向のflexbox */
+.fullscreen-dialog__layout {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+/* コンテンツ領域 — 残りの高さ全てを使う */
+.fullscreen-dialog__content {
+  /* flex: 1 → ヘッダーとフッターの余りのスペースを全て使う */
+  flex: 1;
+  /* overflow-y: auto → 内容が溢れたらスクロール */
+  overflow-y: auto;
+  padding: 24px 20px;
+  /* -webkit-overflow-scrolling: touch → iOSでなめらかなスクロール */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* コンテンツの最大幅 */
+.fullscreen-dialog__inner {
+  /* max-width: 640px → 読みやすい行長に制限 */
+  max-width: 640px;
+  margin: 0 auto;
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="javascript">const dialog = document.getElementById('fullscreenDialog');
+
+// モーダルを開く
+function openFullscreenDialog() {
+  // showModal() → モーダルとして開く
+  // 自動的に背景スクロールが防止される
+  dialog.showModal();
+
+  // bodyのoverflowをhiddenにする必要がない
+  // dialog要素のshowModal()が自動で処理する
+}
+
+// モーダルを閉じる
+function closeFullscreenDialog() {
+  dialog.close();
+}
+
+// Escapeキーでの閉じるはshowModal()が自動処理
+// ただし、閉じる前に確認を挟みたい場合は：
+dialog.addEventListener('cancel', (e) =&gt; {
+  // e.preventDefault()で閉じるのを防止できる
+  // 例：フォームに未保存の変更がある場合
+});</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">モバイルでのdvhサポート</div>
+          <p style="font-size: 14px; color: var(--color-text-secondary, #6b7280);">
+            dvh単位は主要な最新ブラウザでサポートされていますが、古いブラウザにはフォールバックとしてvhを併記します。height: 100vh; height: 100dvh; のように書くと、dvh未対応ブラウザはvhを使います。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">閉じるアニメーション</div>
+          <p style="font-size: 14px; color: var(--color-text-secondary, #6b7280);">
+            dialog要素のclose()は即座に非表示にするため、閉じるアニメーションを付けるにはCSSの@starting-styleルールやJavaScriptでアニメーション完了後にclose()を呼ぶ処理が必要です。
+          </p>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">キーボードのスクロール</div>
+          <p style="font-size: 14px; color: var(--color-text-secondary, #6b7280);">
+            フルスクリーンモーダル内のスクロール領域にtabindex="0"を付けると、キーボードの矢印キーでもスクロールできるようになります。長い利用規約などではアクセシビリティの向上に役立ちます。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script>
+    function openFullscreenDialog() {
+      document.getElementById('fullscreenDialog').showModal();
+    }
+    function closeFullscreenDialog() {
+      document.getElementById('fullscreenDialog').close();
+    }
+  </script>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プロフィールカード — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       プロフィールカード — コンポーネントスタイル
+
+       人物を「一目で把握できる」カード。
+       アバター → 名前 → 役職 → 詳細 という視覚的な階層で
+       スキャナブル（さっと読み取れる）な情報設計を行う。
+       =================================================================== */
+
+    /* --- カードのコンテナ（3枚を横並びにする） --- */
+    .profile-cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-6);
+      justify-content: center;
+    }
+
+    /* --- カード本体 ---
+       box-shadow でカードが「浮いている」ように見せる。
+       影の大きさで要素の重要度や階層を視覚的に表現する */
+    .profile-card {
+      width: 280px;
+      background-color: var(--color-surface-raised);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      overflow: hidden; /* 子要素のはみ出し（ヘッダーの角丸）を隠す */
+      transition: box-shadow var(--duration-normal) var(--ease-out),
+                  transform var(--duration-normal) var(--ease-out);
+    }
+
+    /* カードにホバーした時、影を深くして「持ち上がった」感覚を出す */
+    .profile-card:hover {
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-2px);
+    }
+
+    /* --- ヘッダーバナー ---
+       linear-gradient で画像を使わずに視覚的なアクセントを作る。
+       グラデーションの角度を変えると印象が変わる */
+    .profile-card__header {
+      height: 100px;
+      /* linear-gradient(角度, 開始色, 終了色) →
+         ブランドカラーの濃淡でグラデーションを作り、統一感を出す */
+      background: linear-gradient(
+        135deg,
+        var(--color-brand-400),
+        var(--color-brand-700)
+      );
+    }
+
+    /* --- カードのボディ ---
+       text-align: center でカード内のテキストを中央揃えにする。
+       プロフィールカードは中央揃えが一般的で、
+       アバターを中心にした左右対称のレイアウトが自然に見える */
+    .profile-card__body {
+      padding: 0 var(--space-6) var(--space-6);
+      text-align: center;
+    }
+
+    /* --- アバター（丸い人物アイコン） ---
+       border-radius: 50% で正方形を完全な円に変える。
+       width と height が同じ値であることが前提 */
+    .profile-card__avatar {
+      width: 80px;
+      height: 80px;
+
+      /* border-radius: 50% → 要素の幅・高さの半分を角丸にすると
+         完全な円になる。正方形でないと楕円になるので注意 */
+      border-radius: 50%;
+
+      /* margin: 0 auto → 左右のマージンを自動にしてブロック要素を中央に置く */
+      margin: 0 auto;
+
+      /* margin-top: -40px → 負のマージンでアバターをヘッダーに
+         40px分重ねて表示する。これにより「ヘッダーとボディをつなぐ」
+         視覚的なアンカー（錨）の役割を果たす */
+      margin-top: -40px;
+
+      /* 白い枠線でアバターをヘッダー背景から視覚的に分離する。
+         border が背景の上に白い「額縁」を作る */
+      border: 4px solid var(--color-surface-raised);
+
+      /* box-shadow でアバターに軽い影を付けて「浮き」を強調する */
+      box-shadow: var(--shadow-sm);
+
+      /* object-fit: cover の概念：
+         もし <img> タグでアバター画像を表示する場合、
+         object-fit: cover を指定すると、画像のアスペクト比を維持しつつ
+         要素全体を埋めるようにトリミングされる。
+         顔写真が歪まずに丸い枠に収まる */
+
+      /* --- CSSのみのイニシャル表示（画像なしフォールバック） ---
+         display: grid と place-items: center を組み合わせて、
+         1行のコードで縦横中央揃えを実現する */
+      display: grid;
+      place-items: center; /* justify-items + align-items を一括指定 */
+
+      background-color: var(--color-brand-500);
+      color: white;
+      font-size: var(--text-xl);
+      font-weight: var(--font-bold);
+
+      /* ユーザーがテキストとして選択できないようにする。
+         イニシャルは装飾的な表示なので、選択の必要がない */
+      user-select: none;
+    }
+
+    /* --- 名前 --- */
+    .profile-card__name {
+      margin-top: var(--space-3);
+      font-size: var(--text-lg);
+      font-weight: var(--font-bold);
+      color: var(--color-neutral-900);
+      line-height: var(--leading-tight);
+
+      /* 非常に長い名前がカードからはみ出さないように制御する。
+         overflow-wrap: break-word → 単語の途中でも折り返す */
+      overflow-wrap: break-word;
+    }
+
+    /* --- 役職・タイトル --- */
+    .profile-card__role {
+      margin-top: var(--space-1);
+      font-size: var(--text-sm);
+      color: var(--color-neutral-500);
+      line-height: var(--leading-normal);
+    }
+
+    /* --- 自己紹介文 --- */
+    .profile-card__bio {
+      margin-top: var(--space-3);
+      font-size: var(--text-sm);
+      color: var(--color-neutral-600);
+      line-height: var(--leading-relaxed);
+
+      /* 長い自己紹介文を3行で切り詰めて「…」を表示する。
+         -webkit-line-clamp は行数制限を行うプロパティ */
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* --- ソーシャルリンク行 ---
+       flexbox で横並びにし、中央揃え + 均等な間隔で配置する */
+    .profile-card__socials {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-3);
+      margin-top: var(--space-4);
+      flex-wrap: wrap; /* リンクが多い場合に折り返す */
+    }
+
+    /* 各ソーシャルリンク（CSSのみのシンプルなテキストリンク） */
+    .profile-card__social-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background-color: var(--color-neutral-100);
+      color: var(--color-neutral-600);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      text-decoration: none;
+      transition: background-color var(--duration-fast),
+                  color var(--duration-fast);
+      /* テキストを大文字にしてアイコン風に見せる */
+      text-transform: uppercase;
+    }
+
+    .profile-card__social-link:hover {
+      background-color: var(--color-brand-100);
+      color: var(--color-brand-600);
+    }
+
+    .profile-card__social-link:focus-visible {
+      outline: 2px solid var(--color-brand-500);
+      outline-offset: 2px;
+    }
+
+    /* --- メッセージボタン --- */
+    .profile-card__action {
+      display: block;
+      width: 100%;
+      margin-top: var(--space-4);
+      padding: 10px var(--space-4);
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      line-height: 1;
+      color: var(--color-brand-500);
+      background-color: transparent;
+      border: 1px solid var(--color-brand-300);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background-color var(--duration-fast),
+                  color var(--duration-fast),
+                  border-color var(--duration-fast);
+    }
+
+    .profile-card__action:hover {
+      background-color: var(--color-brand-50);
+      border-color: var(--color-brand-500);
+    }
+
+    .profile-card__action:active {
+      background-color: var(--color-brand-100);
+    }
+
+    .profile-card__action:focus-visible {
+      outline: 2px solid var(--color-brand-500);
+      outline-offset: 2px;
+    }
+
+    /* --- アバターの色バリエーション ---
+       複数カードが並んだ時に視覚的に区別しやすくする */
+    .profile-card__avatar--green {
+      background-color: var(--color-state-success);
+    }
+
+    .profile-card__avatar--orange {
+      background-color: hsl(25, 70%, 55%);
+    }
+
+    .profile-card__avatar--purple {
+      background-color: hsl(270, 60%, 55%);
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">カード</span>
+      <h1 class="component-title">プロフィールカード</h1>
+      <p class="component-description">
+        人物の情報を「一目で把握できる」ようにまとめたカード。アバターが視覚的なアンカーとなり、名前 → 役職 → 詳細の順にスキャンしやすい情報階層を作ります。チームメンバー一覧やユーザーディレクトリなどで使用します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container">
+        <div class="profile-cards">
+
+          <!-- カード1: 長い名前のケース -->
+          <div class="profile-card">
+            <div class="profile-card__header"></div>
+            <div class="profile-card__body">
+              <!-- アバター：CSSイニシャルフォールバック。
+                   画像がない場合に名前の頭文字を表示する -->
+              <div class="profile-card__avatar" aria-hidden="true">ア</div>
+              <h3 class="profile-card__name">アレクサンドラ・ニコラエヴナ・ペトロフスカヤ</h3>
+              <p class="profile-card__role">シニアプロダクトデザイナー</p>
+              <p class="profile-card__bio">
+                ユーザー中心のデザインプロセスを通じて、複雑な問題をシンプルで直感的なインターフェースに変換します。
+              </p>
+              <div class="profile-card__socials">
+                <a href="#" class="profile-card__social-link" title="Twitter">Tw</a>
+                <a href="#" class="profile-card__social-link" title="GitHub">Gh</a>
+                <a href="#" class="profile-card__social-link" title="Web">W</a>
+              </div>
+              <button type="button" class="profile-card__action">メッセージを送る</button>
+            </div>
+          </div>
+
+          <!-- カード2: 短い自己紹介のケース -->
+          <div class="profile-card">
+            <div class="profile-card__header" style="background: linear-gradient(135deg, hsl(152, 50%, 45%), hsl(180, 60%, 35%));"></div>
+            <div class="profile-card__body">
+              <div class="profile-card__avatar profile-card__avatar--green" aria-hidden="true">田</div>
+              <h3 class="profile-card__name">田中 太郎</h3>
+              <p class="profile-card__role">エンジニア</p>
+              <p class="profile-card__bio">
+                コードを書きます。
+              </p>
+              <div class="profile-card__socials">
+                <a href="#" class="profile-card__social-link" title="GitHub">Gh</a>
+              </div>
+              <button type="button" class="profile-card__action">メッセージを送る</button>
+            </div>
+          </div>
+
+          <!-- カード3: ソーシャルリンクが多いケース -->
+          <div class="profile-card">
+            <div class="profile-card__header" style="background: linear-gradient(135deg, hsl(270, 50%, 55%), hsl(300, 60%, 40%));"></div>
+            <div class="profile-card__body">
+              <div class="profile-card__avatar profile-card__avatar--purple" aria-hidden="true">S</div>
+              <h3 class="profile-card__name">Saki Yamamoto</h3>
+              <p class="profile-card__role">フルスタックエンジニア / テクニカルライター / コミュニティマネージャー</p>
+              <p class="profile-card__bio">
+                Webアプリケーション開発とテクニカルライティングの両方をこなすマルチスキルなエンジニア。オープンソースへの貢献を大切にしています。
+              </p>
+              <div class="profile-card__socials">
+                <a href="#" class="profile-card__social-link" title="Twitter">Tw</a>
+                <a href="#" class="profile-card__social-link" title="GitHub">Gh</a>
+                <a href="#" class="profile-card__social-link" title="LinkedIn">Li</a>
+                <a href="#" class="profile-card__social-link" title="Zenn">Zn</a>
+                <a href="#" class="profile-card__social-link" title="Qiita">Qi</a>
+                <a href="#" class="profile-card__social-link" title="Web">W</a>
+              </div>
+              <button type="button" class="profile-card__action">メッセージを送る</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>カードはなぜ「スキャナブル」なのか？</strong><br>
+        カードは情報を視覚的な境界（影と角丸）で区切ることで、ユーザーが一つの単位として認識できます。人物情報をカードにまとめると、一覧から目当ての人をすばやく見つけられます。</p>
+
+        <p><strong>アバターが「視覚的なアンカー」になる理由</strong><br>
+        人間の脳は顔（または顔を連想させる円形）に自然と注意を向けます。アバターをカードの上部中央に配置し、ヘッダーとボディの境界にまたがらせることで、カード全体の視覚的な「重心」を作っています。</p>
+
+        <p><strong>情報の階層：ビジュアル → 名前 → 役職 → 詳細</strong><br>
+        最も重要な「誰か」を視覚（アバター）と名前で素早く伝え、次に「何をしている人か」（役職）、最後に「もっと知りたい」人向けの詳細（自己紹介・SNSリンク）を配置します。この順番がユーザーの自然な認知プロセスに合致します。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- プロフィールカードの基本構造 -->
+<div class="profile-card">
+
+  <!-- ヘッダーバナー → CSSグラデーションで背景を作る -->
+  <div class="profile-card__header"></div>
+
+  <div class="profile-card__body">
+
+    <!-- アバター → 画像がない場合はイニシャルで代替。
+         aria-hidden="true" → スクリーンリーダーに読み上げさせない。
+         イニシャルは装飾的な表示なので読み上げ不要 -->
+    <div class="profile-card__avatar" aria-hidden="true">田</div>
+
+    <!-- 名前 → h3 を使って見出しレベルを適切に設定 -->
+    <h3 class="profile-card__name">田中 太郎</h3>
+
+    <!-- 役職 → 名前の補足情報。段落タグで表現 -->
+    <p class="profile-card__role">エンジニア</p>
+
+    <!-- 自己紹介文 → CSSで3行に制限して省略表示 -->
+    <p class="profile-card__bio">
+      コードを書くのが好きです。
+    </p>
+
+    <!-- ソーシャルリンク行 → テキストベースのリンクアイコン -->
+    <div class="profile-card__socials">
+      <a href="#" class="profile-card__social-link"
+         title="Twitter">Tw</a>
+      <a href="#" class="profile-card__social-link"
+         title="GitHub">Gh</a>
+    </div>
+
+    <!-- アクションボタン → type="button" でフォーム送信を防ぐ -->
+    <button type="button" class="profile-card__action">
+      メッセージを送る
+    </button>
+
+  </div>
+</div></code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- カード本体 --- */
+.profile-card {
+  width: 280px;
+  background-color: var(--color-surface-raised);
+
+  /* border-radius: 12px → 角を丸くしてカード感を出す。
+     丸みは「まとまり」「親しみ」を感じさせる */
+  border-radius: var(--radius-lg);
+
+  /* box-shadow → カードに影を付けて「浮いている」ように見せる。
+     影が深いほど、その要素が手前にあるように感じられる。
+     これを「エレベーション（高さ）」と呼ぶ */
+  box-shadow: var(--shadow-md);
+
+  /* overflow: hidden → カードからはみ出す部分を隠す。
+     ヘッダーの角が border-radius に沿って切り取られる */
+  overflow: hidden;
+}
+
+/* --- ヘッダーバナー --- */
+.profile-card__header {
+  height: 100px;
+
+  /* linear-gradient(角度, 色1, 色2) → 2色のグラデーション。
+     135deg は左上から右下への斜めグラデーション。
+     画像を使わずに視覚的なアクセントを作れる */
+  background: linear-gradient(
+    135deg,
+    var(--color-brand-400),
+    var(--color-brand-700)
+  );
+}
+
+/* --- アバター（丸いイニシャルアイコン） --- */
+.profile-card__avatar {
+  width: 80px;
+  height: 80px;
+
+  /* border-radius: 50% → 正方形を完全な円に変える。
+     「50%」は要素の幅・高さの半分 = 半径。
+     つまり4つの角が全て円弧になり、真円になる。
+     ★ width と height が違う値だと楕円になるので注意 */
+  border-radius: 50%;
+
+  /* margin: 0 auto → 左右を自動マージンにしてブロックを中央揃え。
+     text-align: center は inline 要素用、
+     margin: 0 auto は block 要素用の中央揃え */
+  margin: 0 auto;
+
+  /* margin-top: -40px → 負（マイナス）のマージン。
+     通常マージンは要素を離すが、負の値は要素を引き寄せる。
+     アバターの高さ80pxの半分 = 40pxだけ上に引き上げて、
+     ヘッダーバナーに半分重なるように配置する。
+     これがヘッダーとボディを「つなぐ」視覚的なアンカーになる */
+  margin-top: -40px;
+
+  /* 白い枠線でアバターをヘッダー背景から浮かせる */
+  border: 4px solid var(--color-surface-raised);
+
+  /* --- CSSだけでイニシャルを中央に表示する ---
+     display: grid + place-items: center の組み合わせは
+     縦横中央揃えの最もシンプルな書き方。
+     flexboxで同じことをするには3つのプロパティが必要:
+       display: flex;
+       align-items: center;
+       justify-content: center;
+     gridなら2行で済む */
+  display: grid;
+  place-items: center;
+
+  background-color: var(--color-brand-500);
+  color: white;
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+}
+
+/* --- もし画像のアバターを使う場合 ---
+   .profile-card__avatar-img {
+     width: 100%;
+     height: 100%;
+     border-radius: 50%;
+
+     object-fit: cover → 画像のアスペクト比（縦横比）を維持したまま
+     要素全体を覆うようにリサイズ＆トリミングする。
+     顔写真が歪まず、必ず円形の枠にフィットする。
+
+     比較:
+     - object-fit: contain → 画像全体が見えるが、余白ができる
+     - object-fit: cover → 余白なしだが、端が切れることがある
+     - object-fit: fill → 余白なしだが、画像が歪む（デフォルト）
+   } */
+
+/* --- カードボディ --- */
+.profile-card__body {
+  padding: 0 var(--space-6) var(--space-6);
+
+  /* text-align: center → カード内のテキストを全て中央揃えにする。
+     プロフィールカードはアバターを中心にした「左右対称」レイアウト。
+     対称性は「安定感」と「フォーマルさ」を感じさせる */
+  text-align: center;
+}
+
+/* --- 自己紹介文（行数制限） --- */
+.profile-card__bio {
+  /* -webkit-line-clamp で表示行数を制限し、
+     超過分を「…」で省略する。
+     3つのプロパティをセットで指定する必要がある */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;        /* 最大3行まで */
+  -webkit-box-orient: vertical; /* 縦方向にボックスを並べる */
+  overflow: hidden;             /* はみ出た部分を隠す */
+}
+
+/* --- ソーシャルリンク --- */
+.profile-card__socials {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+
+  /* flex-wrap: wrap → リンクが多い場合に自動的に折り返す。
+     wrap がないと要素が無理に1行に収まろうとして
+     カードからはみ出す可能性がある */
+  flex-wrap: wrap;
+}
+
+/* 各ソーシャルリンクアイコン */
+.profile-card__social-link {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-neutral-100);
+  color: var(--color-neutral-600);
+  text-decoration: none;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">非常に長い名前</div>
+          <p style="font-size: var(--text-sm); color: var(--color-neutral-600); margin-bottom: var(--space-3);">
+            <code>overflow-wrap: break-word</code> により、長い名前もカード内で折り返される。レイアウトが崩れない。
+          </p>
+          <div class="preview-container" style="justify-content: center;">
+            <div class="profile-card">
+              <div class="profile-card__header"></div>
+              <div class="profile-card__body">
+                <div class="profile-card__avatar" aria-hidden="true">ア</div>
+                <h3 class="profile-card__name">アレクサンドラ・ニコラエヴナ・ペトロフスカヤ＝スミルノワ</h3>
+                <p class="profile-card__role">シニアプリンシパルプロダクトデザインエンジニア</p>
+                <p class="profile-card__bio">長い名前と長い肩書でもカードが破綻しないことを確認するテストケースです。</p>
+                <div class="profile-card__socials">
+                  <a href="#" class="profile-card__social-link" title="Web">W</a>
+                </div>
+                <button type="button" class="profile-card__action">メッセージを送る</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="edge-case-item">
+          <div class="edge-case-label">アバター画像なし（イニシャルフォールバック）</div>
+          <p style="font-size: var(--text-sm); color: var(--color-neutral-600); margin-bottom: var(--space-3);">
+            画像を使わず、CSSの <code>display: grid; place-items: center</code> でイニシャルを中央配置。どのユーザーでも必ずアバターが表示される。
+          </p>
+        </div>
+
+        <div class="edge-case-item">
+          <div class="edge-case-label">ソーシャルリンクが多い場合</div>
+          <p style="font-size: var(--text-sm); color: var(--color-neutral-600); margin-bottom: var(--space-3);">
+            <code>flex-wrap: wrap</code> により、リンクが多くても自動的に複数行に折り返される。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

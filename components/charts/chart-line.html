@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>折れ線グラフ — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       折れ線グラフ — コンポーネントスタイル
+       =================================================================== */
+
+    /* グラフコンテナ */
+    .line-chart-container {
+      max-width: 600px;
+      width: 100%;
+    }
+
+    .line-chart-svg {
+      width: 100%;
+      height: auto;
+      overflow: visible;
+    }
+
+    /* グリッドライン */
+    .grid-line {
+      stroke: var(--color-border-secondary);
+      stroke-width: 1;
+      stroke-dasharray: 4 4;
+    }
+
+    /* 軸ラベル */
+    .axis-label {
+      font-size: 11px;
+      fill: var(--color-text-tertiary);
+      font-family: inherit;
+    }
+
+    /* 折れ線 — 描画アニメーション付き */
+    .chart-line {
+      fill: none;
+      stroke: var(--color-brand-500);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      /* stroke-dasharrayとstroke-dashoffsetでアニメーション */
+      stroke-dasharray: 1500;
+      stroke-dashoffset: 1500;
+      animation: drawLine 2s ease-out forwards;
+    }
+
+    @keyframes drawLine {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    /* 面積塗りつぶし */
+    .chart-area {
+      opacity: 0;
+      animation: fadeInArea 1s ease-out 1.5s forwards;
+    }
+
+    @keyframes fadeInArea {
+      to {
+        opacity: 1;
+      }
+    }
+
+    /* データポイント */
+    .data-point {
+      fill: var(--color-bg-primary);
+      stroke: var(--color-brand-500);
+      stroke-width: 2;
+      cursor: pointer;
+      transition: r 150ms;
+      opacity: 0;
+      animation: fadeInDot 300ms ease-out forwards;
+    }
+
+    .data-point:hover {
+      r: 6;
+      fill: var(--color-brand-500);
+    }
+
+    /* ポイントのアニメーション遅延 */
+    .data-point:nth-child(1) { animation-delay: 200ms; }
+    .data-point:nth-child(2) { animation-delay: 350ms; }
+    .data-point:nth-child(3) { animation-delay: 500ms; }
+    .data-point:nth-child(4) { animation-delay: 650ms; }
+    .data-point:nth-child(5) { animation-delay: 800ms; }
+    .data-point:nth-child(6) { animation-delay: 950ms; }
+    .data-point:nth-child(7) { animation-delay: 1100ms; }
+    .data-point:nth-child(8) { animation-delay: 1250ms; }
+    .data-point:nth-child(9) { animation-delay: 1400ms; }
+    .data-point:nth-child(10) { animation-delay: 1550ms; }
+    .data-point:nth-child(11) { animation-delay: 1700ms; }
+    .data-point:nth-child(12) { animation-delay: 1850ms; }
+
+    @keyframes fadeInDot {
+      to { opacity: 1; }
+    }
+
+    /* ツールチップ */
+    .chart-tooltip {
+      position: absolute;
+      padding: 6px 10px;
+      background: var(--color-text-primary);
+      color: var(--color-bg-primary);
+      font-size: 12px;
+      border-radius: var(--radius-sm);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity var(--duration-fast);
+      white-space: nowrap;
+      z-index: 10;
+    }
+
+    .chart-tooltip.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">チャート・データ可視化</span>
+      <h1 class="component-title">折れ線グラフ</h1>
+      <p class="component-description">
+        SVGで描画する折れ線グラフ。12個のデータポイント、グリッド線、線の描画アニメーション、グラデーション面積塗りつぶしを備えた本格的なチャートです。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col" style="align-items: center; position: relative;">
+        <div class="line-chart-container">
+          <svg class="line-chart-svg" viewBox="0 0 560 280" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <!-- グラデーション塗りつぶし → 面積チャートに使用 -->
+              <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--color-brand-500)" stop-opacity="0.3"/>
+                <stop offset="100%" stop-color="var(--color-brand-500)" stop-opacity="0.02"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Y軸グリッドライン -->
+            <line class="grid-line" x1="50" y1="40" x2="540" y2="40"/>
+            <line class="grid-line" x1="50" y1="90" x2="540" y2="90"/>
+            <line class="grid-line" x1="50" y1="140" x2="540" y2="140"/>
+            <line class="grid-line" x1="50" y1="190" x2="540" y2="190"/>
+            <line class="grid-line" x1="50" y1="240" x2="540" y2="240"/>
+
+            <!-- Y軸ラベル -->
+            <text class="axis-label" x="40" y="44" text-anchor="end">100</text>
+            <text class="axis-label" x="40" y="94" text-anchor="end">80</text>
+            <text class="axis-label" x="40" y="144" text-anchor="end">60</text>
+            <text class="axis-label" x="40" y="194" text-anchor="end">40</text>
+            <text class="axis-label" x="40" y="244" text-anchor="end">20</text>
+
+            <!-- X軸ラベル（月） -->
+            <text class="axis-label" x="70" y="264" text-anchor="middle">1月</text>
+            <text class="axis-label" x="113" y="264" text-anchor="middle">2月</text>
+            <text class="axis-label" x="157" y="264" text-anchor="middle">3月</text>
+            <text class="axis-label" x="200" y="264" text-anchor="middle">4月</text>
+            <text class="axis-label" x="243" y="264" text-anchor="middle">5月</text>
+            <text class="axis-label" x="287" y="264" text-anchor="middle">6月</text>
+            <text class="axis-label" x="330" y="264" text-anchor="middle">7月</text>
+            <text class="axis-label" x="373" y="264" text-anchor="middle">8月</text>
+            <text class="axis-label" x="417" y="264" text-anchor="middle">9月</text>
+            <text class="axis-label" x="460" y="264" text-anchor="middle">10月</text>
+            <text class="axis-label" x="503" y="264" text-anchor="middle">11月</text>
+            <text class="axis-label" x="540" y="264" text-anchor="middle">12月</text>
+
+            <!-- 面積塗りつぶし（polygon） -->
+            <polygon class="chart-area"
+              points="70,180 113,160 157,120 200,140 243,100 287,110 330,80 373,90 417,60 460,70 503,50 540,40 540,240 70,240"
+              fill="url(#areaGradient)"/>
+
+            <!-- 折れ線（polyline） -->
+            <polyline class="chart-line"
+              points="70,180 113,160 157,120 200,140 243,100 287,110 330,80 373,90 417,60 460,70 503,50 540,40"/>
+
+            <!-- データポイント -->
+            <g class="data-points">
+              <circle class="data-point" cx="70" cy="180" r="4" data-label="1月: 30"/>
+              <circle class="data-point" cx="113" cy="160" r="4" data-label="2月: 40"/>
+              <circle class="data-point" cx="157" cy="120" r="4" data-label="3月: 60"/>
+              <circle class="data-point" cx="200" cy="140" r="4" data-label="4月: 50"/>
+              <circle class="data-point" cx="243" cy="100" r="4" data-label="5月: 70"/>
+              <circle class="data-point" cx="287" cy="110" r="4" data-label="6月: 65"/>
+              <circle class="data-point" cx="330" cy="80" r="4" data-label="7月: 80"/>
+              <circle class="data-point" cx="373" cy="90" r="4" data-label="8月: 75"/>
+              <circle class="data-point" cx="417" cy="60" r="4" data-label="9月: 90"/>
+              <circle class="data-point" cx="460" cy="70" r="4" data-label="10月: 85"/>
+              <circle class="data-point" cx="503" cy="50" r="4" data-label="11月: 95"/>
+              <circle class="data-point" cx="540" cy="40" r="4" data-label="12月: 100"/>
+            </g>
+          </svg>
+        </div>
+        <div class="chart-tooltip" id="chartTooltip"></div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>SVG viewBoxによるレスポンシブ対応</strong><br>
+        viewBox="0 0 560 280"でSVGの仮想座標系を定義します。実際の表示サイズはCSSのwidth: 100%に従い、viewBoxの比率を保ったままスケーリングされます。</p>
+        <p><strong>stroke-dasharrayによる描画アニメーション</strong><br>
+        stroke-dasharrayで線の見える部分と見えない部分のパターンを定義し、stroke-dashoffsetで開始位置をずらします。オフセットを0にアニメーションすることで「線が描かれていく」効果を生み出します。</p>
+        <p><strong>linearGradientによる面積塗りつぶし</strong><br>
+        SVGのlinearGradient要素で上から下に透明度が変化するグラデーションを定義します。折れ線の下を塗りつぶすことで、データの推移をより直感的に把握できます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- SVG要素 → viewBoxで仮想座標系を定義 --&gt;
+&lt;svg class="line-chart-svg"
+     viewBox="0 0 560 280"
+     preserveAspectRatio="xMidYMid meet"&gt;
+
+  &lt;!-- defs → 再利用可能な定義を格納する領域 --&gt;
+  &lt;defs&gt;
+    &lt;!-- linearGradient → 面積塗りつぶし用のグラデーション --&gt;
+    &lt;linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1"&gt;
+      &lt;stop offset="0%" stop-color="#6366f1" stop-opacity="0.3"/&gt;
+      &lt;stop offset="100%" stop-color="#6366f1" stop-opacity="0.02"/&gt;
+    &lt;/linearGradient&gt;
+  &lt;/defs&gt;
+
+  &lt;!-- グリッドライン → 目盛りの基準線 --&gt;
+  &lt;line class="grid-line" x1="50" y1="40" x2="540" y2="40"/&gt;
+
+  &lt;!-- polygon → 面積塗りつぶし（線の下を塗る） --&gt;
+  &lt;polygon class="chart-area"
+    points="70,180 113,160 ... 540,240 70,240"
+    fill="url(#areaGradient)"/&gt;
+
+  &lt;!-- polyline → 折れ線。pointsに座標を列挙 --&gt;
+  &lt;polyline class="chart-line"
+    points="70,180 113,160 157,120 ..."/&gt;
+
+  &lt;!-- circle → 各データポイント --&gt;
+  &lt;circle class="data-point" cx="70" cy="180" r="4"
+          data-label="1月: 30"/&gt;
+&lt;/svg&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* 折れ線 → stroke-dasharrayで描画アニメーション */
+.chart-line {
+  fill: none; /* 内部は塗らない（線だけ） */
+  stroke: var(--color-brand-500);
+  stroke-width: 2.5;
+
+  /* stroke-linecap: round → 線の端を丸くする */
+  stroke-linecap: round;
+
+  /* stroke-linejoin: round → 折れ点を丸くする */
+  stroke-linejoin: round;
+
+  /* stroke-dasharray → 線の可視部分のパターン
+     1500は線全体の長さ以上の値 */
+  stroke-dasharray: 1500;
+
+  /* stroke-dashoffset → 描画開始位置をずらす
+     1500（全長分）ずらすことで最初は何も見えない */
+  stroke-dashoffset: 1500;
+
+  /* animation → オフセットを0に戻して描画する */
+  animation: drawLine 2s ease-out forwards;
+}
+
+@keyframes drawLine {
+  to {
+    /* stroke-dashoffset: 0 → 線が完全に表示される */
+    stroke-dashoffset: 0;
+  }
+}
+
+/* データポイント → ホバーで拡大 */
+.data-point {
+  fill: var(--color-bg-primary); /* 白い中心 */
+  stroke: var(--color-brand-500); /* ブランドカラーの枠 */
+  stroke-width: 2;
+  cursor: pointer;
+  /* r → SVGのcircle半径。CSSから変更可能 */
+  transition: r 150ms;
+}
+
+.data-point:hover {
+  r: 6; /* ホバー時に半径を大きくする */
+  fill: var(--color-brand-500); /* 塗りつぶしに変更 */
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// データポイントにホバーツールチップを追加
+const tooltip = document.getElementById('chartTooltip');
+const points = document.querySelectorAll('.data-point');
+
+points.forEach(point =&gt; {
+  // mouseenter → マウスがポイントに乗った時
+  point.addEventListener('mouseenter', (e) =&gt; {
+    // data-label属性からラベルテキストを取得
+    tooltip.textContent = point.dataset.label;
+    tooltip.classList.add('visible');
+  });
+
+  // mousemove → マウス移動に合わせてツールチップを追従
+  point.addEventListener('mousemove', (e) =&gt; {
+    tooltip.style.left = e.pageX + 12 + 'px';
+    tooltip.style.top = e.pageY - 30 + 'px';
+  });
+
+  // mouseleave → マウスがポイントから離れた時
+  point.addEventListener('mouseleave', () =&gt; {
+    tooltip.classList.remove('visible');
+  });
+});</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">データが少ない場合（3ポイント）</div>
+          <div style="max-width: 300px;">
+            <svg viewBox="0 0 300 150" style="width: 100%;">
+              <line class="grid-line" x1="40" y1="30" x2="280" y2="30"/>
+              <line class="grid-line" x1="40" y1="70" x2="280" y2="70"/>
+              <line class="grid-line" x1="40" y1="110" x2="280" y2="110"/>
+              <polyline fill="none" stroke="var(--color-brand-500)" stroke-width="2" points="60,90 160,50 260,70"/>
+              <circle class="data-point" cx="60" cy="90" r="4" style="opacity:1;"/>
+              <circle class="data-point" cx="160" cy="50" r="4" style="opacity:1;"/>
+              <circle class="data-point" cx="260" cy="70" r="4" style="opacity:1;"/>
+            </svg>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">急激な変動がある場合</div>
+          <div style="max-width: 300px;">
+            <svg viewBox="0 0 300 150" style="width: 100%;">
+              <line class="grid-line" x1="40" y1="30" x2="280" y2="30"/>
+              <line class="grid-line" x1="40" y1="110" x2="280" y2="110"/>
+              <polyline fill="none" stroke="var(--color-brand-500)" stroke-width="2" points="60,100 100,35 140,105 180,30 220,110 260,40"/>
+              <circle class="data-point" cx="60" cy="100" r="4" style="opacity:1;"/>
+              <circle class="data-point" cx="100" cy="35" r="4" style="opacity:1;"/>
+              <circle class="data-point" cx="140" cy="105" r="4" style="opacity:1;"/>
+              <circle class="data-point" cx="180" cy="30" r="4" style="opacity:1;"/>
+              <circle class="data-point" cx="220" cy="110" r="4" style="opacity:1;"/>
+              <circle class="data-point" cx="260" cy="40" r="4" style="opacity:1;"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    /* ===================================================================
+       折れ線グラフ — ツールチップ制御
+       =================================================================== */
+
+    const tooltip = document.getElementById('chartTooltip');
+    const points = document.querySelectorAll('.data-point');
+
+    points.forEach(point => {
+      /* mouseenter → ツールチップを表示 */
+      point.addEventListener('mouseenter', () => {
+        tooltip.textContent = point.dataset.label;
+        tooltip.classList.add('visible');
+      });
+
+      /* mousemove → マウスに追従 */
+      point.addEventListener('mousemove', (e) => {
+        tooltip.style.left = e.pageX + 12 + 'px';
+        tooltip.style.top = e.pageY - 30 + 'px';
+      });
+
+      /* mouseleave → ツールチップを非表示 */
+      point.addEventListener('mouseleave', () => {
+        tooltip.classList.remove('visible');
+      });
+    });
+  </script>
+</body>
+</html>

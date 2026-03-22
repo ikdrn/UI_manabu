@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ファイルドロップアップロード — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       ファイルドロップアップロード — コンポーネントスタイル
+       =================================================================== */
+
+    /* ドロップゾーン */
+    .drop-zone {
+      border: 2px dashed var(--color-border-secondary);
+      border-radius: var(--radius-lg);
+      padding: var(--space-8);
+      text-align: center;
+      transition: border-color var(--duration-fast),
+                  background-color var(--duration-fast);
+      cursor: pointer;
+      max-width: 560px;
+      width: 100%;
+    }
+
+    .drop-zone:hover {
+      border-color: var(--color-brand-300);
+      background-color: var(--color-brand-50);
+    }
+
+    /* ドラッグオーバー時のアクティブ状態 */
+    .drop-zone.drag-active {
+      border-color: var(--color-brand-500);
+      background-color: var(--color-brand-50);
+      border-style: solid;
+    }
+
+    /* アップロードアイコン（CSS描画） */
+    .drop-zone-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto var(--space-3);
+      position: relative;
+    }
+
+    .drop-zone-icon::before {
+      content: '';
+      display: block;
+      width: 40px;
+      height: 32px;
+      border: 2px solid var(--color-text-tertiary);
+      border-radius: var(--radius-md);
+      margin: 8px auto 0;
+    }
+
+    .drop-zone-icon::after {
+      content: '';
+      position: absolute;
+      top: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 20px;
+      background: var(--color-brand-500);
+      box-shadow: -6px 6px 0 0 var(--color-brand-500),
+                  6px 6px 0 0 var(--color-brand-500);
+    }
+
+    .drop-zone-text {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-1);
+    }
+
+    .drop-zone-text strong {
+      color: var(--color-brand-500);
+    }
+
+    .drop-zone-hint {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+    }
+
+    /* 隠しファイルインプット */
+    .drop-zone-input {
+      display: none;
+    }
+
+    /* ファイルリスト */
+    .file-list {
+      list-style: none;
+      padding: 0;
+      margin: var(--space-4) 0 0;
+      max-width: 560px;
+      width: 100%;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--color-bg-primary);
+      border: 1px solid var(--color-border-secondary);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-2);
+      animation: fileSlideIn 300ms ease-out;
+    }
+
+    @keyframes fileSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ファイルプレビュー（画像サムネイル） */
+    .file-preview {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      object-fit: cover;
+      background: var(--color-bg-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .file-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* ファイル情報 */
+    .file-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .file-name {
+      font-size: var(--text-sm);
+      color: var(--color-text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-size {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+    }
+
+    /* 削除ボタン */
+    .file-remove {
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: var(--color-bg-tertiary);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-tertiary);
+      font-size: 16px;
+      flex-shrink: 0;
+      transition: background-color var(--duration-fast),
+                  color var(--duration-fast);
+    }
+
+    .file-remove:hover {
+      background-color: #fef2f2;
+      color: #dc2626;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">ドラッグ&ドロップ</span>
+      <h1 class="component-title">ファイルドロップアップロード</h1>
+      <p class="component-description">
+        ファイルをドラッグ&ドロップでアップロードできるゾーン。破線のボーダーでドロップ領域を示し、ドロップ後にファイル一覧と画像プレビューを表示します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col" style="align-items: center;">
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-zone-icon"></div>
+          <p class="drop-zone-text">ファイルをここにドラッグ、または<strong>クリックして選択</strong></p>
+          <p class="drop-zone-hint">PNG, JPG, PDF, 最大10MBまで</p>
+          <input type="file" class="drop-zone-input" id="fileInput" multiple accept="image/*,.pdf">
+        </div>
+        <ul class="file-list" id="fileList"></ul>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>破線ボーダーが「ここにドロップできる」を伝える</strong><br>
+        破線（dashed）のボーダーは「まだ何かが入る余地がある」という視覚的メタファーです。実線と異なり「完結していない」印象を与え、ユーザーにアクションを促します。</p>
+        <p><strong>dragenter/dragleave/dropの3段階イベント</strong><br>
+        dragenterで「入った」、dragleaveで「出た」、dropで「離した」を検知します。ブラウザのデフォルト動作（ファイルを開く）をpreventDefault()で防ぎ、アプリ側で処理します。</p>
+        <p><strong>FileReaderによる画像プレビュー</strong><br>
+        FileReader APIのreadAsDataURL()で画像をBase64文字列に変換し、imgタグのsrcに直接設定します。サーバーにアップロードする前にプレビューを表示でき、ユーザーの確認操作を支援します。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- ドロップゾーン → クリックでもファイル選択可能 --&gt;
+&lt;div class="drop-zone" id="dropZone"&gt;
+  &lt;div class="drop-zone-icon"&gt;&lt;/div&gt;
+  &lt;p class="drop-zone-text"&gt;
+    ファイルをここにドラッグ、または&lt;strong&gt;クリックして選択&lt;/strong&gt;
+  &lt;/p&gt;
+  &lt;p class="drop-zone-hint"&gt;PNG, JPG, PDF, 最大10MBまで&lt;/p&gt;
+
+  &lt;!-- 隠しinput → クリック時にファイル選択ダイアログを開く --&gt;
+  &lt;input type="file" class="drop-zone-input"
+         id="fileInput" multiple accept="image/*,.pdf"&gt;
+&lt;/div&gt;
+
+&lt;!-- ファイル一覧 → ドロップ後にJSで動的に追加 --&gt;
+&lt;ul class="file-list" id="fileList"&gt;&lt;/ul&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* ドロップゾーン → 破線ボーダーで「ここにドロップ」を示す */
+.drop-zone {
+  /* border: 2px dashed → 破線スタイル。「まだ何かが入る」を暗示 */
+  border: 2px dashed var(--color-border-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 150ms, background-color 150ms;
+}
+
+/* ドラッグオーバー時 → 破線から実線に変化 */
+.drop-zone.drag-active {
+  border-color: var(--color-brand-500);
+  background-color: var(--color-brand-50);
+  /* border-style: solid → ドロップ可能状態を「完結した枠」で表現 */
+  border-style: solid;
+}
+
+/* ファイルアイテム → スライドインアニメーション付き */
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-md);
+  /* animation → ファイル追加時に上からスライドイン */
+  animation: fileSlideIn 300ms ease-out;
+}
+
+@keyframes fileSlideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ファイル名の省略表示 */
+.file-name {
+  white-space: nowrap;
+  overflow: hidden;
+  /* text-overflow: ellipsis → はみ出した文字を「...」で省略 */
+  text-overflow: ellipsis;
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileList = document.getElementById('fileList');
+
+// クリックでファイル選択ダイアログを開く
+dropZone.addEventListener('click', () =&gt; fileInput.click());
+
+// dragenter → ファイルがゾーンに入った時
+dropZone.addEventListener('dragenter', (e) =&gt; {
+  e.preventDefault();
+  dropZone.classList.add('drag-active');
+});
+
+// dragover → ファイルがゾーン上にある間、連続発火
+dropZone.addEventListener('dragover', (e) =&gt; {
+  e.preventDefault(); // ブラウザがファイルを開くのを防ぐ
+});
+
+// dragleave → ファイルがゾーンから出た時
+dropZone.addEventListener('dragleave', () =&gt; {
+  dropZone.classList.remove('drag-active');
+});
+
+// drop → ファイルがドロップされた時
+dropZone.addEventListener('drop', (e) =&gt; {
+  e.preventDefault();
+  dropZone.classList.remove('drag-active');
+
+  // e.dataTransfer.files → ドロップされたファイルのリスト
+  const files = e.dataTransfer.files;
+  handleFiles(files);
+});
+
+// input変更時 → クリックでファイル選択した場合
+fileInput.addEventListener('change', (e) =&gt; {
+  handleFiles(e.target.files);
+});
+
+// ファイル処理の共通関数
+function handleFiles(files) {
+  Array.from(files).forEach(file =&gt; {
+    const li = document.createElement('li');
+    li.className = 'file-item';
+
+    // 画像プレビューの生成
+    const preview = document.createElement('div');
+    preview.className = 'file-preview';
+
+    // file.type.startsWith('image/') → 画像ファイルかどうかを判定
+    if (file.type.startsWith('image/')) {
+      // FileReader → ファイルの内容を非同期で読み取るAPI
+      const reader = new FileReader();
+      reader.onload = (e) =&gt; {
+        const img = document.createElement('img');
+        // e.target.result → Base64エンコードされた画像データ
+        img.src = e.target.result;
+        preview.appendChild(img);
+      };
+      // readAsDataURL → ファイルをBase64文字列として読み取る
+      reader.readAsDataURL(file);
+    } else {
+      preview.textContent = getFileExtension(file.name);
+    }
+
+    // ファイル情報
+    const info = document.createElement('div');
+    info.className = 'file-info';
+    info.innerHTML = `
+      &lt;div class="file-name"&gt;${file.name}&lt;/div&gt;
+      &lt;div class="file-size"&gt;${formatFileSize(file.size)}&lt;/div&gt;
+    `;
+
+    // 削除ボタン
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'file-remove';
+    removeBtn.innerHTML = '&amp;times;';
+    removeBtn.onclick = () =&gt; li.remove();
+
+    li.append(preview, info, removeBtn);
+    fileList.appendChild(li);
+  });
+}
+
+// ファイルサイズを人間が読みやすい形式に変換
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  // Math.log(bytes) / Math.log(1024) → 1024の何乗かを計算
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i];
+}
+
+// ファイル拡張子を取得
+function getFileExtension(name) {
+  return name.split('.').pop().toUpperCase();
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">長いファイル名</div>
+          <ul class="file-list" style="margin-top: 0;">
+            <li class="file-item">
+              <div class="file-preview">PNG</div>
+              <div class="file-info">
+                <div class="file-name">very-long-file-name-that-should-be-truncated-with-ellipsis-2024-03-22-final-v2.png</div>
+                <div class="file-size">2.4 MB</div>
+              </div>
+              <button class="file-remove">&times;</button>
+            </li>
+          </ul>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">様々なファイルタイプ</div>
+          <ul class="file-list" style="margin-top: 0;">
+            <li class="file-item">
+              <div class="file-preview">PDF</div>
+              <div class="file-info">
+                <div class="file-name">仕様書.pdf</div>
+                <div class="file-size">1.2 MB</div>
+              </div>
+              <button class="file-remove">&times;</button>
+            </li>
+            <li class="file-item">
+              <div class="file-preview">XLSX</div>
+              <div class="file-info">
+                <div class="file-name">予算表.xlsx</div>
+                <div class="file-size">456.0 KB</div>
+              </div>
+              <button class="file-remove">&times;</button>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    /* ===================================================================
+       ファイルドロップアップロード — イベント制御
+       =================================================================== */
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+
+    /* クリックでファイル選択ダイアログを開く */
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    /* dragenter → ゾーンに入ったらアクティブ状態にする */
+    dropZone.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('drag-active');
+    });
+
+    /* dragover → デフォルト動作（ファイルを開く）を防止 */
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    /* dragleave → ゾーンから出たらアクティブ状態を解除 */
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('drag-active');
+    });
+
+    /* drop → ファイルがドロップされた時の処理 */
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-active');
+      handleFiles(e.dataTransfer.files);
+    });
+
+    /* input変更時 → クリック選択の場合 */
+    fileInput.addEventListener('change', (e) => {
+      handleFiles(e.target.files);
+    });
+
+    /* ファイル処理関数 */
+    function handleFiles(files) {
+      Array.from(files).forEach(file => {
+        const li = document.createElement('li');
+        li.className = 'file-item';
+
+        const preview = document.createElement('div');
+        preview.className = 'file-preview';
+
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            preview.appendChild(img);
+          };
+          reader.readAsDataURL(file);
+        } else {
+          preview.textContent = file.name.split('.').pop().toUpperCase();
+        }
+
+        const info = document.createElement('div');
+        info.className = 'file-info';
+        info.innerHTML = `
+          <div class="file-name">${file.name}</div>
+          <div class="file-size">${formatFileSize(file.size)}</div>
+        `;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'file-remove';
+        removeBtn.innerHTML = '&times;';
+        removeBtn.onclick = () => li.remove();
+
+        li.append(preview, info, removeBtn);
+        fileList.appendChild(li);
+      });
+    }
+
+    /* ファイルサイズのフォーマット */
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 B';
+      const units = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(1024));
+      return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i];
+    }
+  </script>
+</body>
+</html>

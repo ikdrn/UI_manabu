@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>棒グラフ — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       棒グラフ — コンポーネントスタイル
+       =================================================================== */
+
+    /* グラフ全体のコンテナ */
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: var(--space-3);
+      height: 240px;
+      padding: var(--space-4) var(--space-2);
+      border-bottom: 2px solid var(--color-border-secondary);
+      border-left: 2px solid var(--color-border-secondary);
+      max-width: 480px;
+      width: 100%;
+      position: relative;
+    }
+
+    /* Y軸のグリッドライン */
+    .bar-chart::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 50%;
+      border-top: 1px dashed var(--color-border-secondary);
+    }
+
+    /* 各バーのコンテナ */
+    .bar-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+      height: 100%;
+      justify-content: flex-end;
+      position: relative;
+    }
+
+    /* バー本体 */
+    .bar {
+      width: 100%;
+      max-width: 48px;
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      background: linear-gradient(180deg, var(--color-brand-400), var(--color-brand-600));
+      position: relative;
+      cursor: pointer;
+      transition: filter var(--duration-fast);
+      /* growUpアニメーション */
+      animation: growUp 800ms ease-out forwards;
+      transform-origin: bottom;
+    }
+
+    .bar:hover {
+      filter: brightness(1.1);
+    }
+
+    /* 各バーに遅延を設定してアニメーションをずらす */
+    .bar-item:nth-child(1) .bar { animation-delay: 0ms; }
+    .bar-item:nth-child(2) .bar { animation-delay: 100ms; }
+    .bar-item:nth-child(3) .bar { animation-delay: 200ms; }
+    .bar-item:nth-child(4) .bar { animation-delay: 300ms; }
+    .bar-item:nth-child(5) .bar { animation-delay: 400ms; }
+    .bar-item:nth-child(6) .bar { animation-delay: 500ms; }
+
+    /* バーの成長アニメーション */
+    @keyframes growUp {
+      from {
+        transform: scaleY(0);
+        opacity: 0;
+      }
+      to {
+        transform: scaleY(1);
+        opacity: 1;
+      }
+    }
+
+    /* ツールチップ */
+    .bar::after {
+      content: attr(data-value) '件';
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 4px 8px;
+      background: var(--color-text-primary);
+      color: var(--color-bg-primary);
+      font-size: 11px;
+      border-radius: var(--radius-sm);
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--duration-fast);
+    }
+
+    .bar:hover::after {
+      opacity: 1;
+    }
+
+    /* 月ラベル */
+    .bar-label {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      text-align: center;
+      position: absolute;
+      bottom: -24px;
+    }
+
+    /* Y軸ラベル */
+    .bar-chart-y-labels {
+      position: absolute;
+      left: -36px;
+      top: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">チャート・データ可視化</span>
+      <h1 class="component-title">棒グラフ</h1>
+      <p class="component-description">
+        CSSのみで実装する棒グラフ。月ごとのデータを6本のバーで表示し、成長アニメーションとホバーツールチップを備えています。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col" style="align-items: center; padding-bottom: 40px;">
+        <div class="bar-chart" style="margin-left: 40px;">
+          <div class="bar-chart-y-labels">
+            <span>100</span>
+            <span>50</span>
+            <span>0</span>
+          </div>
+          <div class="bar-item">
+            <div class="bar" style="height: 65%;" data-value="65"></div>
+            <span class="bar-label">1月</span>
+          </div>
+          <div class="bar-item">
+            <div class="bar" style="height: 42%;" data-value="42"></div>
+            <span class="bar-label">2月</span>
+          </div>
+          <div class="bar-item">
+            <div class="bar" style="height: 78%;" data-value="78"></div>
+            <span class="bar-label">3月</span>
+          </div>
+          <div class="bar-item">
+            <div class="bar" style="height: 55%;" data-value="55"></div>
+            <span class="bar-label">4月</span>
+          </div>
+          <div class="bar-item">
+            <div class="bar" style="height: 90%;" data-value="90"></div>
+            <span class="bar-label">5月</span>
+          </div>
+          <div class="bar-item">
+            <div class="bar" style="height: 72%;" data-value="72"></div>
+            <span class="bar-label">6月</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>flex-end配置でバーを下から積み上げる</strong><br>
+        align-items: flex-endを使うことで、各バーがコンテナの底辺から上に伸びる自然な棒グラフのレイアウトを実現します。heightのパーセンテージでデータ量を視覚的に表現します。</p>
+        <p><strong>@keyframes growUpによる成長アニメーション</strong><br>
+        ページ読み込み時にバーが下から上に伸びるアニメーションを適用します。animation-delayをバーごとにずらすことで、左から右に順番に伸びる視覚効果を生み出します。</p>
+        <p><strong>data-value属性とCSS ::afterによるツールチップ</strong><br>
+        HTML5のdata属性にデータ値を格納し、CSSのattr()関数で::after疑似要素のcontentとして表示します。JavaScriptなしでホバーツールチップを実装できます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;!-- 棒グラフのコンテナ → flex-endで底辺揃え --&gt;
+&lt;div class="bar-chart"&gt;
+
+  &lt;!-- 各バーのアイテム --&gt;
+  &lt;div class="bar-item"&gt;
+    &lt;!-- height → データ値をパーセントで表現 --&gt;
+    &lt;!-- data-value → ツールチップに表示する値 --&gt;
+    &lt;div class="bar"
+         style="height: 65%;"
+         data-value="65"&gt;&lt;/div&gt;
+    &lt;span class="bar-label"&gt;1月&lt;/span&gt;
+  &lt;/div&gt;
+
+  &lt;div class="bar-item"&gt;
+    &lt;div class="bar"
+         style="height: 42%;"
+         data-value="42"&gt;&lt;/div&gt;
+    &lt;span class="bar-label"&gt;2月&lt;/span&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 他の月も同じ構造で繰り返す --&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* グラフコンテナ → flexboxで底辺揃え */
+.bar-chart {
+  display: flex;
+  /* align-items: flex-end → 子要素を下端に揃える
+     これにより各バーが底辺から上に伸びる */
+  align-items: flex-end;
+  gap: var(--space-3);
+  height: 240px;
+  /* 左辺と下辺に軸線を表示 */
+  border-bottom: 2px solid var(--color-border-secondary);
+  border-left: 2px solid var(--color-border-secondary);
+}
+
+/* バー本体 */
+.bar {
+  width: 100%;
+  max-width: 48px;
+  /* 上だけ角丸 → バーの頂点を丸くする */
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  /* グラデーションで立体感を出す */
+  background: linear-gradient(180deg,
+    var(--color-brand-400),
+    var(--color-brand-600));
+
+  /* growUpアニメーション → 下から上に成長 */
+  animation: growUp 800ms ease-out forwards;
+  /* transform-origin: bottom → 変形の基準点を下端に */
+  transform-origin: bottom;
+}
+
+/* 各バーにアニメーション遅延を設定 → 順番に伸びる効果 */
+.bar-item:nth-child(1) .bar { animation-delay: 0ms; }
+.bar-item:nth-child(2) .bar { animation-delay: 100ms; }
+.bar-item:nth-child(3) .bar { animation-delay: 200ms; }
+/* ... */
+
+/* @keyframes → バーの成長アニメーション定義 */
+@keyframes growUp {
+  from {
+    /* scaleY(0) → 高さ0の状態からスタート */
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* ツールチップ → data-value属性の値を::afterで表示 */
+.bar::after {
+  /* attr(data-value) → HTML属性の値をCSS内で参照 */
+  content: attr(data-value) '件';
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0; /* 通常時は非表示 */
+  transition: opacity 150ms;
+}
+
+.bar:hover::after {
+  opacity: 1; /* ホバー時に表示 */
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">値が0の月がある場合</div>
+          <div class="bar-chart" style="margin-left: 40px; height: 160px; max-width: 320px;">
+            <div class="bar-item">
+              <div class="bar" style="height: 45%;" data-value="45"></div>
+              <span class="bar-label">1月</span>
+            </div>
+            <div class="bar-item">
+              <div class="bar" style="height: 2px; min-height: 2px;" data-value="0"></div>
+              <span class="bar-label">2月</span>
+            </div>
+            <div class="bar-item">
+              <div class="bar" style="height: 80%;" data-value="80"></div>
+              <span class="bar-label">3月</span>
+            </div>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">全バーが最大値の場合</div>
+          <div class="bar-chart" style="margin-left: 40px; height: 160px; max-width: 320px;">
+            <div class="bar-item">
+              <div class="bar" style="height: 100%;" data-value="100"></div>
+              <span class="bar-label">1月</span>
+            </div>
+            <div class="bar-item">
+              <div class="bar" style="height: 100%;" data-value="100"></div>
+              <span class="bar-label">2月</span>
+            </div>
+            <div class="bar-item">
+              <div class="bar" style="height: 100%;" data-value="100"></div>
+              <span class="bar-label">3月</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

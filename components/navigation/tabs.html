@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>タブナビゲーション — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       タブナビゲーション — コンポーネントスタイル
+       =================================================================== */
+
+    .tabs {
+      width: 100%;
+    }
+
+    /* --- タブリスト --- */
+    .tabs__list {
+      display: flex;
+      position: relative;
+      border-bottom: 2px solid var(--color-neutral-200);
+      gap: 0;
+    }
+
+    /* --- 各タブボタン --- */
+    .tabs__tab {
+      padding: var(--space-3) var(--space-5);
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      color: var(--color-neutral-500);
+      background: none;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      transition: color var(--duration-fast);
+      white-space: nowrap;
+    }
+
+    .tabs__tab:hover {
+      color: var(--color-neutral-700);
+    }
+
+    .tabs__tab[aria-selected="true"] {
+      color: var(--color-brand-600);
+      font-weight: var(--font-semibold);
+    }
+
+    .tabs__tab:focus-visible {
+      outline: 2px solid var(--color-brand-500);
+      outline-offset: -2px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* --- アニメーション付き下線インジケーター --- */
+    .tabs__indicator {
+      position: absolute;
+      bottom: -2px;
+      height: 2px;
+      background: var(--color-brand-500);
+      transition: left var(--duration-normal) var(--ease-out),
+                  width var(--duration-normal) var(--ease-out);
+    }
+
+    /* --- タブパネル --- */
+    .tabs__panel {
+      display: none;
+      padding: var(--space-6) var(--space-4);
+      animation: tab-fade-in var(--duration-normal) var(--ease-out);
+    }
+
+    .tabs__panel.is-active {
+      display: block;
+    }
+
+    @keyframes tab-fade-in {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">ナビゲーション</span>
+      <h1 class="component-title">タブナビゲーション</h1>
+      <p class="component-description">
+        同一画面内でコンテンツを切り替えるタブUI。WAI-ARIAのタブパターンに準拠し、キーボード操作にも完全対応します。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+      <div class="preview-container preview-container--col" style="padding:0; overflow:hidden;">
+        <div class="tabs" id="demo-tabs">
+          <div class="tabs__list" role="tablist" aria-label="サンプルタブ">
+            <button class="tabs__tab" role="tab" aria-selected="true" aria-controls="panel-1" id="tab-1" tabindex="0">概要</button>
+            <button class="tabs__tab" role="tab" aria-selected="false" aria-controls="panel-2" id="tab-2" tabindex="-1">仕様</button>
+            <button class="tabs__tab" role="tab" aria-selected="false" aria-controls="panel-3" id="tab-3" tabindex="-1">レビュー</button>
+            <div class="tabs__indicator"></div>
+          </div>
+          <div class="tabs__panel is-active" role="tabpanel" id="panel-1" aria-labelledby="tab-1" tabindex="0">
+            <h3 style="font-size:var(--text-lg); font-weight:var(--font-semibold); margin-bottom:var(--space-2);">製品概要</h3>
+            <p style="color:var(--color-neutral-600); line-height:var(--leading-relaxed);">このタブには製品の概要が表示されます。タブをクリックするか、キーボードの矢印キーで他のタブに移動できます。</p>
+          </div>
+          <div class="tabs__panel" role="tabpanel" id="panel-2" aria-labelledby="tab-2" tabindex="0">
+            <h3 style="font-size:var(--text-lg); font-weight:var(--font-semibold); margin-bottom:var(--space-2);">製品仕様</h3>
+            <ul style="color:var(--color-neutral-600); line-height:var(--leading-relaxed); padding-left:var(--space-5);">
+              <li>サイズ：100 × 200 × 50 mm</li>
+              <li>重量：350g</li>
+              <li>素材：アルミニウム合金</li>
+              <li>カラー：シルバー / ブラック</li>
+            </ul>
+          </div>
+          <div class="tabs__panel" role="tabpanel" id="panel-3" aria-labelledby="tab-3" tabindex="0">
+            <h3 style="font-size:var(--text-lg); font-weight:var(--font-semibold); margin-bottom:var(--space-2);">ユーザーレビュー</h3>
+            <p style="color:var(--color-neutral-600); line-height:var(--leading-relaxed);">⭐⭐⭐⭐⭐ 「非常に使いやすく、デザインも美しい製品です。」— 田中さん</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>WAI-ARIAタブパターン</strong><br>
+        role="tablist"、role="tab"、role="tabpanel" を使い、各要素の関係性をスクリーンリーダーに伝えます。aria-selected="true" で選択中のタブを示し、aria-controls でタブとパネルを紐付けます。</p>
+        <p><strong>キーボードナビゲーション</strong><br>
+        ←→矢印キーでタブ間を移動、Home/Endで最初/最後に移動します。tabindex を制御することで、Tab キーではタブリストに1回だけフォーカスし、その後パネルに移動する効率的な操作を実現します。</p>
+        <p><strong>アニメーション付き下線インジケーター</strong><br>
+        選択中のタブの下に線を引くだけでなく、タブ切り替え時に線がスライドするアニメーションを付けることで、「どこから何処へ移動したか」を視覚的に伝えます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html">&lt;div class="tabs"&gt;
+  &lt;!-- role="tablist" → この領域がタブのリストであることを示す --&gt;
+  &lt;div class="tabs__list" role="tablist" aria-label="サンプルタブ"&gt;
+
+    &lt;!-- role="tab" → タブボタンであることを示す --&gt;
+    &lt;!-- aria-selected → 選択中かどうか --&gt;
+    &lt;!-- aria-controls → このタブが制御するパネルのID --&gt;
+    &lt;!-- tabindex="0" → 選択中タブにフォーカス可能 --&gt;
+    &lt;button class="tabs__tab" role="tab"
+            aria-selected="true"
+            aria-controls="panel-1"
+            id="tab-1"
+            tabindex="0"&gt;概要&lt;/button&gt;
+
+    &lt;!-- tabindex="-1" → 非選択タブはTab順序から除外 --&gt;
+    &lt;button class="tabs__tab" role="tab"
+            aria-selected="false"
+            aria-controls="panel-2"
+            id="tab-2"
+            tabindex="-1"&gt;仕様&lt;/button&gt;
+
+    &lt;!-- インジケーター用のdiv（JSで位置を制御） --&gt;
+    &lt;div class="tabs__indicator"&gt;&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- role="tabpanel" → タブに対応するコンテンツ領域 --&gt;
+  &lt;!-- aria-labelledby → 対応するタブのIDで紐付け --&gt;
+  &lt;div class="tabs__panel is-active" role="tabpanel"
+       id="panel-1" aria-labelledby="tab-1" tabindex="0"&gt;
+    パネル1の内容...
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">/* --- タブリスト --- */
+.tabs__list {
+  display: flex;
+  position: relative; /* インジケーターの位置基準 */
+  border-bottom: 2px solid var(--color-neutral-200);
+}
+
+/* --- アニメーション付きインジケーター --- */
+.tabs__indicator {
+  position: absolute;
+  bottom: -2px;        /* ボーダーの上に重ねる */
+  height: 2px;
+  background: var(--color-brand-500);
+  /* left と width を transition で滑らかに移動 */
+  transition: left 250ms cubic-bezier(0.16, 1, 0.3, 1),
+              width 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* --- パネルのフェードインアニメーション --- */
+@keyframes tab-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tabs__panel.is-active {
+  display: block;
+  animation: tab-fade-in 250ms ease-out;
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">function initTabs(container) {
+  const tabs = container.querySelectorAll('[role="tab"]');
+  const panels = container.querySelectorAll('[role="tabpanel"]');
+  const indicator = container.querySelector('.tabs__indicator');
+
+  // インジケーターの位置を更新する関数
+  function moveIndicator(tab) {
+    indicator.style.left = tab.offsetLeft + 'px';
+    indicator.style.width = tab.offsetWidth + 'px';
+  }
+
+  // タブを選択する関数
+  function selectTab(tab) {
+    // 全タブを非選択にする
+    tabs.forEach(t => {
+      t.setAttribute('aria-selected', 'false');
+      t.setAttribute('tabindex', '-1');
+    });
+
+    // 全パネルを非表示にする
+    panels.forEach(p => p.classList.remove('is-active'));
+
+    // 選択したタブをアクティブに
+    tab.setAttribute('aria-selected', 'true');
+    tab.setAttribute('tabindex', '0');
+    tab.focus();
+
+    // 対応するパネルを表示
+    const panelId = tab.getAttribute('aria-controls');
+    document.getElementById(panelId).classList.add('is-active');
+
+    // インジケーターを移動
+    moveIndicator(tab);
+  }
+
+  // クリックイベント
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => selectTab(tab));
+  });
+
+  // キーボードナビゲーション
+  container.querySelector('[role="tablist"]')
+    .addEventListener('keydown', (e) => {
+      const current = [...tabs].findIndex(
+        t => t.getAttribute('aria-selected') === 'true'
+      );
+      let next;
+
+      switch (e.key) {
+        case 'ArrowRight': next = (current + 1) % tabs.length; break;
+        case 'ArrowLeft':  next = (current - 1 + tabs.length) % tabs.length; break;
+        case 'Home':       next = 0; break;
+        case 'End':        next = tabs.length - 1; break;
+        default: return;
+      }
+      e.preventDefault();
+      selectTab(tabs[next]);
+    });
+
+  // 初期表示時にインジケーター位置をセット
+  const activeTab = container.querySelector('[aria-selected="true"]');
+  if (activeTab) moveIndicator(activeTab);
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">長いタブラベル</div>
+          <div class="tabs" id="edge-tabs-long" style="width:100%;">
+            <div class="tabs__list" role="tablist" aria-label="長いラベルデモ" style="flex-wrap:wrap;">
+              <button class="tabs__tab" role="tab" aria-selected="true" aria-controls="el-1" id="et-1" tabindex="0">アカウント設定</button>
+              <button class="tabs__tab" role="tab" aria-selected="false" aria-controls="el-2" id="et-2" tabindex="-1">セキュリティとプライバシー</button>
+              <button class="tabs__tab" role="tab" aria-selected="false" aria-controls="el-3" id="et-3" tabindex="-1">通知の設定</button>
+              <div class="tabs__indicator"></div>
+            </div>
+            <div class="tabs__panel is-active" role="tabpanel" id="el-1" aria-labelledby="et-1" tabindex="0">
+              <p style="color:var(--color-neutral-500);">タブのラベルが長い場合でも折り返しで対応できます。</p>
+            </div>
+            <div class="tabs__panel" role="tabpanel" id="el-2" aria-labelledby="et-2" tabindex="0"><p style="color:var(--color-neutral-500);">セキュリティパネル</p></div>
+            <div class="tabs__panel" role="tabpanel" id="el-3" aria-labelledby="et-3" tabindex="0"><p style="color:var(--color-neutral-500);">通知パネル</p></div>
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">2つのタブのみ</div>
+          <div class="tabs" id="edge-tabs-two">
+            <div class="tabs__list" role="tablist" aria-label="2タブデモ">
+              <button class="tabs__tab" role="tab" aria-selected="true" aria-controls="e2-1" id="t2-1" tabindex="0">ログイン</button>
+              <button class="tabs__tab" role="tab" aria-selected="false" aria-controls="e2-2" id="t2-2" tabindex="-1">新規登録</button>
+              <div class="tabs__indicator"></div>
+            </div>
+            <div class="tabs__panel is-active" role="tabpanel" id="e2-1" aria-labelledby="t2-1" tabindex="0"><p style="color:var(--color-neutral-500);">ログインフォーム</p></div>
+            <div class="tabs__panel" role="tabpanel" id="e2-2" aria-labelledby="t2-2" tabindex="0"><p style="color:var(--color-neutral-500);">新規登録フォーム</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script>
+    // タブの初期化
+    function initTabs(container) {
+      const tabs = container.querySelectorAll('[role="tab"]');
+      const panels = container.querySelectorAll('[role="tabpanel"]');
+      const indicator = container.querySelector('.tabs__indicator');
+
+      function moveIndicator(tab) {
+        if (!indicator) return;
+        indicator.style.left = tab.offsetLeft + 'px';
+        indicator.style.width = tab.offsetWidth + 'px';
+      }
+
+      function selectTab(tab) {
+        tabs.forEach(t => {
+          t.setAttribute('aria-selected', 'false');
+          t.setAttribute('tabindex', '-1');
+        });
+        panels.forEach(p => p.classList.remove('is-active'));
+
+        tab.setAttribute('aria-selected', 'true');
+        tab.setAttribute('tabindex', '0');
+        tab.focus();
+
+        const panelId = tab.getAttribute('aria-controls');
+        const panel = document.getElementById(panelId);
+        if (panel) panel.classList.add('is-active');
+        moveIndicator(tab);
+      }
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => selectTab(tab));
+      });
+
+      const tablist = container.querySelector('[role="tablist"]');
+      if (tablist) {
+        tablist.addEventListener('keydown', (e) => {
+          const current = [...tabs].findIndex(t => t.getAttribute('aria-selected') === 'true');
+          let next;
+          switch (e.key) {
+            case 'ArrowRight': next = (current + 1) % tabs.length; break;
+            case 'ArrowLeft':  next = (current - 1 + tabs.length) % tabs.length; break;
+            case 'Home':       next = 0; break;
+            case 'End':        next = tabs.length - 1; break;
+            default: return;
+          }
+          e.preventDefault();
+          selectTab(tabs[next]);
+        });
+      }
+
+      const activeTab = container.querySelector('[aria-selected="true"]');
+      if (activeTab) moveIndicator(activeTab);
+    }
+
+    // 全タブコンテナを初期化
+    document.querySelectorAll('.tabs').forEach(initTabs);
+    // リサイズ時にインジケーター位置を再計算
+    window.addEventListener('resize', () => {
+      document.querySelectorAll('.tabs').forEach(container => {
+        const activeTab = container.querySelector('[aria-selected="true"]');
+        const indicator = container.querySelector('.tabs__indicator');
+        if (activeTab && indicator) {
+          indicator.style.left = activeTab.offsetLeft + 'px';
+          indicator.style.width = activeTab.offsetWidth + 'px';
+        }
+      });
+    });
+  </script>
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+</body>
+</html>

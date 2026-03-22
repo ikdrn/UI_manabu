@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>テキスト入力 — UI学ぶ</title>
+  <link rel="stylesheet" href="../../shared/variables.css">
+  <link rel="stylesheet" href="../../shared/reset.css">
+  <link rel="stylesheet" href="../../shared/utilities.css">
+  <link rel="stylesheet" href="../../shared/layout.css">
+  <link rel="stylesheet" href="../../shared/code-highlight.css">
+  <style>
+    /* ===================================================================
+       テキスト入力 — コンポーネントスタイル
+       =================================================================== */
+
+    /* --- 共通入力フィールド --- */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .form-label {
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: var(--text-sm);
+      font-family: inherit;
+      color: var(--color-text-primary);
+      background-color: var(--color-bg-primary);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--radius-md);
+      outline: none;
+      transition: border-color var(--duration-fast),
+                  box-shadow var(--duration-fast);
+    }
+
+    .form-input::placeholder {
+      color: var(--color-text-tertiary);
+    }
+
+    .form-input:focus {
+      border-color: var(--color-brand-500);
+      box-shadow: 0 0 0 3px hsla(222, 80%, 50%, 0.15);
+    }
+
+    .form-helper {
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+    }
+
+    /* --- エラー状態 --- */
+    .form-input--error {
+      border-color: var(--color-error, #e53e3e);
+    }
+
+    .form-input--error:focus {
+      border-color: var(--color-error, #e53e3e);
+      box-shadow: 0 0 0 3px hsla(0, 70%, 50%, 0.15);
+    }
+
+    .form-error {
+      font-size: var(--text-xs);
+      color: var(--color-error, #e53e3e);
+    }
+
+    /* --- フローティングラベル --- */
+    .floating-group {
+      position: relative;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .floating-input {
+      width: 100%;
+      padding: 20px 12px 8px;
+      font-size: var(--text-sm);
+      font-family: inherit;
+      color: var(--color-text-primary);
+      background-color: var(--color-bg-primary);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--radius-md);
+      outline: none;
+      transition: border-color var(--duration-fast),
+                  box-shadow var(--duration-fast);
+    }
+
+    .floating-input:focus {
+      border-color: var(--color-brand-500);
+      box-shadow: 0 0 0 3px hsla(222, 80%, 50%, 0.15);
+    }
+
+    .floating-label {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      pointer-events: none;
+      transition: all var(--duration-fast);
+      transform-origin: left center;
+    }
+
+    /* placeholder-shownでない時（入力がある時）またはフォーカス時にラベルを上に移動 */
+    .floating-input:focus + .floating-label,
+    .floating-input:not(:placeholder-shown) + .floating-label {
+      top: 10px;
+      transform: translateY(0);
+      font-size: var(--text-xs);
+      color: var(--color-brand-500);
+    }
+
+    /* --- 文字数カウント --- */
+    .char-count-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .char-count {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      text-align: right;
+      margin-top: 4px;
+    }
+
+    .char-count--over {
+      color: var(--color-error, #e53e3e);
+      font-weight: var(--font-semibold);
+    }
+
+    /* --- 無効状態 --- */
+    .form-input:disabled {
+      background-color: var(--color-bg-secondary, #f5f5f5);
+      color: var(--color-text-tertiary);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="component-page">
+    <nav class="breadcrumb" aria-label="パンくずリスト"></nav>
+
+    <header class="component-header">
+      <span class="component-category">フォーム</span>
+      <h1 class="component-title">テキスト入力</h1>
+      <p class="component-description">
+        テキスト入力はフォームの基本要素です。ラベル、プレースホルダー、ヘルパーテキスト、エラー状態など、ユーザーが迷わず入力できるための工夫を学びます。
+      </p>
+    </header>
+
+    <!-- ========== プレビュー：標準テキスト入力 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">プレビュー</h2>
+
+      <div class="preview-container preview-container--col" style="gap: 24px; align-items: flex-start;">
+
+        <!-- 標準入力 + ラベル -->
+        <div class="form-group">
+          <label class="form-label" for="name">お名前</label>
+          <input class="form-input" type="text" id="name" placeholder="山田 太郎">
+        </div>
+
+        <!-- ヘルパーテキスト付き -->
+        <div class="form-group">
+          <label class="form-label" for="email">メールアドレス</label>
+          <input class="form-input" type="email" id="email" placeholder="example@mail.com" aria-describedby="email-helper">
+          <span class="form-helper" id="email-helper">確認メールをこのアドレスに送信します</span>
+        </div>
+
+        <!-- エラー状態 -->
+        <div class="form-group">
+          <label class="form-label" for="username">ユーザー名</label>
+          <input class="form-input form-input--error" type="text" id="username" value="ab" aria-describedby="username-error" aria-invalid="true">
+          <span class="form-error" id="username-error" role="alert">ユーザー名は3文字以上で入力してください</span>
+        </div>
+
+        <!-- フローティングラベル -->
+        <div class="floating-group">
+          <input class="floating-input" type="text" id="company" placeholder=" ">
+          <label class="floating-label" for="company">会社名</label>
+        </div>
+
+        <!-- 文字数カウント -->
+        <div class="form-group">
+          <label class="form-label" for="bio">自己紹介</label>
+          <div class="char-count-wrapper">
+            <input class="form-input" type="text" id="bio" placeholder="短く自己紹介してください" maxlength="50" data-maxlength="50">
+            <div class="char-count" id="bio-count">0 / 50</div>
+          </div>
+        </div>
+
+        <!-- 無効状態 -->
+        <div class="form-group">
+          <label class="form-label" for="readonly-field">部署（変更不可）</label>
+          <input class="form-input" type="text" id="readonly-field" value="開発部" disabled>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== 設計の意図 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">設計の意図</h2>
+      <div class="design-rationale">
+        <p><strong>なぜラベルは入力フィールドの上に置くのか？</strong><br>
+        ラベルが上にあると、視線が上→下と自然に流れます。左配置に比べてモバイルでも崩れにくく、入力フィールドとの関係が明確になります。</p>
+
+        <p><strong>フローティングラベルの利点と注意点</strong><br>
+        スペース節約には有効ですが、縮小したラベルが小さすぎると読みにくくなります。<code>:placeholder-shown</code>擬似クラスを使い、入力がない時だけプレースホルダー位置にラベルを表示します。</p>
+
+        <p><strong>エラーは「いつ」表示するか？</strong><br>
+        入力中にリアルタイムでエラーを出すと煩わしいため、フォーカスを外した時（blur）に検証するのが一般的です。<code>aria-invalid</code>と<code>aria-describedby</code>でスクリーンリーダーにもエラーを伝えます。</p>
+
+        <p><strong>文字数カウントで「あとどれだけ書けるか」を伝える</strong><br>
+        SNSの投稿や自己紹介欄など、制限があるフィールドでは残り文字数を見せることで、ユーザーが安心して入力を調整できます。</p>
+      </div>
+    </section>
+
+    <!-- ========== コード解説 ========== -->
+    <section class="component-section">
+      <h2 class="section-title">コード解説</h2>
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JS</button>
+      </div>
+      <div class="code-block-wrapper">
+        <div class="code-panel active" data-panel="html">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="html"><!-- label要素のfor属性 → inputのidと紐づけることで、
+     ラベルクリックで入力欄にフォーカスが移る。アクセシビリティの基本 -->
+&lt;div class="form-group"&gt;
+  &lt;label class="form-label" for="name"&gt;お名前&lt;/label&gt;
+  &lt;input class="form-input" type="text" id="name" placeholder="山田 太郎"&gt;
+&lt;/div&gt;
+
+<!-- aria-describedby → 入力欄に関連する補足情報をスクリーンリーダーに伝える。
+     ヘルパーテキストやエラーメッセージのidを指定する -->
+&lt;div class="form-group"&gt;
+  &lt;label class="form-label" for="email"&gt;メールアドレス&lt;/label&gt;
+  &lt;input class="form-input" type="email" id="email"
+         placeholder="example@mail.com"
+         aria-describedby="email-helper"&gt;
+  &lt;span class="form-helper" id="email-helper"&gt;確認メールをこのアドレスに送信します&lt;/span&gt;
+&lt;/div&gt;
+
+<!-- エラー状態 → aria-invalid="true"でスクリーンリーダーに
+     「この入力は無効です」と伝える -->
+&lt;div class="form-group"&gt;
+  &lt;label class="form-label" for="username"&gt;ユーザー名&lt;/label&gt;
+  &lt;input class="form-input form-input--error" type="text" id="username"
+         aria-describedby="username-error" aria-invalid="true"&gt;
+  &lt;span class="form-error" id="username-error" role="alert"&gt;
+    ユーザー名は3文字以上で入力してください
+  &lt;/span&gt;
+&lt;/div&gt;
+
+<!-- フローティングラベル → placeholder=" "（半角スペース）がポイント。
+     :placeholder-shownが効くために空でないplaceholderが必要 -->
+&lt;div class="floating-group"&gt;
+  &lt;input class="floating-input" type="text" id="company" placeholder=" "&gt;
+  &lt;label class="floating-label" for="company"&gt;会社名&lt;/label&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        <div class="code-panel" data-panel="css">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="css">.form-input {
+  /* padding → 上下10px、左右12pxの内側余白。
+     十分なクリック領域を確保する */
+  padding: 10px 12px;
+
+  /* border → 1pxの実線ボーダー。入力欄の境界を明確にする */
+  border: 1px solid var(--color-border-default);
+
+  /* border-radius → 角丸で柔らかい印象にする */
+  border-radius: var(--radius-md);
+
+  /* outline: none → ブラウザデフォルトのフォーカス枠を消す。
+     代わりに:focusで独自のスタイルを指定する */
+  outline: none;
+
+  /* transition → ボーダー色とシャドウの変化をなめらかにする */
+  transition: border-color 150ms, box-shadow 150ms;
+}
+
+/* :focus → フォーカス時にブランドカラーのボーダーと
+   薄い影で「ここに入力中」を視覚的に示す */
+.form-input:focus {
+  border-color: var(--color-brand-500);
+  box-shadow: 0 0 0 3px hsla(222, 80%, 50%, 0.15);
+}
+
+/* エラー状態 → 赤いボーダーで即座に問題を伝える */
+.form-input--error {
+  border-color: #e53e3e;
+}
+
+/* --- フローティングラベルの仕組み --- */
+.floating-label {
+  /* position: absolute → 入力欄の上に重ねて配置する */
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  /* pointer-events: none → ラベルをクリックしても
+     下のinputにフォーカスが届くようにする */
+  pointer-events: none;
+
+  /* transition → 移動アニメーション */
+  transition: all 150ms;
+}
+
+/* :placeholder-shown → placeholderが見えている時（＝入力が空）。
+   この擬似クラスの「否定（:not）」で入力がある時を検出する */
+.floating-input:focus + .floating-label,
+.floating-input:not(:placeholder-shown) + .floating-label {
+  top: 10px;
+  transform: translateY(0);
+  font-size: 0.75rem;
+  color: var(--color-brand-500);
+}
+
+/* :disabled → 無効状態。背景をグレーにし、操作不可を伝える */
+.form-input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.6;
+}</code></pre>
+        </div>
+        <div class="code-panel" data-panel="js">
+          <button class="copy-btn">コピー</button>
+          <pre><code data-lang="js">// --- 文字数カウント ---
+// 入力イベントを監視して、現在の文字数を表示する
+
+const bioInput = document.getElementById('bio');
+const bioCount = document.getElementById('bio-count');
+const maxLen = 50;
+
+bioInput.addEventListener('input', () => {
+  // value.length → 現在の入力文字数を取得
+  const len = bioInput.value.length;
+  bioCount.textContent = `${len} / ${maxLen}`;
+
+  // 上限を超えたら警告色にする
+  if (len >= maxLen) {
+    bioCount.classList.add('char-count--over');
+  } else {
+    bioCount.classList.remove('char-count--over');
+  }
+});</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== エッジケース ========== -->
+    <section class="component-section">
+      <h2 class="section-title">実運用でのエッジケース</h2>
+      <div class="edge-cases">
+        <div class="edge-case-item">
+          <div class="edge-case-label">非常に長い入力値</div>
+          <div class="form-group">
+            <label class="form-label" for="edge-long">住所</label>
+            <input class="form-input" type="text" id="edge-long" value="東京都千代田区永田町一丁目七番一号 国会議事堂前ビルディング 第三会議室棟 地下二階 特別応接室">
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">長いラベルテキスト</div>
+          <div class="form-group">
+            <label class="form-label" for="edge-label">緊急連絡先の電話番号（携帯電話が望ましい）</label>
+            <input class="form-input" type="text" id="edge-label" placeholder="090-1234-5678">
+          </div>
+        </div>
+        <div class="edge-case-item">
+          <div class="edge-case-label">複数のエラーが同時発生</div>
+          <div class="form-group">
+            <label class="form-label" for="edge-multi">パスワード</label>
+            <input class="form-input form-input--error" type="text" id="edge-multi" value="ab" aria-describedby="edge-multi-err" aria-invalid="true">
+            <span class="form-error" id="edge-multi-err" role="alert">8文字以上、大文字を1つ以上含めてください</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="component-nav"></nav>
+  </div>
+
+  <script src="../../shared/navigation.js"></script>
+  <script src="../../shared/code-highlight.js"></script>
+  <script src="../../shared/component-template.js"></script>
+  <script>
+    // 文字数カウント機能
+    const bioInput = document.getElementById('bio');
+    const bioCount = document.getElementById('bio-count');
+    const maxLen = 50;
+
+    if (bioInput && bioCount) {
+      bioInput.addEventListener('input', () => {
+        const len = bioInput.value.length;
+        bioCount.textContent = `${len} / ${maxLen}`;
+        if (len >= maxLen) {
+          bioCount.classList.add('char-count--over');
+        } else {
+          bioCount.classList.remove('char-count--over');
+        }
+      });
+    }
+  </script>
+</body>
+</html>
